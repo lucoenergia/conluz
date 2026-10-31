@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
@@ -16,6 +17,7 @@ import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyInstantResolver;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +44,7 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
     private final DatadisProductionMapper datadisProductionMapper;
     private final PersistDatadisProductionRepository persistDatadisProductionRepository;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
+    private final DatadisHourlyInstantResolver datadisHourlyInstantResolver;
 
     public DatadisSyncServiceImpl(@Qualifier("getDatadisConsumptionRepositoryRest") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
                                   GetSupplyRepository getSupplyRepository,
@@ -49,7 +52,8 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
                                   GetPlantRepository getPlantRepository,
                                   DatadisProductionMapper datadisProductionMapper,
                                   PersistDatadisProductionRepository persistDatadisProductionRepository,
-                                  GetDatadisConfigRepository getDatadisConfigRepository) {
+                                  GetDatadisConfigRepository getDatadisConfigRepository,
+                                  DatadisHourlyInstantResolver datadisHourlyInstantResolver) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
@@ -57,6 +61,7 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
         this.datadisProductionMapper = datadisProductionMapper;
         this.persistDatadisProductionRepository = persistDatadisProductionRepository;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
+        this.datadisHourlyInstantResolver = datadisHourlyInstantResolver;
     }
 
     @Override
@@ -116,10 +121,12 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
                 List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
 
                 if (!consumptions.isEmpty()) {
+                    List<DatadisHourlyRecord<DatadisConsumption>> hourlyRecords =
+                            datadisHourlyInstantResolver.resolve(consumptions);
                     if (isPlantSupply) {
-                        persistProductionAndZeroedConsumption(consumptions);
+                        persistProductionAndZeroedConsumption(hourlyRecords);
                     } else {
-                        persistDatadisConsumptionRepository.persistHourlyConsumptions(consumptions);
+                        persistDatadisConsumptionRepository.persistHourlyConsumptions(hourlyRecords);
                     }
                     LOGGER.info("Hourly consumptions persisted");
                 } else {
@@ -138,15 +145,18 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
      * For a plant supply the Datadis surplus is the energy the plant produced, so it is stored as
      * production. The consumption is then persisted with its surplus zeroed out (on copies, leaving
      * the original DTOs untouched) to avoid counting the same energy as both surplus and production.
+     * Both are stored at the instants already resolved for the consumption records.
      */
-    private void persistProductionAndZeroedConsumption(List<DatadisConsumption> consumptions) {
-        List<DatadisProduction> productions = datadisProductionMapper.mapList(consumptions);
-        persistDatadisProductionRepository.persistHourlyProductions(productions);
-
-        List<DatadisConsumption> zeroedConsumptions = new ArrayList<>(consumptions.size());
-        for (DatadisConsumption consumption : consumptions) {
-            zeroedConsumptions.add(copyWithZeroSurplus(consumption));
+    private void persistProductionAndZeroedConsumption(List<DatadisHourlyRecord<DatadisConsumption>> consumptions) {
+        List<DatadisHourlyRecord<DatadisProduction>> productions = new ArrayList<>(consumptions.size());
+        List<DatadisHourlyRecord<DatadisConsumption>> zeroedConsumptions = new ArrayList<>(consumptions.size());
+        for (DatadisHourlyRecord<DatadisConsumption> consumption : consumptions) {
+            productions.add(new DatadisHourlyRecord<>(consumption.instant(),
+                    datadisProductionMapper.map(consumption.record())));
+            zeroedConsumptions.add(new DatadisHourlyRecord<>(consumption.instant(),
+                    copyWithZeroSurplus(consumption.record())));
         }
+        persistDatadisProductionRepository.persistHourlyProductions(productions);
         persistDatadisConsumptionRepository.persistHourlyConsumptions(zeroedConsumptions);
     }
 

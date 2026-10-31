@@ -6,6 +6,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
 import org.lucoenergia.conluz.domain.production.datadis.PersistDatadisProductionRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 /**
  * Integration test for {@link PersistDatadisProductionRepositoryInflux}. It writes a production
  * point and reads it back from InfluxDB to assert the persisted cups, production_kwh, obtain_method
- * and timestamp. April 1, 2023 10:00 Europe/Madrid (CEST, UTC+2) equals 2023-04-01T08:00:00Z.
+ * and timestamp: the point is stored at the instant the record carries.
  */
 @SpringBootTest
 class PersistDatadisProductionRepositoryInfluxTest extends BaseIntegrationTest {
@@ -54,7 +55,8 @@ class PersistDatadisProductionRepositoryInfluxTest extends BaseIntegrationTest {
         production.setProductionKWh(1.93f);
         production.setObtainMethod("Real");
 
-        repository.persistHourlyProductions(List.of(production));
+        repository.persistHourlyProductions(List.of(
+                new DatadisHourlyRecord<>(Instant.parse("2023-04-01T08:00:00Z"), production)));
 
         List<DatadisProductionPoint> result = queryProductionData(
                 "2023-04-01T00:00:00Z", "2023-04-02T00:00:00Z");

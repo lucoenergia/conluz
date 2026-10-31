@@ -6,13 +6,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.Collections;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,9 +24,6 @@ class PersistDatadisConsumptionRepositoryInfluxTest {
 
     @Mock
     private InfluxDbConnectionManager influxDbConnectionManager;
-
-    @Mock
-    private DateConverter dateConverter;
 
     @Mock
     private InfluxDB influxDB;
@@ -40,7 +38,8 @@ class PersistDatadisConsumptionRepositoryInfluxTest {
         Mockito.when(influxDbConnectionManager.createBatchPoints()).thenReturn(batchPoints);
 
         // Act
-        repository.persistHourlyConsumptions(Collections.singletonList(consumption));
+        repository.persistHourlyConsumptions(Collections.singletonList(
+                new DatadisHourlyRecord<>(Instant.parse("2024-01-10T09:00:00Z"), consumption)));
 
         // Assert
         Mockito.verify(consumption, Mockito.atLeastOnce()).getCups();

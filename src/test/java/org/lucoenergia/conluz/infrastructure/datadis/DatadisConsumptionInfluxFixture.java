@@ -24,7 +24,7 @@ import java.util.stream.Stream;
  * Writes and removes hourly consumption records for an arbitrary CUPS, for tests that need their
  * own dataset rather than the fixed one {@link DatadisConsumptionInfluxLoader} provides.
  *
- * <p>Records go through the production persistence repository, so a field left null on the
+ * <p>Records go through the production instant resolution and persistence repository, so a field left null on the
  * {@link DatadisConsumption} is absent from the stored point exactly as it would be in
  * production.</p>
  */
@@ -33,11 +33,14 @@ import java.util.stream.Stream;
 public class DatadisConsumptionInfluxFixture {
 
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
+    private final DatadisHourlyInstantResolver datadisHourlyInstantResolver;
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
     public DatadisConsumptionInfluxFixture(PersistDatadisConsumptionRepository persistDatadisConsumptionRepository,
+                                           DatadisHourlyInstantResolver datadisHourlyInstantResolver,
                                            InfluxDbConnectionManager influxDbConnectionManager) {
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
+        this.datadisHourlyInstantResolver = datadisHourlyInstantResolver;
         this.influxDbConnectionManager = influxDbConnectionManager;
     }
 
@@ -60,8 +63,13 @@ public class DatadisConsumptionInfluxFixture {
         return consumption;
     }
 
+    /**
+     * Stores the records at the instants the Datadis sync would resolve for them, as one batch of the same
+     * supply.
+     */
     public void write(List<DatadisConsumption> consumptions) {
-        persistDatadisConsumptionRepository.persistHourlyConsumptions(consumptions);
+        persistDatadisConsumptionRepository.persistHourlyConsumptions(
+                datadisHourlyInstantResolver.resolve(consumptions));
     }
 
     /**

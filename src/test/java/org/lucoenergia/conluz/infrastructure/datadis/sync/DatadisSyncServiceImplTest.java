@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
@@ -19,12 +20,15 @@ import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyInstantResolver;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
+import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -62,10 +66,19 @@ class DatadisSyncServiceImplTest {
     private final GetDatadisConfigRepository getDatadisConfigRepository =
             Mockito.mock(GetDatadisConfigRepository.class);
 
+    private final DatadisHourlyInstantResolver datadisHourlyInstantResolver =
+            new DatadisHourlyInstantResolver(madridTimeConfiguration());
+
     private final DatadisSyncService service = new DatadisSyncServiceImpl(
             getDatadisConsumptionRepository, getSupplyRepository, persistDatadisConsumptionRepository,
             getPlantRepository, datadisProductionMapper, persistDatadisProductionRepository,
-            getDatadisConfigRepository);
+            getDatadisConfigRepository, datadisHourlyInstantResolver);
+
+    private static TimeConfiguration madridTimeConfiguration() {
+        TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
+        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
+        return timeConfiguration;
+    }
 
     private static DatadisConfig config(boolean enabled) {
         return new DatadisConfig.Builder()
@@ -89,7 +102,7 @@ class DatadisSyncServiceImplTest {
         Supply supplyTwo = SupplyMother.random().build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyOne, supplyTwo));
 
-        List<DatadisConsumption> consumptions = List.of(Mockito.mock(DatadisConsumption.class));
+        List<DatadisConsumption> consumptions = List.of(consumption("ES001", 1.0f));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
                 .thenReturn(consumptions);
 
@@ -97,7 +110,8 @@ class DatadisSyncServiceImplTest {
 
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyOne, Month.JANUARY, 2024);
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyTwo, Month.JANUARY, 2024);
-        verify(persistDatadisConsumptionRepository, times(2)).persistHourlyConsumptions(consumptions);
+        verify(persistDatadisConsumptionRepository, times(2))
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions));
         verifyNoInteractions(persistDatadisProductionRepository);
     }
 
@@ -173,7 +187,7 @@ class DatadisSyncServiceImplTest {
         Supply supply = SupplyMother.random().build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
-        List<DatadisConsumption> consumptions = List.of(Mockito.mock(DatadisConsumption.class));
+        List<DatadisConsumption> consumptions = List.of(consumption("ES001", 1.0f));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024))
                 .thenThrow(new DatadisSupplyConfigurationException("boom"));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, Month.FEBRUARY, 2024))
@@ -182,7 +196,8 @@ class DatadisSyncServiceImplTest {
         service.synchronize(communityId, startDate, endDate);
 
         // The failure for January must not stop February from being processed and persisted.
-        verify(persistDatadisConsumptionRepository, times(1)).persistHourlyConsumptions(consumptions);
+        verify(persistDatadisConsumptionRepository, times(1))
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions));
     }
 
     // ---------------------------------------------------------------------
@@ -205,19 +220,21 @@ class DatadisSyncServiceImplTest {
         service.synchronize(communityId, date, date);
 
         // Production is derived from the original surplus.
-        ArgumentCaptor<List<DatadisProduction>> productionCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<DatadisHourlyRecord<DatadisProduction>>> productionCaptor =
+                ArgumentCaptor.forClass(List.class);
         verify(persistDatadisProductionRepository).persistHourlyProductions(productionCaptor.capture());
-        List<DatadisProduction> productions = productionCaptor.getValue();
+        List<DatadisHourlyRecord<DatadisProduction>> productions = productionCaptor.getValue();
         assertEquals(1, productions.size());
-        assertEquals(3.5f, productions.get(0).getProductionKWh());
-        assertEquals(plantSupply.getCode(), productions.get(0).getCups());
+        assertEquals(3.5f, productions.get(0).record().getProductionKWh());
+        assertEquals(plantSupply.getCode(), productions.get(0).record().getCups());
 
         // Consumption is persisted from a copy whose surplus is zeroed.
-        ArgumentCaptor<List<DatadisConsumption>> consumptionCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<DatadisHourlyRecord<DatadisConsumption>>> consumptionCaptor =
+                ArgumentCaptor.forClass(List.class);
         verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(consumptionCaptor.capture());
-        List<DatadisConsumption> persisted = consumptionCaptor.getValue();
+        List<DatadisHourlyRecord<DatadisConsumption>> persisted = consumptionCaptor.getValue();
         assertEquals(1, persisted.size());
-        assertEquals(0f, persisted.get(0).getSurplusEnergyKWh());
+        assertEquals(0f, persisted.get(0).record().getSurplusEnergyKWh());
 
         // The original DTO must not be mutated.
         assertEquals(3.5f, original.getSurplusEnergyKWh());
@@ -239,7 +256,8 @@ class DatadisSyncServiceImplTest {
 
         service.synchronize(communityId, date, date);
 
-        verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(List.of(original));
+        verify(persistDatadisConsumptionRepository)
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(List.of(original)));
         verifyNoInteractions(persistDatadisProductionRepository);
         // Surplus is untouched.
         assertEquals(2.0f, original.getSurplusEnergyKWh());
@@ -259,14 +277,15 @@ class DatadisSyncServiceImplTest {
         Supply supply = SupplyMother.random().withCommunity(community).build();
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
-        List<DatadisConsumption> consumptions = List.of(Mockito.mock(DatadisConsumption.class));
+        List<DatadisConsumption> consumptions = List.of(consumption("ES001", 1.0f));
         when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
                 .thenReturn(consumptions);
 
         service.synchronize(communityId, date, date, supplyCode);
 
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024);
-        verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(consumptions);
+        verify(persistDatadisConsumptionRepository)
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions));
         verifyNoInteractions(persistDatadisProductionRepository);
     }
 
@@ -287,13 +306,15 @@ class DatadisSyncServiceImplTest {
 
         service.synchronize(communityId, date, date, supplyCode);
 
-        ArgumentCaptor<List<DatadisProduction>> productionCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<DatadisHourlyRecord<DatadisProduction>>> productionCaptor =
+                ArgumentCaptor.forClass(List.class);
         verify(persistDatadisProductionRepository).persistHourlyProductions(productionCaptor.capture());
-        assertEquals(4.0f, productionCaptor.getValue().get(0).getProductionKWh());
+        assertEquals(4.0f, productionCaptor.getValue().get(0).record().getProductionKWh());
 
-        ArgumentCaptor<List<DatadisConsumption>> consumptionCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<DatadisHourlyRecord<DatadisConsumption>>> consumptionCaptor =
+                ArgumentCaptor.forClass(List.class);
         verify(persistDatadisConsumptionRepository).persistHourlyConsumptions(consumptionCaptor.capture());
-        assertEquals(0f, consumptionCaptor.getValue().get(0).getSurplusEnergyKWh());
+        assertEquals(0f, consumptionCaptor.getValue().get(0).record().getSurplusEnergyKWh());
         assertEquals(4.0f, original.getSurplusEnergyKWh());
     }
 
