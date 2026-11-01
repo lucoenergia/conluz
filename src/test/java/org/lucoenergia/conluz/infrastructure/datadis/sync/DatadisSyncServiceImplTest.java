@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -19,6 +21,7 @@ import org.lucoenergia.conluz.domain.production.datadis.PersistDatadisProduction
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyInstantResolver;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
@@ -26,16 +29,21 @@ import org.lucoenergia.conluz.infrastructure.shared.time.TimeConfiguration;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -428,6 +436,130 @@ class DatadisSyncServiceImplTest {
 
         verify(getSupplyRepository).findByCode(SupplyCode.of("ES001"));
         verify(getSupplyRepository, never()).findAllByCommunityId(any(UUID.class));
+    }
+
+    // ---------------------------------------------------------------------
+    // Instants of the hourly records (#322)
+    // ---------------------------------------------------------------------
+
+    @Test
+    @DisplayName("DHI-002 AC4 a day placed by label is logged once, with the supply id, the date and both counts, never the CUPS")
+    void aDayPlacedByLabelIsLoggedOnceWithoutTheCups() {
+        UUID communityId = UUID.randomUUID();
+        Supply supply = SupplyMother.random().build();
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
+
+        List<String> withoutTwoPm = hourLabels();
+        withoutTwoPm.remove("14:00");
+        List<DatadisConsumption> records = new ArrayList<>(day(supply.getCode(), "2025/11/04", hourLabels(), 0f));
+        records.addAll(day(supply.getCode(), "2025/11/05", withoutTwoPm, 100f));
+        records.addAll(day(supply.getCode(), "2025/11/06", hourLabels(), 200f));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+                .thenReturn(records);
+
+        try (LogCapture logs = LogCapture.of(DatadisSyncServiceImpl.class)) {
+            service.synchronize(communityId, LocalDate.of(2025, 11, 1), LocalDate.of(2025, 11, 1));
+
+            List<ILoggingEvent> warnings = logs.warningsAndAbove();
+            assertEquals(1, warnings.size(), () -> "warnings: " + warnings);
+            ILoggingEvent warning = warnings.get(0);
+            assertArrayEquals(new Object[]{23, supply.getId(), LocalDate.of(2025, 11, 5), 24},
+                    warning.getArgumentArray());
+            assertNull(warning.getThrowableProxy());
+            for (ILoggingEvent event : logs.all()) {
+                assertFalse(event.getFormattedMessage().contains(supply.getCode()),
+                        () -> "the CUPS is logged: " + event.getFormattedMessage());
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("DHI-003 AC5 a plant supply's hourly production is stored at the same instants as its hourly consumption")
+    void aPlantSuppliesProductionIsStoredAtTheInstantsOfItsConsumption() {
+        UUID communityId = UUID.randomUUID();
+        Supply plantSupply = SupplyMother.random().build();
+        when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(plantSupply));
+        when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of(plantSupply.getCode()));
+
+        String cups = plantSupply.getCode();
+        List<String> withoutTwoPm = hourLabels();
+        withoutTwoPm.remove("14:00");
+        // An ordinary day, the day the clocks go back, and a day missing an hour.
+        List<DatadisConsumption> october = new ArrayList<>(day(cups, "2025/10/25", hourLabels(), 0f));
+        october.addAll(day(cups, "2025/10/26", fallBackLabels(), 100f));
+        october.addAll(day(cups, "2025/10/27", withoutTwoPm, 200f));
+        // The day the clocks go forward.
+        List<DatadisConsumption> march = new ArrayList<>(day(cups, "2026/03/29", springForwardLabels(), 300f));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(plantSupply, Month.OCTOBER, 2025))
+                .thenReturn(october);
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(plantSupply, Month.MARCH, 2026))
+                .thenReturn(march);
+
+        service.synchronize(communityId, LocalDate.of(2025, 10, 1), LocalDate.of(2026, 3, 1));
+
+        ArgumentCaptor<List<DatadisHourlyRecord<DatadisProduction>>> productionCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(persistDatadisProductionRepository, times(2)).persistHourlyProductions(productionCaptor.capture());
+        ArgumentCaptor<List<DatadisHourlyRecord<DatadisConsumption>>> consumptionCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(persistDatadisConsumptionRepository, times(2)).persistHourlyConsumptions(consumptionCaptor.capture());
+
+        List<DatadisHourlyRecord<DatadisProduction>> productions =
+                productionCaptor.getAllValues().stream().flatMap(List::stream).toList();
+        List<DatadisHourlyRecord<DatadisConsumption>> consumptions =
+                consumptionCaptor.getAllValues().stream().flatMap(List::stream).toList();
+        assertEquals(24 + 25 + 23 + 23, productions.size());
+        assertEquals(consumptions.stream().map(DatadisHourlyRecord::instant).toList(),
+                productions.stream().map(DatadisHourlyRecord::instant).toList());
+        // Each production point carries the surplus of the consumption record stored at its instant.
+        List<DatadisHourlyRecord<DatadisConsumption>> resolved = new ArrayList<>(
+                datadisHourlyInstantResolver.resolve(october).records());
+        resolved.addAll(datadisHourlyInstantResolver.resolve(march).records());
+        for (int i = 0; i < productions.size(); i++) {
+            assertEquals(resolved.get(i).instant(), productions.get(i).instant());
+            assertEquals(resolved.get(i).record().getSurplusEnergyKWh(), productions.get(i).record().getProductionKWh());
+            assertEquals(0f, consumptions.get(i).record().getSurplusEnergyKWh());
+        }
+        assertEquals(Instant.parse("2025-10-26T00:00:00Z"), productions.get(24 + 2).instant());
+        assertEquals(Instant.parse("2025-10-26T01:00:00Z"), productions.get(24 + 3).instant());
+    }
+
+    private static List<String> hourLabels() {
+        List<String> labels = new ArrayList<>();
+        for (int hour = 1; hour <= 24; hour++) {
+            labels.add(String.format("%02d:00", hour));
+        }
+        return labels;
+    }
+
+    /** As Datadis labels 2025/10/26: 03:00 twice. */
+    private static List<String> fallBackLabels() {
+        List<String> labels = hourLabels();
+        labels.add(2, "03:00");
+        return labels;
+    }
+
+    /** As Datadis labels 2026/03/29: no 03:00. */
+    private static List<String> springForwardLabels() {
+        List<String> labels = hourLabels();
+        labels.remove("03:00");
+        return labels;
+    }
+
+    /** One record per label, in order, the n-th with a consumption and a surplus of {@code base + n}. */
+    private static List<DatadisConsumption> day(String cups, String date, List<String> labels, float base) {
+        List<DatadisConsumption> records = new ArrayList<>();
+        for (int position = 0; position < labels.size(); position++) {
+            DatadisConsumption record = new DatadisConsumption();
+            record.setCups(cups);
+            record.setDate(date);
+            record.setTime(labels.get(position));
+            record.setConsumptionKWh(base + position + 1);
+            record.setSurplusEnergyKWh(base + position + 1);
+            record.setObtainMethod("Real");
+            records.add(record);
+        }
+        return records;
     }
 
     private DatadisConsumption consumption(String cups, Float surplus) {
