@@ -111,7 +111,7 @@ class DatadisSyncServiceImplTest {
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyOne, Month.JANUARY, 2024);
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyTwo, Month.JANUARY, 2024);
         verify(persistDatadisConsumptionRepository, times(2))
-                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions));
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions).records());
         verifyNoInteractions(persistDatadisProductionRepository);
     }
 
@@ -197,7 +197,7 @@ class DatadisSyncServiceImplTest {
 
         // The failure for January must not stop February from being processed and persisted.
         verify(persistDatadisConsumptionRepository, times(1))
-                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions));
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions).records());
     }
 
     // ---------------------------------------------------------------------
@@ -257,7 +257,7 @@ class DatadisSyncServiceImplTest {
         service.synchronize(communityId, date, date);
 
         verify(persistDatadisConsumptionRepository)
-                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(List.of(original)));
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(List.of(original)).records());
         verifyNoInteractions(persistDatadisProductionRepository);
         // Surplus is untouched.
         assertEquals(2.0f, original.getSurplusEnergyKWh());
@@ -285,7 +285,7 @@ class DatadisSyncServiceImplTest {
 
         verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024);
         verify(persistDatadisConsumptionRepository)
-                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions));
+                .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions).records());
         verifyNoInteractions(persistDatadisProductionRepository);
     }
 

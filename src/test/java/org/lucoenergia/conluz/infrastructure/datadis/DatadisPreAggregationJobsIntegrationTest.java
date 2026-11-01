@@ -178,10 +178,10 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void aStalePointOfAClosedMonthIsRewrittenToTheSumOfItsHourlyRecords() {
         Supply supply = enabledSupplies.get(0);
         writeConsumptionMonth(supply, CLOSED_MONTH, 90f, 0f, 3f, 0f);
-        writeHour(supply, "2026/05/01", "00:00", 10.5f, 4.25f, 1f, 6f);
-        writeHour(supply, "2026/05/15", "13:00", 20f, 8f, 2.5f, 12f);
-        writeHour(supply, "2026/05/31", "23:00", 1.25f, 0.5f, 0.25f, 1f);
-        writeHour(supply, "2026/06/01", "00:00", 1000f, 1000f, 1000f, 1000f); // June, not May
+        writeHour(supply, "2026/05/01", "01:00", 10.5f, 4.25f, 1f, 6f);
+        writeHour(supply, "2026/05/15", "14:00", 20f, 8f, 2.5f, 12f);
+        writeHour(supply, "2026/05/31", "24:00", 1.25f, 0.5f, 0.25f, 1f);
+        writeHour(supply, "2026/06/01", "01:00", 1000f, 1000f, 1000f, 1000f); // June, not May
 
         monthlyConsumptionJob().run();
 
@@ -205,8 +205,8 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
             for (YearMonth month : List.of(FIRST_MONTH, CLOSED_MONTH, CURRENT_MONTH)) {
                 writeConsumptionMonth(supply, month, 999f, 999f, 999f, 999f);
                 String day = String.format("%d/%02d/01", month.getYear(), month.getMonthValue());
-                writeHour(supply, day, "00:00", base, base / 2, base / 4, base * 2);
-                writeHour(supply, day, "12:00", base * 3, base, base / 2, base);
+                writeHour(supply, day, "01:00", base, base / 2, base / 4, base * 2);
+                writeHour(supply, day, "13:00", base * 3, base, base / 2, base);
                 expected.put(supply.getCode() + month, new double[]{base * 4, base * 1.5, base * 0.75, base * 3});
                 base += 1f;
             }

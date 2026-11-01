@@ -194,10 +194,10 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         SupplyEntity partial = persistSupply(member, community);
         persistSupply(member, community);
         for (int hour = 0; hour < 24; hour++) {
-            write(complete, "2026/05/10", String.format("%02d:00", hour), 1f, 0.5f, 0f);
+            write(complete, "2026/05/10", String.format("%02d:00", hour + 1), 1f, 0.5f, 0f);
         }
         for (int hour = 8; hour < 18; hour++) {
-            write(partial, "2026/05/10", String.format("%02d:00", hour), 2f, 1f, 0f);
+            write(partial, "2026/05/10", String.format("%02d:00", hour + 1), 2f, 1f, 0f);
         }
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)

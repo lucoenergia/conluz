@@ -251,9 +251,9 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
-        write(first, "2024/01/10", "11:00", 5f, 5f, 0f);
-        write(first, "2024/01/10", "12:00", 1f, 1f, 0f);
-        write(second, "2024/01/10", "13:00", 2f, 2f, 0f);
+        write(first, "2024/01/10", "12:00", 5f, 5f, 0f);
+        write(first, "2024/01/10", "13:00", 1f, 1f, 0f);
+        write(second, "2024/01/10", "14:00", 2f, 2f, 0f);
 
         request(community, member, loginUser(member), "2024-01-10T12:00:00+01:00", "2024-01-11T00:00:00+01:00")
                 .andExpect(status().isOk())
@@ -278,10 +278,10 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
-        write(first, "2024/01/10", "12:00", 7f, 0f, 0f);
-        write(first, "2024/01/11", "09:00", 1f, 0f, 0f);
-        write(second, "2024/01/11", "10:00", 2f, 0f, 0f);
-        write(second, "2024/01/11", "11:00", 4f, 0f, 0f);
+        write(first, "2024/01/10", "13:00", 7f, 0f, 0f);
+        write(first, "2024/01/11", "10:00", 1f, 0f, 0f);
+        write(second, "2024/01/11", "11:00", 2f, 0f, 0f);
+        write(second, "2024/01/11", "12:00", 4f, 0f, 0f);
         String token = loginUser(member);
         travelTo(OffsetDateTime.parse("2024-01-11T11:30:00+01:00").toInstant());
 

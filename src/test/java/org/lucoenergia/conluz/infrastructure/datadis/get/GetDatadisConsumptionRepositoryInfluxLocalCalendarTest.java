@@ -35,11 +35,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * ({@code conluz.time.zone.id}, Europe/Madrid under {@code application-test.properties}) rather than
  * UTC days.
  *
- * <p>Records are written with explicit UTC instants instead of going through
- * {@code PersistDatadisConsumptionRepository}: that path converts a local {@code date}/{@code time}
- * pair with {@code atZone}, which resolves the repeated hour of a fall-back day to a single offset,
- * so the two local 02:00 records would collapse onto the same instant and a 25-hour day could not be
- * expressed at all.
+ * <p>Records are written with explicit UTC instants instead of going through the Datadis write path,
+ * so each bucket's expected sum depends only on the instants listed here, not on how Datadis labels
+ * are resolved.
  *
  * <p>All energy values are multiples of 0.25 kWh, exactly representable in binary floating point, so
  * every expected sum below is asserted with a zero tolerance.

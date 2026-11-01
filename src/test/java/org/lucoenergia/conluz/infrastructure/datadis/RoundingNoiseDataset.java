@@ -26,6 +26,10 @@ public final class RoundingNoiseDataset {
 
     /** A day in winter time, in the application time zone. */
     public static final String DATE = "2024/02/10";
+    /** The Datadis labels of the two records: the local time each hour ends at. */
+    public static final String FIRST_LABEL = "11:00";
+    public static final String SECOND_LABEL = "12:00";
+    /** The local time each record's hour starts at, as the hourly read reports it. */
     public static final String FIRST_HOUR = "10:00";
     public static final String SECOND_HOUR = "11:00";
     public static final String DAY_START = "2024-02-10T00:00:00+01:00";
@@ -59,11 +63,11 @@ public final class RoundingNoiseDataset {
     }
 
     public static DatadisConsumption firstRecord(String cups) {
-        return record(cups, FIRST_HOUR, FIRST_GRID_IMPORT, FIRST_SELF_CONSUMPTION, FIRST_SURPLUS, FIRST_GENERATION);
+        return record(cups, FIRST_LABEL, FIRST_GRID_IMPORT, FIRST_SELF_CONSUMPTION, FIRST_SURPLUS, FIRST_GENERATION);
     }
 
     public static DatadisConsumption secondRecord(String cups) {
-        return record(cups, SECOND_HOUR, SECOND_GRID_IMPORT, SECOND_SELF_CONSUMPTION, SECOND_SURPLUS,
+        return record(cups, SECOND_LABEL, SECOND_GRID_IMPORT, SECOND_SELF_CONSUMPTION, SECOND_SURPLUS,
                 SECOND_GENERATION);
     }
 
@@ -122,9 +126,9 @@ public final class RoundingNoiseDataset {
         assertEquals(generation, stored.getGenerationEnergyKWh());
     }
 
-    private static DatadisConsumption record(String cups, String hour, float gridImport, float selfConsumption,
+    private static DatadisConsumption record(String cups, String label, float gridImport, float selfConsumption,
                                              float surplus, float generation) {
-        DatadisConsumption record = hourlyRecord(cups, DATE, hour, gridImport, selfConsumption, surplus);
+        DatadisConsumption record = hourlyRecord(cups, DATE, label, gridImport, selfConsumption, surplus);
         record.setGenerationEnergyKWh(generation);
         return record;
     }

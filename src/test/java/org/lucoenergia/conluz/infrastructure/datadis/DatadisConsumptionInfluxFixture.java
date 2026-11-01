@@ -48,7 +48,8 @@ public class DatadisConsumptionInfluxFixture {
      * Builds an hourly record. A null energy value is stored as an absent field.
      *
      * @param date in {@code yyyy/MM/dd} format, interpreted in the application time zone
-     * @param time in {@code HH:mm} format, interpreted in the application time zone
+     * @param time the Datadis label in {@code HH:mm} format: the local time the record's hour ends at,
+     *             {@code 01:00} to {@code 24:00}
      */
     public static DatadisConsumption hourlyRecord(String cups, String date, String time, Float consumptionKWh,
                                                   Float selfConsumptionEnergyKWh, Float surplusEnergyKWh) {
@@ -65,19 +66,20 @@ public class DatadisConsumptionInfluxFixture {
 
     /**
      * Stores the records at the instants the Datadis sync would resolve for them, as one batch of the same
-     * supply.
+     * supply: a day is placed by position only when the batch holds all of its hours, otherwise each record
+     * goes one hour before its label.
      */
     public void write(List<DatadisConsumption> consumptions) {
         persistDatadisConsumptionRepository.persistHourlyConsumptions(
-                datadisHourlyInstantResolver.resolve(consumptions));
+                datadisHourlyInstantResolver.resolve(consumptions).records());
     }
 
     /**
      * Writes one hourly record at an exact instant, with the same fields the production persistence
      * writes; a null energy value is stored as an absent field.
      *
-     * <p>The production path addresses records by local date and time, so it cannot write both
-     * records of the local hour a daylight saving fall-back repeats. This one can.</p>
+     * <p>The production path places the two records of the local hour a daylight saving fall-back repeats
+     * only when it receives the whole day. This one writes either of them on its own.</p>
      */
     public void writeAt(String cups, Instant time, Float consumptionKWh, Float selfConsumptionEnergyKWh,
                         Float surplusEnergyKWh) {

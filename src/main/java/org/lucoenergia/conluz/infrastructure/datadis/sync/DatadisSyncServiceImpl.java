@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyInstantResolver;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyResolution;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,8 +122,9 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
                 List<DatadisConsumption> consumptions = getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, month, year);
 
                 if (!consumptions.isEmpty()) {
-                    List<DatadisHourlyRecord<DatadisConsumption>> hourlyRecords =
-                            datadisHourlyInstantResolver.resolve(consumptions);
+                    DatadisHourlyResolution resolution = datadisHourlyInstantResolver.resolve(consumptions);
+                    warnAboutMismatchedDays(supply, resolution);
+                    List<DatadisHourlyRecord<DatadisConsumption>> hourlyRecords = resolution.records();
                     if (isPlantSupply) {
                         persistProductionAndZeroedConsumption(hourlyRecords);
                     } else {
@@ -138,6 +140,18 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
             }
 
             validDateFrom = validDateFrom.plusMonths(1);
+        }
+    }
+
+    /**
+     * One line per day whose records could not be placed by position. It names the supply by its id, never by its
+     * CUPS.
+     */
+    private void warnAboutMismatchedDays(Supply supply, DatadisHourlyResolution resolution) {
+        for (DatadisHourlyResolution.MismatchedDay day : resolution.mismatchedDays()) {
+            LOGGER.warn("Datadis returned {} hourly records for supply with ID {} on {}, {} expected: each record is "
+                            + "stored one hour before its label",
+                    day.foundRecords(), supply.getId(), day.date(), day.expectedHours());
         }
     }
 
