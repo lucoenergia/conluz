@@ -37,15 +37,6 @@ public class DateConverter {
         }
     }
 
-    public long convertStringDateToMilliseconds(String dateString) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd'T'HH:mm");
-
-        ZoneId zoneId = timeConfiguration.getZoneId();
-
-        LocalDateTime dateTime = LocalDateTime.parse(dateString, formatter);
-        return dateTime.atZone(zoneId).toInstant().toEpochMilli();
-    }
-
     public OffsetDateTime convertInstantToOffsetDateTime(Instant instant) {
 
         ZoneId zoneId = timeConfiguration.getZoneId();
