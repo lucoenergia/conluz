@@ -56,6 +56,9 @@ public class GetSupplyYearlyConsumptionController {
 
                     Data is aggregated by year within the specified date range.
 
+                    **`date` and `time`:** `date` is 1 January and `time` is `00:00`: the local midnight,
+                    in the time zone the application is configured with, at which the year starts.
+
                     **Time zone:** each year covers the local calendar year of the time zone the
                     application is configured with, not the UTC one, so its total includes the first
                     and last local hours of the year and nothing from its neighbours.

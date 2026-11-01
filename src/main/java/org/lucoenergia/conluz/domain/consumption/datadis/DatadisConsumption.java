@@ -13,6 +13,16 @@ public class DatadisConsumption {
 
     private String cups;
     private String date;
+    /**
+     * A local time, {@code HH:mm}, that goes with {@code date}.
+     * It means two different things depending on where the object comes from:
+     * <ul>
+     *     <li>Read from Datadis, it is the label of an hourly record: the local time at which the record's hour
+     *     <em>ends</em>, from {@code 01:00} to {@code 24:00}, with no offset (see #322).</li>
+     *     <li>Returned by this application, it is the start of the period the values cover: for an hourly series,
+     *     the local time at which the hour starts. Each operation's description says what it holds.</li>
+     * </ul>
+     */
     private String time;
     private Float consumptionKWh;
     private String obtainMethod;
