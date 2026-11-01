@@ -486,7 +486,7 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
                                                         float selfConsumptionKWh) {
         SupplyEntity supply = persistSupply(owner, community);
         DatadisConsumption record = DatadisConsumptionInfluxFixture.hourlyRecord(
-                supply.getCode(), "2025/02/01", "00:00", selfConsumptionKWh, selfConsumptionKWh, 0f);
+                supply.getCode(), "2025/02/01", "01:00", selfConsumptionKWh, selfConsumptionKWh, 0f);
         influxFixture.write(List.of(record));
         writtenCups.add(supply.getCode());
         return supply;

@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
@@ -31,6 +32,9 @@ import java.util.stream.Stream;
 @Profile("test")
 @Component
 public class DatadisConsumptionInfluxFixture {
+
+    /** The local time a record's hour ends at, as Datadis labels it: {@code 01:00} to {@code 24:00}. */
+    private static final Pattern DATADIS_LABEL = Pattern.compile("(0[1-9]|1[0-9]|2[0-4]):00");
 
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
     private final DatadisHourlyInstantResolver datadisHourlyInstantResolver;
@@ -68,8 +72,18 @@ public class DatadisConsumptionInfluxFixture {
      * Stores the records at the instants the Datadis sync would resolve for them, as one batch of the same
      * supply: a day is placed by position only when the batch holds all of its hours, otherwise each record
      * goes one hour before its label.
+     *
+     * @throws IllegalArgumentException if a record's {@code time} is not a Datadis label, {@code 01:00} to
+     *                                  {@code 24:00}
      */
     public void write(List<DatadisConsumption> consumptions) {
+        for (DatadisConsumption consumption : consumptions) {
+            if (consumption.getTime() == null || !DATADIS_LABEL.matcher(consumption.getTime()).matches()) {
+                throw new IllegalArgumentException(String.format(
+                        "Record on %s has time '%s', which is not a Datadis label: Datadis labels the end of the hour, "
+                                + "from 01:00 to 24:00", consumption.getDate(), consumption.getTime()));
+            }
+        }
         persistDatadisConsumptionRepository.persistHourlyConsumptions(
                 datadisHourlyInstantResolver.resolve(consumptions).records());
     }

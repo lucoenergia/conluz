@@ -235,7 +235,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void aMonthBeforeTheWindowIsNotRewritten() {
         Supply supply = enabledSupplies.get(1);
         writeConsumptionMonth(supply, BEFORE_WINDOW, 7f, 6f, 5f, 4f);
-        writeHour(supply, "2025/09/15", "12:00", 100f, 100f, 100f, 100f);
+        writeHour(supply, "2025/09/15", "13:00", 100f, 100f, 100f, 100f);
 
         monthlyConsumptionJob().run();
 
@@ -250,7 +250,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @DisplayName("DCA-001 a community with Datadis disabled is not touched")
     void aCommunityWithDatadisDisabledIsNotTouched() {
         writeConsumptionMonth(disabledSupply, CLOSED_MONTH, 7f, 6f, 5f, 4f);
-        writeHour(disabledSupply, "2026/05/15", "12:00", 100f, 100f, 100f, 100f);
+        writeHour(disabledSupply, "2026/05/15", "13:00", 100f, 100f, 100f, 100f);
 
         monthlyConsumptionJob().run();
 

@@ -101,8 +101,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
-        write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
-        write(supply, "2026/08/11", "13:00", 1f, 2f, 1f);
+        write(supply, "2026/08/10", "13:00", 1f, 2f, 1f);
+        write(supply, "2026/08/11", "14:00", 1f, 2f, 1f);
 
         ResultActions response = request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -214,8 +214,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8), 3);
-        write(supply, "2026/08/10", "02:00", 0.3f, 0f, 0f);
-        write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
+        write(supply, "2026/08/10", "03:00", 0.3f, 0f, 0f);
+        write(supply, "2026/08/10", "13:00", 1f, 2f, 1f);
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -382,8 +382,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2024/08/15", "12:00", 3f, 4f, 1f);
-        write(supply, "2026/08/15", "12:00", 3f, 0f, 0f);
+        write(supply, "2024/08/15", "13:00", 3f, 4f, 1f);
+        write(supply, "2026/08/15", "13:00", 3f, 0f, 0f);
 
         assertEmptyProfile(request(community, member, loginUser(member)), 1);
     }
@@ -402,9 +402,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         SupplyEntity active = persistSupply(member, community);
         persistSupply(member, community);
         writePublishedZeros(active, YearMonth.of(2026, 8));
-        write(active, "2026/08/10", "12:00", 1f, 2f, 1f);
-        write(active, "2026/08/11", "12:00", 1f, 2f, 1f);
-        write(active, "2026/08/11", "13:00", 1f, null, null);
+        write(active, "2026/08/10", "13:00", 1f, 2f, 1f);
+        write(active, "2026/08/11", "13:00", 1f, 2f, 1f);
+        write(active, "2026/08/11", "14:00", 1f, null, null);
         String token = loginUser(member);
 
         JsonNode profile = json(request(community, member, token).andExpect(status().isOk()));

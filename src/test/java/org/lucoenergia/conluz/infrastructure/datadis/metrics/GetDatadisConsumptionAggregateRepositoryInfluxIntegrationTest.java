@@ -106,7 +106,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Test
     void anEmptyResultSetBecomesAnAggregateOfZeros() {
         Supply supply = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 5.0f, 1.0f, 1.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 5.0f, 1.0f, 1.0f));
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2025-01-01T00:00:00+01:00"),
@@ -411,7 +411,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Test
     void anIntervalMatchingNoRecordSumsToZero() {
         Supply supply = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 0.0f, 5.0f, 0.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 0.0f, 5.0f, 0.0f));
 
         double sum = repository.sumSelfConsumptionKWh(supply,
                 OffsetDateTime.parse("2025-01-01T00:00:00+01:00").toInstant(),
@@ -517,8 +517,8 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void aSupplyWithoutAnyPublishedRecordHasNoPublishedPeriodAndNoPublishedHours() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, null, 3.0f),
-                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, null));
+                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, 3.0f),
+                hourlyRecord(supply.getCode(), "2024/02/10", "14:00", 1.0f, null, null));
 
         assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
         assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
