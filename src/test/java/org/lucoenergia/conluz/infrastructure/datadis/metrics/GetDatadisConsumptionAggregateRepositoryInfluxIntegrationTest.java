@@ -61,9 +61,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void aggregatesEveryFieldOverTheRangeAndCountsTheRecords() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.0f, 2.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 100.0f, 50.0f, 0.5f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 1.0f, 2.0f, 2.0f));
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
@@ -84,11 +84,11 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void includesTheRecordOnTheStartBoundAndExcludesTheOneOnTheEndBound() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/01", "09:00", 16.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 2.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 4.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 32.0f, 0.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 16.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 1.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 2.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 4.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "14:00", 32.0f, 0.0f, 0.0f));
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2024-02-01T10:00:00+01:00"),
@@ -106,7 +106,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Test
     void anEmptyResultSetBecomesAnAggregateOfZeros() {
         Supply supply = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 5.0f, 1.0f, 1.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 5.0f, 1.0f, 1.0f));
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2025-01-01T00:00:00+01:00"),
@@ -141,11 +141,11 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         Supply withoutSelfConsumption = supply();
 
         // The first supply puts both fields in the measurement's schema...
-        write(hourlyRecord(withSelfConsumption.getCode(), "2024/02/01", "00:00", 3.0f, 7.0f, 11.0f));
+        write(hourlyRecord(withSelfConsumption.getCode(), "2024/02/01", "01:00", 3.0f, 7.0f, 11.0f));
         // ...which the second one never writes, so its own sums come back null.
         write(
-                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "00:00", 5.0f, null, null),
-                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "01:00", 7.0f, null, null));
+                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "01:00", 5.0f, null, null),
+                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "02:00", 7.0f, null, null));
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(withoutSelfConsumption,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
@@ -165,10 +165,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         Supply supply = supply();
         Supply neighbour = supply();
 
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 5.0f, 1.0f, 1.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 5.0f, 1.0f, 1.0f));
         write(
-                hourlyRecord(neighbour.getCode(), "2024/02/01", "00:00", 1000.0f, 1000.0f, 1000.0f),
-                hourlyRecord(neighbour.getCode(), "2024/02/01", "01:00", 1000.0f, 1000.0f, 1000.0f));
+                hourlyRecord(neighbour.getCode(), "2024/02/01", "01:00", 1000.0f, 1000.0f, 1000.0f),
+                hourlyRecord(neighbour.getCode(), "2024/02/01", "02:00", 1000.0f, 1000.0f, 1000.0f));
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00"),
@@ -182,9 +182,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void findsTheInstantsOfTheEarliestAndLatestStoredRecords() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2023/04/10", "07:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2023/06/15", "13:00", 2.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "23:00", 3.0f, 0.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2023/04/10", "08:00", 1.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2023/06/15", "14:00", 2.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "24:00", 3.0f, 0.0f, 0.0f));
 
         Optional<RecordedConsumptionPeriod> period = repository.findRecordedPeriod(supply);
 
@@ -202,7 +202,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Test
     void findsThePeriodOfASingleRecord() {
         Supply supply = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 0.0f, 0.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 0.0f, 0.0f));
 
         Optional<RecordedConsumptionPeriod> period = repository.findRecordedPeriod(supply);
 
@@ -220,10 +220,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         Supply supply = supply();
         Supply neighbour = supply();
 
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 0.0f, 0.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 0.0f, 0.0f));
         write(
-                hourlyRecord(neighbour.getCode(), "2020/01/01", "00:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(neighbour.getCode(), "2030/01/01", "00:00", 1.0f, 0.0f, 0.0f));
+                hourlyRecord(neighbour.getCode(), "2020/01/01", "01:00", 1.0f, 0.0f, 0.0f),
+                hourlyRecord(neighbour.getCode(), "2030/01/01", "01:00", 1.0f, 0.0f, 0.0f));
 
         Optional<RecordedConsumptionPeriod> period = repository.findRecordedPeriod(supply);
 
@@ -233,30 +233,40 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     }
 
     /**
-     * The day the clocks go back repeats a local hour, so its 24 distinct hourly instants span 24
-     * elapsed hours rather than 23. Losing the offset here would move the reported period.
+     * The day the clocks go back repeats a local hour, so its 25 hourly instants span 25 elapsed
+     * hours. Datadis labels that day with 25 records, {@code 03:00} twice, and each one is stored
+     * at its own instant. Losing the offset here would move the reported period.
      */
     @Test
     void reportsThePeriodAcrossADaylightSavingTransitionInInstants() {
         Supply supply = supply();
+        List<String> labels = new ArrayList<>(List.of("01:00", "02:00", "03:00", "03:00"));
+        for (int hour = 4; hour <= 24; hour++) {
+            labels.add(String.format("%02d:00", hour));
+        }
         List<DatadisConsumption> records = new ArrayList<>();
-        for (int hour = 0; hour < 24; hour++) {
-            records.add(hourlyRecord(supply.getCode(), "2023/10/29",
-                    String.format("%02d:00", hour), 1.0f, 0.0f, 0.0f));
+        for (String label : labels) {
+            records.add(hourlyRecord(supply.getCode(), "2023/10/29", label, 1.0f, 0.0f, 0.0f));
         }
         write(records.toArray(new DatadisConsumption[0]));
 
         Optional<RecordedConsumptionPeriod> period = repository.findRecordedPeriod(supply);
 
         assertTrue(period.isPresent());
-        // Local 00:00 is still +02:00; local 23:00 is already +01:00.
+        // The day starts at local 00:00, still +02:00; its last hour starts at local 23:00, already +01:00.
         assertEquals(Instant.parse("2023-10-28T22:00:00Z"), period.get().getFirstRecord());
         assertEquals(Instant.parse("2023-10-29T22:00:00Z"), period.get().getLastRecord());
 
         DatadisConsumptionAggregate aggregate = repository.aggregateByRangeOfDates(supply,
                 OffsetDateTime.parse("2023-10-29T00:00:00+02:00"),
                 OffsetDateTime.parse("2023-10-30T00:00:00+01:00"));
-        assertEquals(24L, aggregate.getHoursWithData());
+        assertEquals(25L, aggregate.getHoursWithData());
+
+        // Both hours local 02:00 repeats, 00:00Z and 01:00Z, hold a record.
+        DatadisConsumptionAggregate repeatedHour = repository.aggregateByRangeOfDates(supply,
+                OffsetDateTime.parse("2023-10-29T02:00:00+02:00"),
+                OffsetDateTime.parse("2023-10-29T03:00:00+01:00"));
+        assertEquals(2L, repeatedHour.getHoursWithData());
     }
 
     // --- sumSelfConsumptionKWh: half-open [from, to) ---
@@ -270,10 +280,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void sumsTheRecordOnTheLowerBoundAndExcludesTheOneOnTheUpperBound() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/01", "09:00", 0.0f, 16.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 0.0f, 1.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 2.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 4.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 0.0f, 16.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 2.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 0.0f, 4.0f, 0.0f));
 
         double sum = repository.sumSelfConsumptionKWh(supply,
                 OffsetDateTime.parse("2024-02-01T10:00:00+01:00").toInstant(),
@@ -292,9 +302,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void adjacentSubIntervalsSumToTheWholeWithoutDoubleCountingTheBoundary() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 0.0f, 1.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 2.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 4.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 2.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 0.0f, 4.0f, 0.0f));
 
         Instant from = OffsetDateTime.parse("2024-02-01T10:00:00+01:00").toInstant();
         Instant split = OffsetDateTime.parse("2024-02-01T11:00:00+01:00").toInstant();
@@ -319,9 +329,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void theRecordOnThePublicInclusiveEndSurvivesTheNanosecondExclusiveBound() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 0.0f, 1.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 2.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 4.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 2.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 0.0f, 4.0f, 0.0f));
 
         OffsetDateTime inclusiveEnd = OffsetDateTime.parse("2024-02-01T11:00:00+01:00");
 
@@ -342,9 +352,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void theHalfOpenSumOverTheWholePeriodMatchesTheAggregate() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.0f, 2.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 100.0f, 50.0f, 0.5f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 1.0f, 2.0f, 2.0f));
 
         OffsetDateTime start = OffsetDateTime.parse("2024-02-01T00:00:00+01:00");
         OffsetDateTime end = OffsetDateTime.parse("2024-02-01T03:00:00+01:00");
@@ -365,10 +375,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         Supply withSelfConsumption = supply();
         Supply withoutSelfConsumption = supply();
 
-        write(hourlyRecord(withSelfConsumption.getCode(), "2024/02/01", "00:00", 3.0f, 7.0f, 11.0f));
+        write(hourlyRecord(withSelfConsumption.getCode(), "2024/02/01", "01:00", 3.0f, 7.0f, 11.0f));
         write(
-                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "00:00", 5.0f, null, null),
-                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "01:00", 7.0f, null, null));
+                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "01:00", 5.0f, null, null),
+                hourlyRecord(withoutSelfConsumption.getCode(), "2024/02/01", "02:00", 7.0f, null, null));
 
         double sum = repository.sumSelfConsumptionKWh(withoutSelfConsumption,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00").toInstant(),
@@ -386,10 +396,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         Supply supply = supply();
         Supply neighbour = supply();
 
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 0.0f, 5.0f, 0.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 0.0f, 5.0f, 0.0f));
         write(
-                hourlyRecord(neighbour.getCode(), "2024/02/01", "00:00", 0.0f, 1000.0f, 0.0f),
-                hourlyRecord(neighbour.getCode(), "2024/02/01", "01:00", 0.0f, 1000.0f, 0.0f));
+                hourlyRecord(neighbour.getCode(), "2024/02/01", "01:00", 0.0f, 1000.0f, 0.0f),
+                hourlyRecord(neighbour.getCode(), "2024/02/01", "02:00", 0.0f, 1000.0f, 0.0f));
 
         double sum = repository.sumSelfConsumptionKWh(supply,
                 OffsetDateTime.parse("2024-02-01T00:00:00+01:00").toInstant(),
@@ -401,7 +411,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Test
     void anIntervalMatchingNoRecordSumsToZero() {
         Supply supply = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 0.0f, 5.0f, 0.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 0.0f, 5.0f, 0.0f));
 
         double sum = repository.sumSelfConsumptionKWh(supply,
                 OffsetDateTime.parse("2025-01-01T00:00:00+01:00").toInstant(),
@@ -429,9 +439,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void aRecordCarryingAZeroSelfConsumptionIsPublished() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "02:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/02/10", "23:00", 1.0f, 0.0f, null));
+                hourlyRecord(supply.getCode(), "2024/02/10", "03:00", 1.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, 2.0f, 1.0f),
+                hourlyRecord(supply.getCode(), "2024/02/10", "24:00", 1.0f, 0.0f, null));
 
         Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
@@ -450,10 +460,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void aRecordCarryingOnlySurplusIsNotPublished() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/03/10", "12:00", 1.0f, null, 0.002f),
-                hourlyRecord(supply.getCode(), "2024/03/11", "12:00", 1.0f, null, 40.0f),
-                hourlyRecord(supply.getCode(), "2024/03/12", "12:00", 1.0f, null, null));
+                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, 2.0f, 1.0f),
+                hourlyRecord(supply.getCode(), "2024/03/10", "13:00", 1.0f, null, 0.002f),
+                hourlyRecord(supply.getCode(), "2024/03/11", "13:00", 1.0f, null, 40.0f),
+                hourlyRecord(supply.getCode(), "2024/03/12", "13:00", 1.0f, null, null));
 
         Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
@@ -470,10 +480,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void thePublishedRecordsAreReadOverAHalfOpenInterval() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/01/31", "23:00", 1.0f, 1.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/29", "23:00", 1.0f, 1.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/03/01", "00:00", 1.0f, 1.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/01/31", "24:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/29", "24:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/03/01", "01:00", 1.0f, 1.0f, 0.0f));
         // February 2024 in Europe/Madrid.
         Instant from = Instant.parse("2024-01-31T23:00:00Z");
         Instant toExclusive = Instant.parse("2024-02-29T23:00:00Z");
@@ -490,10 +500,10 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void anotherSupplysPublishedRecordsAreNeverReported() {
         Supply supply = supply();
         Supply neighbour = supply();
-        write(hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, 2.0f, 1.0f));
+        write(hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, 2.0f, 1.0f));
         write(
-                hourlyRecord(neighbour.getCode(), "2023/05/10", "12:00", 1.0f, 2.0f, 1.0f),
-                hourlyRecord(neighbour.getCode(), "2024/05/10", "12:00", 1.0f, 2.0f, 1.0f));
+                hourlyRecord(neighbour.getCode(), "2023/05/10", "13:00", 1.0f, 2.0f, 1.0f),
+                hourlyRecord(neighbour.getCode(), "2024/05/10", "13:00", 1.0f, 2.0f, 1.0f));
 
         Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
@@ -507,8 +517,8 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void aSupplyWithoutAnyPublishedRecordHasNoPublishedPeriodAndNoPublishedHours() {
         Supply supply = supply();
         write(
-                hourlyRecord(supply.getCode(), "2024/02/10", "12:00", 1.0f, null, 3.0f),
-                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, null));
+                hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, 3.0f),
+                hourlyRecord(supply.getCode(), "2024/02/10", "14:00", 1.0f, null, null));
 
         assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
         assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));

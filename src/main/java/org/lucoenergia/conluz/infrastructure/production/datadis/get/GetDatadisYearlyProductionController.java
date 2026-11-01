@@ -53,6 +53,9 @@ public class GetDatadisYearlyProductionController {
                     returned (an out-of-community supply is never confirmed to exist).
 
                     Data is aggregated by year within the specified date range.
+
+                    **`date` and `time`:** `date` is 1 January and `time` is `00:00`: the local midnight,
+                    in the time zone the application is configured with, at which the year starts.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "getDatadisYearlyProduction",

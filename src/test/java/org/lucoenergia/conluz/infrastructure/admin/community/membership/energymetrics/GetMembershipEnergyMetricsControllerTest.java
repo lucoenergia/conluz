@@ -110,8 +110,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
-        write(first, "2026/05/10", "10:00", 60f, 40f, 10f);
-        write(second, "2026/05/10", "11:00", 1f, 1f, 3f);
+        write(first, "2026/05/10", "11:00", 60f, 40f, 10f);
+        write(second, "2026/05/10", "12:00", 1f, 1f, 3f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -135,8 +135,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
-        write(first, "2026/05/10", "10:00", 60f, 40f, 10f);
-        write(second, "2026/05/10", "11:00", 1f, 1f, 3f);
+        write(first, "2026/05/10", "11:00", 60f, 40f, 10f);
+        write(second, "2026/05/10", "12:00", 1f, 1f, 3f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -153,8 +153,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
         // Consumption from the grid only: nothing assigned to either supply.
-        write(first, "2026/05/10", "10:00", 5f, 0f, 0f);
-        write(second, "2026/05/10", "11:00", 7f, 0f, 0f);
+        write(first, "2026/05/10", "11:00", 5f, 0f, 0f);
+        write(second, "2026/05/10", "12:00", 7f, 0f, 0f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -168,9 +168,9 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         CommunityEntity otherCommunity = persistCommunity();
         User member = persistMember(community.getId());
         createMembershipRepository.create(otherCommunity.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
-        write(persistSupply(member, community), "2026/05/10", "10:00", 1f, 2f, 0f);
+        write(persistSupply(member, community), "2026/05/10", "11:00", 1f, 2f, 0f);
         // Larger, so counting it would be unmistakable.
-        write(persistSupply(member, otherCommunity), "2026/05/10", "10:00", 1f, 1000f, 0f);
+        write(persistSupply(member, otherCommunity), "2026/05/10", "11:00", 1f, 1000f, 0f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -194,10 +194,10 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         SupplyEntity partial = persistSupply(member, community);
         persistSupply(member, community);
         for (int hour = 0; hour < 24; hour++) {
-            write(complete, "2026/05/10", String.format("%02d:00", hour), 1f, 0.5f, 0f);
+            write(complete, "2026/05/10", String.format("%02d:00", hour + 1), 1f, 0.5f, 0f);
         }
         for (int hour = 8; hour < 18; hour++) {
-            write(partial, "2026/05/10", String.format("%02d:00", hour), 2f, 1f, 0f);
+            write(partial, "2026/05/10", String.format("%02d:00", hour + 1), 2f, 1f, 0f);
         }
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
@@ -226,10 +226,10 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
         writePublishedZeros(first, YearMonth.of(2026, 7));
-        write(first, "2026/07/15", "12:00", 3f, 4f, 1f);
-        write(first, "2026/08/10", "12:00", 9f, 0f, 0f);
-        write(first, "2026/08/11", "12:00", 9f, null, null);
-        write(second, "2026/06/10", "12:00", 1f, 1f, 1f);
+        write(first, "2026/07/15", "13:00", 3f, 4f, 1f);
+        write(first, "2026/08/10", "13:00", 9f, 0f, 0f);
+        write(first, "2026/08/11", "13:00", 9f, null, null);
+        write(second, "2026/06/10", "13:00", 1f, 1f, 1f);
 
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -294,7 +294,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8), 22, 23);
-        write(supply, "2026/08/10", "12:00", 3f, 4f, 1f);
+        write(supply, "2026/08/10", "13:00", 3f, 4f, 1f);
 
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -322,7 +322,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         SupplyEntity published = persistSupply(member, community);
         SupplyEntity lagging = persistSupply(member, community);
         writePublishedZeros(published, YearMonth.of(2026, 8));
-        write(published, "2026/08/10", "12:00", 3f, 4f, 1f);
+        write(published, "2026/08/10", "13:00", 3f, 4f, 1f);
         writeAt(lagging, hourly(Instant.parse("2026-07-31T22:00:00Z"), Instant.parse("2026-08-31T21:00:00Z")),
                 1f, null, null);
 
@@ -360,7 +360,7 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     void savingsAreNullOnlyWhenNoPeriodCouldBeResolved() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
-        write(persistSupply(member, community), "2024/08/15", "12:00", 3f, 4f, 1f);
+        write(persistSupply(member, community), "2024/08/15", "13:00", 3f, 4f, 1f);
 
         requestLatest(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -427,8 +427,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     void estimatedSavingsCarryTheConfiguredEstimatedPrice() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
-        write(persistSupply(member, community), "2026/05/10", "10:00", 1f, 2f, 0f);
-        write(persistSupply(member, community), "2026/05/10", "11:00", 1f, 3f, 0f);
+        write(persistSupply(member, community), "2026/05/10", "11:00", 1f, 2f, 0f);
+        write(persistSupply(member, community), "2026/05/10", "12:00", 1f, 3f, 0f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -586,8 +586,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         for (Supply supply : supplies) {
             influxFixture.writePublishedZeros(supply.getCode(), YearMonth.of(2026, 8), ZONE);
         }
-        writeRecord(supplies[0], "2026/08/10", "10:00", 10f, 100f, 100f);
-        writeRecord(supplies[1], "2026/08/10", "11:00", 5f, 50f, 0f);
+        writeRecord(supplies[0], "2026/08/10", "11:00", 10f, 100f, 100f);
+        writeRecord(supplies[1], "2026/08/10", "12:00", 5f, 50f, 0f);
 
         assertAc2(requestLatest(community, member, loginUser(member))
                 .andExpect(jsonPath("$.period.startDate").value("2026-08-01T00:00:00+02:00")));
@@ -600,8 +600,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         Supply first = createPlantSupply(member, community);
         Supply second = createPlantSupply(member, community);
-        writeRecord(first, "2026/05/10", "10:00", 5f, 50f, 0f);
-        writeRecord(second, "2026/05/10", "11:00", 5f, 20f, 0f);
+        writeRecord(first, "2026/05/10", "11:00", 5f, 50f, 0f);
+        writeRecord(second, "2026/05/10", "12:00", 5f, 20f, 0f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -622,8 +622,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     void withoutPlantSuppliesTheRatioIsUnchangedAndItsBasisIsTheTotals() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
-        writeRecord(createRegularSupply(member, community), "2026/05/10", "10:00", 60f, 40f, 10f);
-        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 1f, 1f, 3f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 60f, 40f, 10f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "12:00", 1f, 1f, 3f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -641,8 +641,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     void aRegularSupplyWithNothingAssignedBesideAPlantSupplyHasNothingAssigned() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
-        writeRecord(createRegularSupply(member, community), "2026/05/10", "10:00", 10f, 0f, 0f);
-        writeRecord(createPlantSupply(member, community), "2026/05/10", "11:00", 5f, 50f, 0f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 10f, 0f, 0f);
+        writeRecord(createPlantSupply(member, community), "2026/05/10", "12:00", 5f, 50f, 0f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -656,8 +656,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     void aRegularSupplyWithZeroSurplusIsNeverTakenForAPlantSupply() throws Exception {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
-        writeRecord(createRegularSupply(member, community), "2026/05/10", "10:00", 10f, 30f, 0f);
-        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 10f, 20f, 0f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "11:00", 10f, 30f, 0f);
+        writeRecord(createRegularSupply(member, community), "2026/05/10", "12:00", 10f, 20f, 0f);
 
         requestPeriod(community, member, loginUser(member), DAY_START, DAY_END)
                 .andExpect(status().isOk())
@@ -705,8 +705,8 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
         Supply regular = createRegularSupply(member, community);
         Supply plant = createPlantSupply(member, community);
         if (day != null) {
-            writeRecord(regular, day, "10:00", 10f, 100f, 100f);
-            writeRecord(plant, day, "11:00", 5f, 50f, 0f);
+            writeRecord(regular, day, "11:00", 10f, 100f, 100f);
+            writeRecord(plant, day, "12:00", 5f, 50f, 0f);
         }
         return new Supply[]{regular, plant};
     }

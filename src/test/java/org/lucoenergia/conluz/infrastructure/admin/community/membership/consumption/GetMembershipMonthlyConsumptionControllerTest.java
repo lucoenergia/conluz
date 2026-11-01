@@ -97,8 +97,8 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity large = persistSupply(member, community);
         SupplyEntity small = persistSupply(member, community);
-        write(large, "2024/02/10", "12:00", 100.5f, 40f, 20.25f);
-        write(small, "2024/02/10", "13:00", 7.25f, 2.5f, 1.5f);
+        write(large, "2024/02/10", "13:00", 100.5f, 40f, 20.25f);
+        write(small, "2024/02/10", "14:00", 7.25f, 2.5f, 1.5f);
         aggregate(FEBRUARY, large, small);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
@@ -127,7 +127,7 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2024/02/10", "12:00", 3f, 2f, 0f);
+        write(supply, "2024/02/10", "13:00", 3f, 2f, 0f);
         aggregate(FEBRUARY, supply);
 
         request(community, member, loginUser(member), JANUARY_START, FEBRUARY_END)
@@ -164,9 +164,9 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         SupplyEntity oneDay = persistSupply(member, community);
         persistSupply(member, community);
         for (int day = 1; day <= 29; day++) {
-            write(everyDay, String.format("2024/02/%02d", day), "12:00", 1f, 1f, 0f);
+            write(everyDay, String.format("2024/02/%02d", day), "13:00", 1f, 1f, 0f);
         }
-        write(oneDay, "2024/02/10", "12:00", 2f, 1f, 0f);
+        write(oneDay, "2024/02/10", "13:00", 2f, 1f, 0f);
         aggregate(FEBRUARY, everyDay, oneDay);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
@@ -185,8 +185,8 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
-        write(first, "2024/02/10", "12:00", 1f, 1f, 0f);
-        write(second, "2024/02/11", "12:00", 1f, 1f, 0f);
+        write(first, "2024/02/10", "13:00", 1f, 1f, 0f);
+        write(second, "2024/02/11", "13:00", 1f, 1f, 0f);
         aggregate(FEBRUARY, first, second);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
@@ -204,7 +204,7 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2024/02/10", "12:00", 0f, 0f, 0f);
+        write(supply, "2024/02/10", "13:00", 0f, 0f, 0f);
         aggregate(FEBRUARY, supply);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
@@ -226,8 +226,8 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2024/01/20", "12:00", 1f, 1f, 0f);
-        write(supply, "2024/02/10", "12:00", 2f, 1f, 0f);
+        write(supply, "2024/01/20", "13:00", 1f, 1f, 0f);
+        write(supply, "2024/02/10", "13:00", 2f, 1f, 0f);
         aggregate(JANUARY, supply);
         aggregate(FEBRUARY, supply);
         String start = "2024-01-15T12:00:00+01:00";

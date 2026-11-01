@@ -5,9 +5,9 @@ import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,24 +17,22 @@ import java.util.concurrent.TimeUnit;
 public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadisConsumptionRepository {
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
-    private final DateConverter dateConverter;
 
-    public PersistDatadisConsumptionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager,
-                                                     DateConverter dateConverter) {
+    public PersistDatadisConsumptionRepositoryInflux(InfluxDbConnectionManager influxDbConnectionManager) {
         this.influxDbConnectionManager = influxDbConnectionManager;
-        this.dateConverter = dateConverter;
     }
 
     @Override
-    public void persistHourlyConsumptions(List<DatadisConsumption> consumptions) {
+    public void persistHourlyConsumptions(List<DatadisHourlyRecord<DatadisConsumption>> consumptions) {
 
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
-            for (DatadisConsumption consumption : consumptions) {
+            for (DatadisHourlyRecord<DatadisConsumption> hourlyRecord : consumptions) {
+                DatadisConsumption consumption = hourlyRecord.record();
                 Point point = Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT)
-                        .time(dateConverter.convertStringDateToMilliseconds(mergeDateAndTime(consumption)), TimeUnit.MILLISECONDS)
+                        .time(hourlyRecord.instant().toEpochMilli(), TimeUnit.MILLISECONDS)
                         .tag("cups", consumption.getCups())
                         .addField("consumption_kwh", consumption.getConsumptionKWh())
                         .addField("obtain_method", consumption.getObtainMethod())
@@ -47,9 +45,5 @@ public class PersistDatadisConsumptionRepositoryInflux implements PersistDatadis
             }
             connection.write(batchPoints);
         }
-    }
-
-    private String mergeDateAndTime(DatadisConsumption consumption) {
-        return String.format("%sT%s", consumption.getDate(), consumption.getTime());
     }
 }

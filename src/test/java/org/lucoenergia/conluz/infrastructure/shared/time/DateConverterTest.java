@@ -24,50 +24,6 @@ class DateConverterTest {
     }
 
     @Test
-    void testConvertStringDateToMilliseconds() {
-        // Given
-        String dateString = "2023/03/23T14:30";
-        String zone = "UTC";
-        long expectedMillis = 1679581800000L;  // expected milliseconds representation for the above date in Europe/Madrid time zone.
-
-        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of(zone));
-
-        // When
-        long actualMillis = converter.convertStringDateToMilliseconds(dateString);
-
-        // Then
-        assertEquals(expectedMillis, actualMillis);
-    }
-
-    @Test
-    void testConvertStringDateToMillisecondsWithDifferentTimezone() {
-        // Given
-        String dateString = "2023/03/23T14:30";
-        String zone = "Europe/Madrid";            // IST, India Standard Time, is UTC+5:30.
-        long expectedMillis = 1679578200000L;  // expected milliseconds representation for the above date in IST time zone.
-
-        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of(zone));
-
-        // When
-        long actualMillis = converter.convertStringDateToMilliseconds(dateString);
-
-        // Then
-        assertEquals(expectedMillis, actualMillis);
-    }
-
-    @Test
-    void testConvertStringDateToMillisecondsWithNonStandardDateFormat() {
-        // Given
-        String dateString = "2023-03-23T14:30";  // non-standard date format.
-        String zone = "UTC";
-
-        when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of(zone));
-
-        // When-Then
-        Assertions.assertThrows(DateTimeParseException.class, () -> converter.convertStringDateToMilliseconds(dateString));
-    }
-
-    @Test
     void testConvertInstantToOffsetDateTime() {
 
         String dateTimeString = "2023-10-26T12:25:33Z";

@@ -11670,7 +11670,7 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/daily" : {
       "get" : {
-        "description" : "Retrieves daily Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by day within the specified date range.\n",
+        "description" : "Retrieves daily Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by day within the specified date range.\n\n**`date` and `time`:** each day is a UTC day, not a local calendar day. `date` and\n`time` are the UTC midnight that starts it, expressed in the time zone the\napplication is configured with, so `time` is the zone's offset from UTC rather than\n`00:00` (in Europe/Madrid, `01:00` in winter and `02:00` in summer).\n",
         "operationId" : "getDatadisDailyProduction",
         "parameters" : [
           {
@@ -11827,7 +11827,7 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/hourly" : {
       "get" : {
-        "description" : "Retrieves hourly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by hour within the specified date range.\n",
+        "description" : "Retrieves hourly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by hour within the specified date range.\n\n**`date` and `time`:** the local calendar date and local time, in the time zone the\napplication is configured with, at which each hour starts (`time` from `00:00` to\n`23:00`). On the day the clocks go back, two consecutive hours carry the same `date`\nand `time`; on the day they go forward, the local hour the clocks skip has no entry.\n",
         "operationId" : "getDatadisHourlyProduction",
         "parameters" : [
           {
@@ -11984,7 +11984,7 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/monthly" : {
       "get" : {
-        "description" : "Retrieves monthly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by month within the specified date range.\n",
+        "description" : "Retrieves monthly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by month within the specified date range.\n\n**`date` and `time`:** `date` is the first day of the month and `time` is `00:00`:\nthe local midnight, in the time zone the application is configured with, at which\nthe month starts.\n",
         "operationId" : "getDatadisMonthlyProduction",
         "parameters" : [
           {
@@ -12407,7 +12407,7 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/yearly" : {
       "get" : {
-        "description" : "Retrieves yearly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by year within the specified date range.\n",
+        "description" : "Retrieves yearly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by year within the specified date range.\n\n**`date` and `time`:** `date` is 1 January and `time` is `00:00`: the local midnight,\nin the time zone the application is configured with, at which the year starts.\n",
         "operationId" : "getDatadisYearlyProduction",
         "parameters" : [
           {
@@ -19526,7 +19526,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/hourly" : {
       "get" : {
-        "description" : "This endpoint retrieves hourly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by hour within the specified date range.\n",
+        "description" : "This endpoint retrieves hourly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by hour within the specified date range.\n\n**`date` and `time`:** the local calendar date and local time, in the time zone the\napplication is configured with, at which each hour starts (`time` from `00:00` to\n`23:00`). On the day the clocks go back, two consecutive hours carry the same `date`\nand `time`; on the day they go forward, the local hour the clocks skip has no entry.\n",
         "operationId" : "getSupplyHourlyConsumption",
         "parameters" : [
           {
@@ -19824,7 +19824,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/yearly" : {
       "get" : {
-        "description" : "This endpoint retrieves yearly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by year within the specified date range.\n\n**Time zone:** each year covers the local calendar year of the time zone the\napplication is configured with, not the UTC one, so its total includes the first\nand last local hours of the year and nothing from its neighbours.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive, and they select\npre-aggregated points by the instant each one is stamped at, which is local\nmidnight on the first day of its year. Pass them with the zone's offset to\nselect the years intended: local `2023-01-01T00:00:00+01:00` is\n`2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one year too few\nor too many.\n",
+        "description" : "This endpoint retrieves yearly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by year within the specified date range.\n\n**`date` and `time`:** `date` is 1 January and `time` is `00:00`: the local midnight,\nin the time zone the application is configured with, at which the year starts.\n\n**Time zone:** each year covers the local calendar year of the time zone the\napplication is configured with, not the UTC one, so its total includes the first\nand last local hours of the year and nothing from its neighbours.\n\n**Range bounds:** `startDate` and `endDate` are both inclusive, and they select\npre-aggregated points by the instant each one is stamped at, which is local\nmidnight on the first day of its year. Pass them with the zone's offset to\nselect the years intended: local `2023-01-01T00:00:00+01:00` is\n`2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one year too few\nor too many.\n",
         "operationId" : "getSupplyYearlyConsumption",
         "parameters" : [
           {

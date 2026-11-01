@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.ConsumptionMother;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyInstantResolver;
 import org.lucoenergia.conluz.infrastructure.datadis.get.GetDatadisConsumptionRepositoryInflux;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,8 @@ class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseInteg
     private PersistDatadisConsumptionRepositoryInflux repository;
     @Autowired
     private GetDatadisConsumptionRepositoryInflux getDatadisConsumptionRepositoryInflux;
+    @Autowired
+    private DatadisHourlyInstantResolver datadisHourlyInstantResolver;
 
     @Disabled
     @Test
@@ -34,7 +37,7 @@ class PersistDatadisConsumptionRepositoryInfluxIntegrationTest extends BaseInteg
         Supply supply = new Supply.Builder().withCode(consumption.getCups()).build();
 
         // Act
-        repository.persistHourlyConsumptions(Collections.singletonList(consumption));
+        repository.persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(Collections.singletonList(consumption)).records());
 
         // Assert
         Thread.sleep(10_000L);

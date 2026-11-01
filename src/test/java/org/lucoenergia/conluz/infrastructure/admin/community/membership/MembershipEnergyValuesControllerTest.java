@@ -210,11 +210,11 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
         influxFixture.writePublishedZeros(membership.first().getCode(), FEBRUARY, ZONE);
         influxFixture.writePublishedZeros(membership.second().getCode(), FEBRUARY, ZONE);
         write(membership.first(), firstRecord(membership.first().getCode()), secondRecord(membership.first().getCode()),
-                hourlyRecord(membership.first().getCode(), "2024/02/01", "00:00", 1.0005f, 0.3337f, 2.1119f),
-                hourlyRecord(membership.first().getCode(), "2024/02/29", "23:00", 0.0007f, 0.0049f, 0.0001f));
+                hourlyRecord(membership.first().getCode(), "2024/02/01", "01:00", 1.0005f, 0.3337f, 2.1119f),
+                hourlyRecord(membership.first().getCode(), "2024/02/29", "24:00", 0.0007f, 0.0049f, 0.0001f));
         write(membership.second(), firstRecord(membership.second().getCode()),
-                hourlyRecord(membership.second().getCode(), "2024/02/15", "07:00", 3.4567f, 1.2345f, 0.9876f),
-                hourlyRecord(membership.second().getCode(), "2024/02/20", "19:00", 0.1111f, 0.2229f, 0.0004f));
+                hourlyRecord(membership.second().getCode(), "2024/02/15", "08:00", 3.4567f, 1.2345f, 0.9876f),
+                hourlyRecord(membership.second().getCode(), "2024/02/20", "20:00", 0.1111f, 0.2229f, 0.0004f));
         aggregateFebruary(membership);
 
         String monthly = requestMonthly(membership)

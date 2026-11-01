@@ -53,6 +53,10 @@ public class GetDatadisMonthlyProductionController {
                     returned (an out-of-community supply is never confirmed to exist).
 
                     Data is aggregated by month within the specified date range.
+
+                    **`date` and `time`:** `date` is the first day of the month and `time` is `00:00`:
+                    the local midnight, in the time zone the application is configured with, at which
+                    the month starts.
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "getDatadisMonthlyProduction",

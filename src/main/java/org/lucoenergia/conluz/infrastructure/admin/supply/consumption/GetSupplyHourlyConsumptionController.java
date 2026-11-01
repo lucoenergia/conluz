@@ -55,6 +55,11 @@ public class GetSupplyHourlyConsumptionController {
                     - Obtain method (Real/Estimated)
 
                     Data is aggregated by hour within the specified date range.
+
+                    **`date` and `time`:** the local calendar date and local time, in the time zone the
+                    application is configured with, at which each hour starts (`time` from `00:00` to
+                    `23:00`). On the day the clocks go back, two consecutive hours carry the same `date`
+                    and `time`; on the day they go forward, the local hour the clocks skip has no entry.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyHourlyConsumption",

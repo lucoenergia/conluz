@@ -122,9 +122,9 @@ class DatadisMonthlyAggregationMembershipConsistencyTest extends BaseControllerT
 
         writeStaleMonth(first);
         writeStaleMonth(second);
-        writeHour(first, "2026/05/01", "00:00", 10.5f, 4.25f, 1f);
-        writeHour(first, "2026/05/31", "23:00", 1.25f, 0.5f, 0.25f);
-        writeHour(second, "2026/05/15", "13:00", 20f, 8f, 2.5f);
+        writeHour(first, "2026/05/01", "01:00", 10.5f, 4.25f, 1f);
+        writeHour(first, "2026/05/31", "24:00", 1.25f, 0.5f, 0.25f);
+        writeHour(second, "2026/05/15", "14:00", 20f, 8f, 2.5f);
 
         String token = loginUser(member);
         // The symptom: before the run, the series still holds the preliminary self-consumption.

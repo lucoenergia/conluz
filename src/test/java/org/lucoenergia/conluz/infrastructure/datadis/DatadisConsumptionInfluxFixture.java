@@ -18,13 +18,14 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
  * Writes and removes hourly consumption records for an arbitrary CUPS, for tests that need their
  * own dataset rather than the fixed one {@link DatadisConsumptionInfluxLoader} provides.
  *
- * <p>Records go through the production persistence repository, so a field left null on the
+ * <p>Records go through the production instant resolution and persistence repository, so a field left null on the
  * {@link DatadisConsumption} is absent from the stored point exactly as it would be in
  * production.</p>
  */
@@ -32,12 +33,18 @@ import java.util.stream.Stream;
 @Component
 public class DatadisConsumptionInfluxFixture {
 
+    /** The local time a record's hour ends at, as Datadis labels it: {@code 01:00} to {@code 24:00}. */
+    private static final Pattern DATADIS_LABEL = Pattern.compile("(0[1-9]|1[0-9]|2[0-4]):00");
+
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
+    private final DatadisHourlyInstantResolver datadisHourlyInstantResolver;
     private final InfluxDbConnectionManager influxDbConnectionManager;
 
     public DatadisConsumptionInfluxFixture(PersistDatadisConsumptionRepository persistDatadisConsumptionRepository,
+                                           DatadisHourlyInstantResolver datadisHourlyInstantResolver,
                                            InfluxDbConnectionManager influxDbConnectionManager) {
         this.persistDatadisConsumptionRepository = persistDatadisConsumptionRepository;
+        this.datadisHourlyInstantResolver = datadisHourlyInstantResolver;
         this.influxDbConnectionManager = influxDbConnectionManager;
     }
 
@@ -45,7 +52,8 @@ public class DatadisConsumptionInfluxFixture {
      * Builds an hourly record. A null energy value is stored as an absent field.
      *
      * @param date in {@code yyyy/MM/dd} format, interpreted in the application time zone
-     * @param time in {@code HH:mm} format, interpreted in the application time zone
+     * @param time the Datadis label in {@code HH:mm} format: the local time the record's hour ends at,
+     *             {@code 01:00} to {@code 24:00}
      */
     public static DatadisConsumption hourlyRecord(String cups, String date, String time, Float consumptionKWh,
                                                   Float selfConsumptionEnergyKWh, Float surplusEnergyKWh) {
@@ -60,16 +68,32 @@ public class DatadisConsumptionInfluxFixture {
         return consumption;
     }
 
+    /**
+     * Stores the records at the instants the Datadis sync would resolve for them, as one batch of the same
+     * supply: a day is placed by position only when the batch holds all of its hours, otherwise each record
+     * goes one hour before its label.
+     *
+     * @throws IllegalArgumentException if a record's {@code time} is not a Datadis label, {@code 01:00} to
+     *                                  {@code 24:00}
+     */
     public void write(List<DatadisConsumption> consumptions) {
-        persistDatadisConsumptionRepository.persistHourlyConsumptions(consumptions);
+        for (DatadisConsumption consumption : consumptions) {
+            if (consumption.getTime() == null || !DATADIS_LABEL.matcher(consumption.getTime()).matches()) {
+                throw new IllegalArgumentException(String.format(
+                        "Record on %s has time '%s', which is not a Datadis label: Datadis labels the end of the hour, "
+                                + "from 01:00 to 24:00", consumption.getDate(), consumption.getTime()));
+            }
+        }
+        persistDatadisConsumptionRepository.persistHourlyConsumptions(
+                datadisHourlyInstantResolver.resolve(consumptions).records());
     }
 
     /**
      * Writes one hourly record at an exact instant, with the same fields the production persistence
      * writes; a null energy value is stored as an absent field.
      *
-     * <p>The production path addresses records by local date and time, so it cannot write both
-     * records of the local hour a daylight saving fall-back repeats. This one can.</p>
+     * <p>The production path places the two records of the local hour a daylight saving fall-back repeats
+     * only when it receives the whole day. This one writes either of them on its own.</p>
      */
     public void writeAt(String cups, Instant time, Float consumptionKWh, Float selfConsumptionEnergyKWh,
                         Float surplusEnergyKWh) {

@@ -53,6 +53,11 @@ public class GetDatadisDailyProductionController {
                     returned (an out-of-community supply is never confirmed to exist).
 
                     Data is aggregated by day within the specified date range.
+
+                    **`date` and `time`:** each day is a UTC day, not a local calendar day. `date` and
+                    `time` are the UTC midnight that starts it, expressed in the time zone the
+                    application is configured with, so `time` is the zone's offset from UTC rather than
+                    `00:00` (in Europe/Madrid, `01:00` in winter and `02:00` in summer).
                     """,
             tags = ApiTag.PRODUCTION,
             operationId = "getDatadisDailyProduction",

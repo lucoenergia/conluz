@@ -180,8 +180,8 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
         createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply first = createSupply(member, community);
         Supply second = createSupply(member, community);
-        write(first, record(first, "10:00", 0.1000f, 0.1111f), record(first, "11:00", 0.0234f, 0.1111f));
-        write(second, record(second, "10:00", 0.0300f, 0.0500f), record(second, "11:00", 0.0314f, 0.0612f));
+        write(first, record(first, "11:00", 0.1000f, 0.1111f), record(first, "12:00", 0.0234f, 0.1111f));
+        write(second, record(second, "11:00", 0.0300f, 0.0500f), record(second, "12:00", 0.0314f, 0.0612f));
         monthlyAggregationRepository.aggregateMonthlyConsumption(first, Month.FEBRUARY, 2024);
         monthlyAggregationRepository.aggregateMonthlyConsumption(second, Month.FEBRUARY, 2024);
         return new Membership(community, member, first, second);

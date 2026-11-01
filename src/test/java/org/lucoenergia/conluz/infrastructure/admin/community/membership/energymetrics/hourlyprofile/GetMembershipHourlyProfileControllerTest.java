@@ -101,8 +101,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
-        write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
-        write(supply, "2026/08/11", "13:00", 1f, 2f, 1f);
+        write(supply, "2026/08/10", "13:00", 1f, 2f, 1f);
+        write(supply, "2026/08/11", "14:00", 1f, 2f, 1f);
 
         ResultActions response = request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -127,9 +127,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 7), 12);
-        write(supply, "2026/07/15", "12:00", 3f, 4f, 1f);
-        write(supply, "2026/08/10", "12:00", 90f, 0f, 0f);
-        write(supply, "2026/08/11", "12:00", 90f, null, null);
+        write(supply, "2026/07/15", "13:00", 3f, 4f, 1f);
+        write(supply, "2026/08/10", "13:00", 90f, 0f, 0f);
+        write(supply, "2026/08/11", "13:00", 90f, null, null);
         String token = loginUser(member);
 
         JsonNode profile = json(request(community, member, token).andExpect(status().isOk()));
@@ -188,10 +188,10 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         SupplyEntity large = persistSupply(member, community);
         SupplyEntity small = persistSupply(member, community);
         writePublishedZeros(large, YearMonth.of(2026, 8), 10);
-        write(large, "2026/08/03", "10:00", 6f, 4f, 2f);
-        write(large, "2026/08/04", "10:00", 6f, 4f, 2f);
-        write(large, "2026/08/05", "10:00", 6f, 4f, 2f);
-        write(small, "2026/08/03", "10:00", 1f, 1f, 1f);
+        write(large, "2026/08/03", "11:00", 6f, 4f, 2f);
+        write(large, "2026/08/04", "11:00", 6f, 4f, 2f);
+        write(large, "2026/08/05", "11:00", 6f, 4f, 2f);
+        write(small, "2026/08/03", "11:00", 1f, 1f, 1f);
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -214,8 +214,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8), 3);
-        write(supply, "2026/08/10", "02:00", 0.3f, 0f, 0f);
-        write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
+        write(supply, "2026/08/10", "03:00", 0.3f, 0f, 0f);
+        write(supply, "2026/08/10", "13:00", 1f, 2f, 1f);
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -236,9 +236,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8), 2, 3);
-        write(supply, "2026/08/10", "02:00", 0.3f, 0f, 0f);
-        write(supply, "2026/08/11", "02:00", 0.5f, 0f, 0f);
-        write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
+        write(supply, "2026/08/10", "03:00", 0.3f, 0f, 0f);
+        write(supply, "2026/08/11", "03:00", 0.5f, 0f, 0f);
+        write(supply, "2026/08/10", "13:00", 1f, 2f, 1f);
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -257,9 +257,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
         writePublishedZeros(supply, YearMonth.of(2026, 8), 20);
-        write(supply, "2026/08/10", "20:00", 2f, null, null);
-        write(supply, "2026/08/11", "20:00", 4f, null, null);
-        write(supply, "2026/08/10", "12:00", 1f, 2f, 1f);
+        write(supply, "2026/08/10", "21:00", 2f, null, null);
+        write(supply, "2026/08/11", "21:00", 4f, null, null);
+        write(supply, "2026/08/10", "13:00", 1f, 2f, 1f);
 
         request(community, member, loginUser(member))
                 .andExpect(status().isOk())
@@ -299,9 +299,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
      * 32, so bucket 2 averages (31 + 32) / 32 = 1.96875: both records of that day reached it.
      *
      * <p>Both records are written at their exact instants, bypassing the Datadis write path. This
-     * pins what the profile does with two stored records of the repeated hour; it is not evidence
-     * that ingestion stores both. The write path resolves a local date and time to the earlier
-     * offset, so two records labelled with the same local 02:00 would collide on one instant (#322).
+     * pins what the profile does with two stored records of the repeated hour; that ingestion stores
+     * both is covered by the Datadis hourly ingestion tests (DHI-001).
      */
     @Test
     void ac8_theHourRepeatedByTheOctoberTransitionReceivesBothRecordsOfThatDay() throws Exception {
@@ -383,8 +382,8 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
-        write(supply, "2024/08/15", "12:00", 3f, 4f, 1f);
-        write(supply, "2026/08/15", "12:00", 3f, 0f, 0f);
+        write(supply, "2024/08/15", "13:00", 3f, 4f, 1f);
+        write(supply, "2026/08/15", "13:00", 3f, 0f, 0f);
 
         assertEmptyProfile(request(community, member, loginUser(member)), 1);
     }
@@ -403,9 +402,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         SupplyEntity active = persistSupply(member, community);
         persistSupply(member, community);
         writePublishedZeros(active, YearMonth.of(2026, 8));
-        write(active, "2026/08/10", "12:00", 1f, 2f, 1f);
-        write(active, "2026/08/11", "12:00", 1f, 2f, 1f);
-        write(active, "2026/08/11", "13:00", 1f, null, null);
+        write(active, "2026/08/10", "13:00", 1f, 2f, 1f);
+        write(active, "2026/08/11", "13:00", 1f, 2f, 1f);
+        write(active, "2026/08/11", "14:00", 1f, null, null);
         String token = loginUser(member);
 
         JsonNode profile = json(request(community, member, token).andExpect(status().isOk()));
@@ -511,9 +510,9 @@ class GetMembershipHourlyProfileControllerTest extends BaseControllerTest {
         SupplyEntity second = persistSupply(member, community);
         writePublishedZeros(first, YearMonth.of(2026, 8), 3, 12);
         writePublishedZeros(second, YearMonth.of(2026, 8), 3, 12);
-        write(first, "2026/08/10", "12:00", 1f, 2f, 1f);
-        write(first, "2026/08/11", "12:00", 2f, 1f, 0.5f);
-        write(second, "2026/08/10", "12:00", 3f, 3f, 1.5f);
+        write(first, "2026/08/10", "13:00", 1f, 2f, 1f);
+        write(first, "2026/08/11", "13:00", 2f, 1f, 0.5f);
+        write(second, "2026/08/10", "13:00", 3f, 3f, 1.5f);
 
         JsonNode buckets = json(request(community, member, loginUser(member)).andExpect(status().isOk()))
                 .path("buckets");

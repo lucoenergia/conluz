@@ -119,9 +119,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.0f, 2.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 100.0f, 50.0f, 0.5f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 1.0f, 2.0f, 2.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -151,7 +151,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 0.0f, 0.0f, 5.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 0.0f, 0.0f, 5.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -168,7 +168,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 10.0f, 0.0f, 0.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 10.0f, 0.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -189,8 +189,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         // A supply without self-consumption: the distributor reports neither field, so neither is
         // stored and summing them returns null rather than zero.
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 5.0f, null, null),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 7.0f, null, null));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 5.0f, null, null),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 7.0f, null, null));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -214,9 +214,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 2.0f, 2.0f, 2.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 3.0f, 3.0f, 3.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 1.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 2.0f, 2.0f, 2.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 3.0f, 3.0f, 3.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -246,7 +246,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                         .build(),
                 UserId.of(owner.getId()), DEFAULT_COMMUNITY_ID);
 
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 1.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader))
@@ -261,9 +261,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 2.0f, 2.0f, 2.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 3.0f, 3.0f, 3.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 1.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 2.0f, 2.0f, 2.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 3.0f, 3.0f, 3.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -309,7 +309,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         // The supply has records, just none inside the requested period.
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 1.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -340,9 +340,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 1.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 2.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 4.0f, 0.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 1.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 2.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 4.0f, 0.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -364,14 +364,14 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
-        // 2023-03-26 in Europe/Madrid: 02:00 does not exist, the day runs 00:00, 01:00, 03:00..23:00.
+        // 2023-03-26 in Europe/Madrid: 02:00 does not exist, so Datadis labels the day 01:00, 02:00, 04:00..24:00.
         List<DatadisConsumption> records = new ArrayList<>();
         for (int hour = 0; hour < 24; hour++) {
             if (hour == 2) {
                 continue;
             }
             records.add(hourlyRecord(supply.getCode(), "2023/03/26",
-                    String.format("%02d:00", hour), 1.0f, 0.0f, 0.0f));
+                    String.format("%02d:00", hour + 1), 1.0f, 0.0f, 0.0f));
         }
         writeRecords(records.toArray(new DatadisConsumption[0]));
 
@@ -385,8 +385,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * The local day the clocks go back has 25 hours. Writing each local hour label once covers only
-     * 24 of them -- the second 02:00 is never written -- which is exactly the gap coverage reports.
+     * The local day the clocks go back has 25 hours. Datadis labels it with 25 records, the one
+     * ending at 03:00 twice, and every one of them is stored at its own hour, so coverage is full.
      */
     @Test
     @DisplayName("EPR-001 AC1 the autumn daylight saving day spans 25 hours")
@@ -395,10 +395,13 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         // 2023-10-29 in Europe/Madrid: 02:00 happens twice, so the day runs 25 hours.
+        List<String> labels = new ArrayList<>(List.of("01:00", "02:00", "03:00", "03:00"));
+        for (int hour = 4; hour <= 24; hour++) {
+            labels.add(String.format("%02d:00", hour));
+        }
         List<DatadisConsumption> records = new ArrayList<>();
-        for (int hour = 0; hour < 24; hour++) {
-            records.add(hourlyRecord(supply.getCode(), "2023/10/29",
-                    String.format("%02d:00", hour), 1.0f, 0.0f, 0.0f));
+        for (String label : labels) {
+            records.add(hourlyRecord(supply.getCode(), "2023/10/29", label, 1.0f, 0.0f, 0.0f));
         }
         writeRecords(records.toArray(new DatadisConsumption[0]));
 
@@ -408,7 +411,16 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.period.startDate").value("2023-10-29T00:00:00+02:00"))
                 .andExpect(jsonPath("$.period.endDate").value("2023-10-30T00:00:00+01:00"))
                 .andExpect(jsonPath("$.coverage.expectedHours").value(25))
-                .andExpect(jsonPath("$.coverage.hoursWithData").value(24));
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(25));
+
+        // Both hours local 02:00 repeats hold a record.
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .queryParam("startDate", "2023-10-29T02:00:00+02:00")
+                        .queryParam("endDate", "2023-10-29T03:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverage.expectedHours").value(2))
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(2));
     }
 
     // --- Estimated savings ---
@@ -425,9 +437,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.0f, 2.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 100.0f, 50.0f, 0.5f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 1.0f, 2.0f, 2.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -472,8 +484,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 9.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 100.0f, 50.0f, 0.5f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 9.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 100.0f, 50.0f, 0.5f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -520,9 +532,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.5f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 2.5f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 0.25f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.5f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 1.0f, 2.5f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "03:00", 1.0f, 0.25f, 0.0f));
 
         MvcResult result = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -555,7 +567,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         // The supply has records, just none inside the requested period.
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 1.0f, 1.0f, 1.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 1.0f, 1.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -580,8 +592,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 10.0f, 0.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 20.0f, 0.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 10.0f, 0.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 20.0f, 0.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -606,13 +618,13 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
 
         writeRecords(
                 // Outside the period, before it.
-                hourlyRecord(supply.getCode(), "2024/02/01", "09:00", 1.0f, 36.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 1.0f, 36.0f, 0.0f),
                 // Inside: 2 + 3 + 3 = 8 kWh self-consumed.
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 1.0f, 2.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 1.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 1.0f, 2.0f, 0.0f),
                 hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 1.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 1.0f, 3.0f, 0.0f),
                 // Outside the period, after it.
-                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 1.0f, 36.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "14:00", 1.0f, 36.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -637,9 +649,9 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "10:00", 0.0f, 10.0f, 0.0f),
                 hourlyRecord(supply.getCode(), "2024/02/01", "11:00", 0.0f, 10.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 1000.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "12:00", 0.0f, 10.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "13:00", 0.0f, 1000.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -663,7 +675,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdOwner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyOwnedBy(createdOwner);
 
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 10.0f, 0.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 10.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
@@ -681,7 +693,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         createMembershipRepository.create(DEFAULT_COMMUNITY_ID, createdOwner.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply supply = createSupplyOwnedBy(createdOwner);
 
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 1.0f, 0.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 1.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, loginUser(owner)))
@@ -856,7 +868,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 9));
-        writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "12:00", 3.0f, 4.0f, 1.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "13:00", 3.0f, 4.0f, 1.0f));
 
         requestLatest(supply, loginUser(owner))
                 .andExpect(status().isOk())
@@ -973,7 +985,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         User owner = createMemberOfDefaultCommunity();
         Supply supply = createSupplyOwnedBy(owner);
         writePublishedZeros(supply, YearMonth.of(2026, 8));
-        writeRecords(hourlyRecord(supply.getCode(), "2026/08/10", "12:00", 3.0f, 4.0f, 1.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2026/08/10", "13:00", 3.0f, 4.0f, 1.0f));
         String token = loginUser(owner);
 
         String explicit = mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
@@ -1063,8 +1075,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
         createPlantOn(supply);
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 3.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 2.0f, 1.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 2.0f, 1.0f, 0.0f));
 
         requestDay(supply)
                 .andExpect(status().isOk())
@@ -1094,8 +1106,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     void aRegularSupplyWithZeroSurplusHasARatioOfOne() throws Exception {
         Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
         writeRecords(
-                hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 3.0f, 0.0f),
-                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 2.0f, 1.0f, 0.0f));
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 3.0f, 0.0f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 2.0f, 1.0f, 0.0f));
 
         requestDay(supply)
                 .andExpect(status().isOk())
@@ -1112,7 +1124,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-002 SEM-004 a regular supply's basis is its own self-consumption and assigned energy")
     void aRegularSuppliesBasisIsItsOwnEnergy() throws Exception {
         Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 1.0f, 3.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 1.0f, 3.0f));
 
         requestDay(supply)
                 .andExpect(status().isOk())
@@ -1127,7 +1139,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @DisplayName("SEM-002 a regular supply with nothing assigned has nothing assigned")
     void aRegularSupplyWithNothingAssignedHasNothingAssigned() throws Exception {
         Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 0.0f, 0.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 0.0f, 0.0f));
 
         requestDay(supply)
                 .andExpect(status().isOk())
@@ -1141,7 +1153,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     void aPlantsOwnSupplyHasNoRatioOverItsRecordedSpan() throws Exception {
         Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
         createPlantOn(supply);
-        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "00:00", 4.0f, 3.0f, 0.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 4.0f, 3.0f, 0.0f));
 
         mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
                         .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID)))
@@ -1159,7 +1171,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
         Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
         createPlantOn(supply);
         writePublishedZeros(supply, YearMonth.of(2026, 9));
-        writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "12:00", 3.0f, 4.0f, 0.0f));
+        writeRecords(hourlyRecord(supply.getCode(), "2026/09/10", "13:00", 3.0f, 4.0f, 0.0f));
 
         requestLatest(supply, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
                 .andExpect(status().isOk())
