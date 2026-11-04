@@ -4,11 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
-import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * One bucket of a supply's consumption series -- a local calendar day on the daily endpoint, a local
@@ -27,13 +24,8 @@ import java.math.RoundingMode;
  * assignedProductionKWh is derived from the unrounded self-consumed and surplus energy; the
  * distributor's generation figure is not exposed.
  *
- * <p>The energy figures are rounded here to 3 decimals, and only here: what is stored, and every
- * sum built from it, keeps full precision.
- *
- * <p>This is also where the amount is rounded, once, for presentation: the calculation itself keeps
- * full precision, so a bucket cut across two tariff segments is rounded as a whole rather than once
- * per segment. Rounding per bucket does mean the rounded buckets of a period need not add up to the
- * cent to the single rounded total the energy metrics endpoint reports for that same period.
+ * <p>The energy figures and the amount are rounded by {@link SupplyConsumptionBucketValues}, the
+ * mapping every series response shares.
  */
 @Schema(requiredProperties = {"cups", "date", "time", "gridImportKWh", "obtainMethod",
         "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh", "savingsEur", "tariffSource"})
@@ -83,29 +75,17 @@ public class SupplyConsumptionBucketResponse {
     private final TariffSource tariffSource;
 
     public SupplyConsumptionBucketResponse(SupplyConsumptionBucket bucket) {
-        DatadisConsumption consumption = bucket.getConsumption();
-        // Scale is declared inline rather than as a constant: ResponseSchemaNullabilityArchTest
-        // inspects every field of a *Response class, static ones included, and would demand a
-        // @Schema marker on a private constant that is not part of the contract at all.
-        int cents = 2;
-        this.savingsEur = bucket.getSavings().getAmountEur().setScale(cents, RoundingMode.HALF_UP);
-        this.tariffSource = bucket.getSavings().getTariffSource();
-        this.cups = consumption.getCups();
-        this.date = consumption.getDate();
-        this.time = consumption.getTime();
-        this.gridImportKWh = rounded(consumption.getConsumptionKWh());
-        this.obtainMethod = consumption.getObtainMethod();
-        this.surplusKWh = rounded(consumption.getSurplusEnergyKWh());
-        this.selfConsumptionKWh = rounded(consumption.getSelfConsumptionEnergyKWh());
-        this.assignedProductionKWh = (float) KWhRounding.round(bucket.getAssignedProductionKWh());
-    }
-
-    /**
-     * Rounds the figure as reported -- read through the float's shortest decimal representation --
-     * rather than its widened binary value, which can sit just below a tie.
-     */
-    private static Float rounded(Float kWh) {
-        return (float) KWhRounding.round(DatadisEnergyValues.exactlyAsReported(kWh).doubleValue());
+        SupplyConsumptionBucketValues values = SupplyConsumptionBucketValues.of(bucket);
+        this.cups = values.cups();
+        this.date = values.date();
+        this.time = values.time();
+        this.gridImportKWh = values.gridImportKWh();
+        this.obtainMethod = values.obtainMethod();
+        this.surplusKWh = values.surplusKWh();
+        this.selfConsumptionKWh = values.selfConsumptionKWh();
+        this.assignedProductionKWh = values.assignedProductionKWh();
+        this.savingsEur = values.savingsEur();
+        this.tariffSource = values.tariffSource();
     }
 
     public String getCups() {

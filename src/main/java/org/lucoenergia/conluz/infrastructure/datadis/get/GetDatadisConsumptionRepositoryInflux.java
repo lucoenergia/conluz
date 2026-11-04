@@ -155,6 +155,19 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                                                                          OffsetDateTime endDate, String measurementName,
                                                                          String duration, boolean exclusiveEnd,
                                                                          boolean localCalendarAligned) {
+        return mapToConsumption(queryGroupedPoints(supply, startDate, endDate, measurementName, duration,
+                exclusiveEnd, localCalendarAligned));
+    }
+
+    /**
+     * The grouped statement described on
+     * {@link #getConsumptionsByRangeOfDatesGroupedByDuration}, returning each group as the point
+     * InfluxDB stamped it with, the start instant of the group included.
+     */
+    private List<DatadisConsumptionPoint> queryGroupedPoints(Supply supply, OffsetDateTime startDate,
+                                                             OffsetDateTime endDate, String measurementName,
+                                                             String duration, boolean exclusiveEnd,
+                                                             boolean localCalendarAligned) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             String timeZoneClause = localCalendarAligned
@@ -186,27 +199,27 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
             QueryResult queryResult = connection.query(query);
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
-            List<DatadisConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class);
-            return mapToConsumption(consumptionPoints);
+            return resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class);
         }
     }
 
     private List<DatadisConsumption> mapToConsumption(List<DatadisConsumptionPoint> consumptionPoints) {
-        // Map fields from datadisConsumptionPoint to consumption here
         return consumptionPoints.stream()
-                .map(consumptionPoint -> {
-                    DatadisConsumption consumption = new DatadisConsumption();
-                    consumption.setCups(consumptionPoint.getCups());
-                    consumption.setDate(dateConverter.convertFromInstantToStringDate(consumptionPoint.getTime()));
-                    consumption.setTime(dateConverter.convertFromInstantToStringTime(consumptionPoint.getTime()));
-                    consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
-                    consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
-                    consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
-                    consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
-                    consumption.setObtainMethod(consumptionPoint.getObtainMethod());
-                    return consumption;
-                })
+                .map(this::toConsumption)
                 .toList();
+    }
+
+    private DatadisConsumption toConsumption(DatadisConsumptionPoint consumptionPoint) {
+        DatadisConsumption consumption = new DatadisConsumption();
+        consumption.setCups(consumptionPoint.getCups());
+        consumption.setDate(dateConverter.convertFromInstantToStringDate(consumptionPoint.getTime()));
+        consumption.setTime(dateConverter.convertFromInstantToStringTime(consumptionPoint.getTime()));
+        consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
+        consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
+        consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
+        consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
+        consumption.setObtainMethod(consumptionPoint.getObtainMethod());
+        return consumption;
     }
 
     private List<DatadisConsumption> mapMonthlyToConsumption(List<DatadisConsumptionMonthlyPoint> consumptionPoints) {
