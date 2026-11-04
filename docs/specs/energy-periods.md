@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `EPR` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile` |
+| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #410 |
+| **Last reviewed against code** | #545 |
 
 ## Purpose
 
 The period a request for energy metrics or a consumption series is computed over: how its bounds
 are read, which requested periods are rejected, and how a period reaching into the current hour is
-cut short. It owns these conventions for the operations listed above; the supply hourly and yearly
-series, the production endpoints, payback and the CSV report are not covered.
+cut short. It owns these conventions for the operations listed above; the supply yearly series, the
+production endpoints, payback and the CSV report are not covered.
 
 ## Glossary
 
@@ -100,6 +100,29 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
   answer to a request independent of the time it is sent.
 - **Source:** #409
 
+### EPR-005 — A requested period of an hourly series is at most 31 calendar days long
+
+- **Status:** Active
+- **Rule:** An hourly series MUST reject a requested period whose `endDate` is later than
+  `startDate` plus 31 calendar days, counted in the period's time zone. The limit MUST be evaluated
+  on the requested bounds, before EPR-002 clips the end. It replaces the limit of EPR-004 on the
+  hourly series, and is answered with the same code.
+- **Rationale:** A cost guard, like EPR-004: an hourly series returns one row per hour, 24 times as
+  many as a daily one, so 24 months would be about 17,500 rows for a view that shows one day. 31
+  calendar days still covers any whole month. Calendar days rather than 744 hours keep a month with
+  the October change, which lasts 745 hours, within the limit.
+- **Source:** #545
+
+**Scenarios**
+
+```gherkin
+Given the supply hourly series
+When it is read from 2026-09-01T00:00:00+02:00 to 2026-10-02T00:00:00+02:00
+Then the period is accepted
+When it is read from 2026-09-01T00:00:00+02:00 to 2026-10-02T01:00:00+02:00
+Then it is answered 400 ENERGY_METRICS_PERIOD_TOO_LONG
+```
+
 ## Impossible states
 
 - A requested period whose end is before its start reaching the data — prevented by EPR-001, checked
@@ -111,5 +134,4 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
 
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
-| The supply hourly series keeps both bounds inclusive. | Out of the scope of #409, which left that endpoint and its CSV report unchanged. | The supply hourly series is aligned with EPR-001. | #409 |
 | A period resolved from the span of the stored records is neither capped nor clipped. | It is not a requested range, so EPR-003 and EPR-004 do not apply to it. | The recorded-period fallback is capped or removed. | #409 |
