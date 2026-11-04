@@ -59,13 +59,6 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     }
 
     @Override
-    public List<DatadisConsumption> getHourlyConsumptionBySupply(SupplyId supplyId, OffsetDateTime startDate,
-                                                                 OffsetDateTime endDate) {
-        Supply supply = getSupplyOrThrow(supplyId);
-        return getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, startDate, endDate);
-    }
-
-    @Override
     public List<DatadisHourlyConsumption> getHourlySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                   OffsetDateTime endDate) {
         ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
