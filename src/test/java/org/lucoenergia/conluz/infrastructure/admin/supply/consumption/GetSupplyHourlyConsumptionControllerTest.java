@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -85,7 +86,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("consumptionKWh")))
+                .andExpect(content().string(containsString("gridImportKWh")))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
     }
@@ -111,7 +112,7 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("consumptionKWh")))
+                .andExpect(content().string(containsString("gridImportKWh")))
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
     }
@@ -244,11 +245,11 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
     }
 
     /**
-     * AC10. The hourly series still serialises the domain object, `empty` included: only the daily
-     * and monthly endpoints moved to a response DTO.
+     * The hourly series answers with its own response type, not the Datadis domain object, so the
+     * `empty` getter of the domain object no longer leaks into it (#545).
      */
     @Test
-    void testHourlyConsumptionStillCarriesTheEmptyField() throws Exception {
+    void testHourlyConsumptionDoesNotCarryTheEmptyField() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
@@ -261,16 +262,16 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", START_DATE)
                         .queryParam("endDate", END_DATE))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("\"empty\"")));
+                .andExpect(content().string(not(containsString("\"empty\""))));
     }
 
     /**
-     * The hourly series is a Datadis pass-through and keeps the Datadis names, generation included,
-     * unlike the daily and monthly series (#460).
+     * The hourly series is no longer a Datadis pass-through (#545): it names each quantity as the
+     * daily and monthly series and the energy metrics do, and drops the Datadis names.
      */
     @Test
-    @DisplayName("EVL-003 AC6 the hourly series keeps the Datadis field names")
-    void testHourlyConsumptionKeepsTheDatadisFieldNames() throws Exception {
+    @DisplayName("EVL-003 the hourly series uses the series field names, not the Datadis ones")
+    void testHourlyConsumptionUsesTheSeriesFieldNames() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         User user = createUserRepository.create(UserMother.randomUser());
         Supply supply = createSupplyRepository.create(
@@ -285,22 +286,24 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         JsonNode record = objectMapper.readTree(body).path(0);
-        for (String field : List.of("consumptionKWh", "surplusEnergyKWh", "selfConsumptionEnergyKWh",
-                "generationEnergyKWh")) {
+        for (String field : List.of("gridImportKWh", "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh")) {
             assertTrue(record.has(field), () -> "missing " + field + ": " + record);
         }
-        for (String field : List.of("gridImportKWh", "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh")) {
-            assertFalse(record.has(field), () -> "carries the series name " + field + ": " + record);
+        for (String field : List.of("consumptionKWh", "surplusEnergyKWh", "selfConsumptionEnergyKWh",
+                "generationEnergyKWh")) {
+            assertFalse(record.has(field), () -> "carries the Datadis name " + field + ": " + record);
         }
     }
 
     /**
-     * The hourly series is built by the same grouped statement as the daily one, so it carried the
-     * same constant 0.0 for generated energy. Each bucket is one record here, so the values are the
-     * ones written.
+     * Assigned production is derived from the hour's self-consumption and surplus, never read from the
+     * distributor's generation: at 09:00 the record carries 2.00 kWh of generation, 0.25 of
+     * self-consumption and none of surplus; at 14:00, 4.00, 0.75 and 0.50. Each bucket is one record
+     * here, so the values are the ones written.
      */
     @Test
-    void testHourlyConsumptionReportsGeneratedEnergy() throws Exception {
+    @DisplayName("EVL-004 the hourly series derives assigned production from self-consumption and surplus")
+    void testHourlyConsumptionDerivesAssignedProduction() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
@@ -313,13 +316,15 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                         .queryParam("startDate", "2023-04-10T09:00:00+02:00")
                         .queryParam("endDate", "2023-04-10T18:00:00+02:00"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].time").value("09:00"))
-                .andExpect(jsonPath("$[0].generationEnergyKWh").value(closeTo(2.00, TOLERANCE)))
-                .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").value(closeTo(0.25, TOLERANCE)))
-                .andExpect(jsonPath("$[5].time").value("14:00"))
-                .andExpect(jsonPath("$[5].generationEnergyKWh").value(closeTo(4.00, TOLERANCE)))
                 // The end is exclusive (EPR-001): the 18:00 hour is not part of the period.
                 .andExpect(jsonPath("$", hasSize(9)))
+                .andExpect(jsonPath("$[0].time").value("09:00"))
+                .andExpect(jsonPath("$[0].assignedProductionKWh").value(closeTo(0.25, TOLERANCE)))
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").value(closeTo(0.25, TOLERANCE)))
+                .andExpect(jsonPath("$[5].time").value("14:00"))
+                .andExpect(jsonPath("$[5].assignedProductionKWh").value(closeTo(1.25, TOLERANCE)))
+                // 0.75 kWh at 0.15 EUR/kWh is 0.1125, presented as 0.11.
+                .andExpect(jsonPath("$[5].savingsEur").value(closeTo(0.11, TOLERANCE)))
                 .andExpect(jsonPath("$[8].time").value("17:00"));
     }
 }

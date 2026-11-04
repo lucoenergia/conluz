@@ -6,6 +6,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
+import org.lucoenergia.conluz.domain.consumption.SupplyHourlyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
@@ -59,8 +60,8 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     }
 
     @Override
-    public List<DatadisHourlyConsumption> getHourlySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
-                                                                  OffsetDateTime endDate) {
+    public List<SupplyHourlyConsumptionBucket> getHourlySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
+                                                                       OffsetDateTime endDate) {
         ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
         OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone,
                 EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH);
@@ -72,9 +73,15 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
             storedHours.put(hour.getStartsAt(), hour);
         }
 
-        return hoursStartingIn(startDate.toInstant(), effectiveEndDate.toInstant(), zone).stream()
-                .map(hour -> storedHours.getOrDefault(hour,
-                        new DatadisHourlyConsumption(hour, nothingStored(supply, hour, zone))))
+        Instant rangeToExclusive = effectiveEndDate.toInstant();
+        return hoursStartingIn(startDate.toInstant(), rangeToExclusive, zone).stream()
+                .map(hour -> {
+                    DatadisHourlyConsumption stored = storedHours.get(hour);
+                    DatadisConsumption consumption = stored != null
+                            ? stored.getConsumption()
+                            : nothingStored(supply, hour, zone);
+                    return priceHour(supply, consumption, hour, zone, rangeToExclusive);
+                })
                 .toList();
     }
 
@@ -147,6 +154,20 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         Instant toExclusive = earliest(day.plusDays(1).atStartOfDay(zone).toInstant(), rangeToExclusive);
 
         return price(supply, consumption, from, toExclusive);
+    }
+
+    /**
+     * Prices an hourly bucket over its own hour, clipped to the end of the period.
+     *
+     * <p>The hour starts inside the period by construction, so only its end can need clipping: an end
+     * that falls mid-hour leaves a partial last hour, priced over exactly the part its energy covers,
+     * as the daily series prices a partial edge day.
+     */
+    private SupplyHourlyConsumptionBucket priceHour(Supply supply, DatadisConsumption consumption, Instant hour,
+                                                    ZoneId zone, Instant rangeToExclusive) {
+        Instant toExclusive = earliest(hour.plus(1, ChronoUnit.HOURS), rangeToExclusive);
+        return SupplyHourlyConsumptionBucket.of(hour.atZone(zone).toOffsetDateTime(),
+                price(supply, consumption, hour, toExclusive));
     }
 
     /**

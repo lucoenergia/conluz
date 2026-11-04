@@ -16,14 +16,20 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.supply.tariff.EstimatedTariffProperties;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.ResultActions;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.closeTo;
@@ -34,16 +40,18 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * The supply hourly series against stored records: the period it reads, the hours it emits, and the
- * 31-day cap it is held to (#545).
+ * The supply hourly series against stored records: the period it reads, the hours it emits with
+ * their start instants, what each hour saved, and the 31-day cap it is held to (#545).
  */
 class SupplyHourlySeriesControllerTest extends BaseControllerTest {
 
     private static final double TOLERANCE = 1e-6;
+    private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
 
     /**
      * 2026-11-04T10:30 in Madrid: the current hour started at 10:00+01:00, after every whole day the
@@ -64,6 +72,8 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
+    @Autowired
+    private EstimatedTariffProperties estimatedTariff;
 
     private Supply supply;
     private String token;
@@ -100,9 +110,12 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$", hasSize(24)))
                 .andExpect(jsonPath("$[*].date", everyItem(is("2026/09/01"))))
                 .andExpect(jsonPath("$[*].time", contains(localHoursOfADay())))
-                .andExpect(jsonPath("$[0].consumptionKWh").value(closeTo(1.0, TOLERANCE)))
-                .andExpect(jsonPath("$[12].consumptionKWh").value(closeTo(2.0, TOLERANCE)))
-                .andExpect(jsonPath("$[23].consumptionKWh").value(closeTo(0.0, TOLERANCE)));
+                .andExpect(jsonPath("$[*].startsAt", contains(hourlyInstants("2026-09-01T00:00:00+02:00", 24))))
+                .andExpect(jsonPath("$[0].startsAt").value("2026-09-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$[23].startsAt").value("2026-09-01T23:00:00+02:00"))
+                .andExpect(jsonPath("$[0].gridImportKWh").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$[12].gridImportKWh").value(closeTo(2.0, TOLERANCE)))
+                .andExpect(jsonPath("$[23].gridImportKWh").value(closeTo(0.0, TOLERANCE)));
     }
 
     // --- AC2: the days the clocks change ---
@@ -115,9 +128,12 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
         request("2026-03-29T00:00:00+01:00", "2026-03-30T00:00:00+02:00")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(23)))
+                .andExpect(jsonPath("$[*].startsAt", contains(hourlyInstants("2026-03-29T00:00:00+01:00", 23))))
                 .andExpect(jsonPath("$[1].time").value("01:00"))
+                .andExpect(jsonPath("$[1].startsAt").value("2026-03-29T01:00:00+01:00"))
                 .andExpect(jsonPath("$[2].time").value("03:00"))
-                .andExpect(jsonPath("$[2].consumptionKWh").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$[2].startsAt").value("2026-03-29T03:00:00+02:00"))
+                .andExpect(jsonPath("$[2].gridImportKWh").value(closeTo(1.0, TOLERANCE)))
                 .andExpect(jsonPath("$[22].time").value("23:00"));
     }
 
@@ -134,10 +150,13 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
         request("2026-10-25T00:00:00+02:00", "2026-10-26T00:00:00+01:00")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(25)))
+                .andExpect(jsonPath("$[*].startsAt", contains(hourlyInstants("2026-10-25T00:00:00+02:00", 25))))
                 .andExpect(jsonPath("$[2].time").value("02:00"))
-                .andExpect(jsonPath("$[2].consumptionKWh").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$[2].startsAt").value("2026-10-25T02:00:00+02:00"))
+                .andExpect(jsonPath("$[2].gridImportKWh").value(closeTo(1.0, TOLERANCE)))
                 .andExpect(jsonPath("$[3].time").value("02:00"))
-                .andExpect(jsonPath("$[3].consumptionKWh").value(closeTo(2.0, TOLERANCE)))
+                .andExpect(jsonPath("$[3].startsAt").value("2026-10-25T02:00:00+01:00"))
+                .andExpect(jsonPath("$[3].gridImportKWh").value(closeTo(2.0, TOLERANCE)))
                 .andExpect(jsonPath("$[24].time").value("23:00"));
     }
 
@@ -153,10 +172,14 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[10].time").value("10:00"))
                 .andExpect(jsonPath("$[10].obtainMethod").value("Real"))
-                .andExpect(jsonPath("$[10].consumptionKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$[10].gridImportKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$[10].savingsEur").value(closeTo(0.0, TOLERANCE)))
                 .andExpect(jsonPath("$[11].time").value("11:00"))
                 .andExpect(jsonPath("$[11].obtainMethod").value(nullValue()))
-                .andExpect(jsonPath("$[11].consumptionKWh").value(closeTo(0.0, TOLERANCE)));
+                .andExpect(jsonPath("$[11].gridImportKWh").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$[11].savingsEur").value(closeTo(0.0, TOLERANCE)))
+                .andExpect(jsonPath("$[11].tariffSource").value("ESTIMATE"))
+                .andExpect(content().string(containsString("\"savingsEur\":0.00")));
     }
 
     /**
@@ -172,9 +195,66 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[*].time", contains(localHoursOfADay())))
                 .andExpect(jsonPath("$[*].cups", everyItem(is(supply.getCode()))))
                 .andExpect(jsonPath("$[*].obtainMethod", everyItem(nullValue())))
-                .andExpect(jsonPath("$[*].consumptionKWh", everyItem(is(0.0))))
-                .andExpect(jsonPath("$[*].selfConsumptionEnergyKWh", everyItem(is(0.0))))
-                .andExpect(jsonPath("$[*].surplusEnergyKWh", everyItem(is(0.0))));
+                .andExpect(jsonPath("$[*].gridImportKWh", everyItem(is(0.0))))
+                .andExpect(jsonPath("$[*].selfConsumptionKWh", everyItem(is(0.0))))
+                .andExpect(jsonPath("$[*].surplusKWh", everyItem(is(0.0))))
+                .andExpect(jsonPath("$[*].savingsEur", everyItem(is(0.0))))
+                .andExpect(jsonPath("$[*].startsAt", contains(hourlyInstants(SEPTEMBER_FIRST, 24))));
+    }
+
+    // --- AC4: each hour is priced over itself ---
+
+    /**
+     * Two hours with different self-consumption, so that neither a price per day nor a copy of one
+     * hour's amount can match both. 0.3 kWh at 0.15 €/kWh is 0.045 €, which rounds half-up to 0.05:
+     * rounding half-even would give 0.04.
+     */
+    @Test
+    @DisplayName("SCS-001 AC4 each hour's savings are its own self-consumption priced with the estimated tariff")
+    void eachHourIsPricedFromItsOwnSelfConsumption() throws Exception {
+        writeAt("2026-09-01T10:00:00+02:00", 0f, 0.3f);
+        writeAt("2026-09-01T11:00:00+02:00", 0f, 2.5f);
+
+        request(SEPTEMBER_FIRST, SEPTEMBER_SECOND)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[10].savingsEur").value(closeTo(priced("0.3"), TOLERANCE)))
+                .andExpect(jsonPath("$[10].tariffSource").value("ESTIMATE"))
+                .andExpect(jsonPath("$[11].savingsEur").value(closeTo(priced("2.5"), TOLERANCE)))
+                .andExpect(content().string(containsString("\"savingsEur\":0.05")))
+                .andExpect(content().string(containsString("\"savingsEur\":0.38")));
+    }
+
+    /**
+     * An end in the middle of an hour leaves a partial last hour: it holds the record stamped at its
+     * start, and is priced over the part of it the period covers.
+     */
+    @Test
+    @DisplayName("SCS-001 an end in the middle of an hour leaves a partial last hour that keeps its record")
+    void anEndInTheMiddleOfAnHourLeavesAPartialLastHour() throws Exception {
+        writeAt("2026-09-01T10:00:00+02:00", 1f, 2.5f);
+
+        request("2026-09-01T09:00:00+02:00", "2026-09-01T10:30:00+02:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[1].startsAt").value("2026-09-01T10:00:00+02:00"))
+                .andExpect(jsonPath("$[1].gridImportKWh").value(closeTo(1.0, TOLERANCE)))
+                .andExpect(jsonPath("$[1].savingsEur").value(closeTo(priced("2.5"), TOLERANCE)));
+    }
+
+    /**
+     * A start in the middle of an hour: that hour started before the period, and the record stamped
+     * at its start is not part of it, so the first hour emitted is the next whole one.
+     */
+    @Test
+    @DisplayName("SCS-001 a start in the middle of an hour emits the next whole hour first")
+    void aStartInTheMiddleOfAnHourEmitsTheNextWholeHourFirst() throws Exception {
+        writeAt("2026-09-01T10:00:00+02:00", 1f, 0f);
+
+        request("2026-09-01T10:30:00+02:00", "2026-09-01T12:00:00+02:00")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].startsAt").value("2026-09-01T11:00:00+02:00"))
+                .andExpect(jsonPath("$[0].obtainMethod").value(nullValue()));
     }
 
     // --- EPR-002: an end in the future is clipped to the current hour ---
@@ -189,7 +269,7 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(10)))
                 .andExpect(jsonPath("$[9].time").value("09:00"))
-                .andExpect(jsonPath("$[9].consumptionKWh").value(closeTo(1.0, TOLERANCE)));
+                .andExpect(jsonPath("$[9].gridImportKWh").value(closeTo(1.0, TOLERANCE)));
     }
 
     // --- EPR-005: at most 31 calendar days ---
@@ -243,6 +323,30 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
 
     private static String[] localHoursOfADay() {
         return IntStream.range(0, 24).mapToObj(hour -> String.format("%02d:00", hour)).toArray(String[]::new);
+    }
+
+    /**
+     * The start instants of {@code count} consecutive hours from {@code first}, each with the offset
+     * in force in Madrid at that instant, as the series renders them.
+     */
+    private static String[] hourlyInstants(String first, int count) {
+        Instant start = OffsetDateTime.parse(first).toInstant();
+        return IntStream.range(0, count)
+                .mapToObj(hour -> start.plus(hour, ChronoUnit.HOURS).atZone(MADRID).toOffsetDateTime()
+                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                .toArray(String[]::new);
+    }
+
+    /**
+     * What {@code selfConsumptionKWh} is worth at the configured estimated tariff, rounded to cents
+     * half-up, as every series rounds an amount.
+     */
+    private double priced(String selfConsumptionKWh) {
+        return new BigDecimal(selfConsumptionKWh)
+                .multiply(estimatedTariff.getBaseEurPerKwh())
+                .multiply(BigDecimal.ONE.add(estimatedTariff.getVatRate()))
+                .setScale(2, RoundingMode.HALF_UP)
+                .doubleValue();
     }
 
     private void writeAt(String time, float gridImportKWh, float selfConsumptionKWh) {

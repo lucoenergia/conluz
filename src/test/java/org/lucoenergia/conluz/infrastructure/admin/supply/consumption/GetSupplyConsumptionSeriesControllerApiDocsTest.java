@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GetSupplyConsumptionSeriesControllerApiDocsTest extends BaseControllerTest {
 
     private static final String BUCKET_SCHEMA = "SupplyConsumptionBucketResponse";
+    private static final String HOURLY_BUCKET_SCHEMA = "SupplyHourlyConsumptionBucketResponse";
     private static final String DATADIS_SCHEMA = "DatadisConsumption";
     private static final String SERIES_PATH = "/api/v1/supplies/{supplyId}/consumption/%s";
 
@@ -79,21 +81,59 @@ class GetSupplyConsumptionSeriesControllerApiDocsTest extends BaseControllerTest
     }
 
     /**
-     * AC3 and AC10 at the contract level: only the daily and monthly series moved to the new
-     * schema, and the hourly and yearly ones still answer with the Datadis-shaped object --
-     * {@code empty} and all.
+     * AC3 and AC10 at the contract level: the daily and monthly series share the bucket schema, the
+     * hourly series answers with its own (#545), and the yearly one still answers with the
+     * Datadis-shaped object -- {@code empty} and all.
      */
     @Test
-    void onlyTheDailyAndMonthlySeriesMovedToTheNewSchema() throws Exception {
+    void eachSeriesAnswersWithItsSchema() throws Exception {
         JsonNode document = apiDocs();
 
         assertEquals("#/components/schemas/" + BUCKET_SCHEMA, itemRefOf(document, "daily"));
         assertEquals("#/components/schemas/" + BUCKET_SCHEMA, itemRefOf(document, "monthly"));
-        assertEquals("#/components/schemas/" + DATADIS_SCHEMA, itemRefOf(document, "hourly"));
+        assertEquals("#/components/schemas/" + HOURLY_BUCKET_SCHEMA, itemRefOf(document, "hourly"));
         assertEquals("#/components/schemas/" + DATADIS_SCHEMA, itemRefOf(document, "yearly"));
 
         assertTrue(!schema(DATADIS_SCHEMA).path("properties").path("empty").isMissingNode(),
-                () -> DATADIS_SCHEMA + " lost its empty property, which hourly and yearly still expose");
+                () -> DATADIS_SCHEMA + " lost its empty property, which yearly still exposes");
+    }
+
+    /**
+     * The hourly bucket carries every property of the daily one, all required, plus the start
+     * instant, which the daily bucket does not gain.
+     */
+    @Test
+    @DisplayName("SCS-001 the hourly bucket documents every property as required, startsAt as a date-time")
+    void documentsEveryPropertyOfTheHourlyBucketAsRequired() throws Exception {
+        JsonNode hourly = schema(HOURLY_BUCKET_SCHEMA);
+        List<String> required = textValues(hourly.path("required"));
+
+        assertTrue(required.containsAll(List.of("cups", "startsAt", "date", "time", "gridImportKWh",
+                        "obtainMethod", "surplusKWh", "selfConsumptionKWh", "assignedProductionKWh",
+                        "savingsEur", "tariffSource")),
+                () -> HOURLY_BUCKET_SCHEMA + ".required was " + required);
+        assertEquals("date-time", hourly.path("properties").path("startsAt").path("format").asText(),
+                () -> "startsAt was " + hourly.path("properties").path("startsAt"));
+        assertTrue(!textValues(hourly.path("properties").path("startsAt").path("type")).contains("null"),
+                () -> "startsAt must not be nullable: " + hourly.path("properties").path("startsAt"));
+        assertTrue(schema(BUCKET_SCHEMA).path("properties").path("startsAt").isMissingNode(),
+                () -> BUCKET_SCHEMA + " gained startsAt");
+    }
+
+    @Test
+    void documentsOnlyTheObtainMethodAsNullableOnTheHourlyBucket() throws Exception {
+        JsonNode properties = schema(HOURLY_BUCKET_SCHEMA).path("properties");
+
+        assertTrue(textValues(properties.path("obtainMethod").path("type")).containsAll(List.of("string", "null")),
+                () -> "obtainMethod.type was " + properties.path("obtainMethod"));
+        for (String neverNull : List.of("cups", "date", "time", "gridImportKWh", "surplusKWh",
+                "selfConsumptionKWh", "assignedProductionKWh", "savingsEur", "tariffSource")) {
+            assertTrue(!textValues(properties.path(neverNull).path("type")).contains("null"),
+                    () -> neverNull + " must not be nullable: " + properties.path(neverNull));
+        }
+        assertTrue(properties.path("empty").isMissingNode(), () -> "carries empty: " + properties);
+        assertTrue(!schema(HOURLY_BUCKET_SCHEMA).toString().contains("\"nullable\""),
+                () -> HOURLY_BUCKET_SCHEMA + " carries a nullable keyword");
     }
 
     private String itemRefOf(JsonNode document, String granularity) {
