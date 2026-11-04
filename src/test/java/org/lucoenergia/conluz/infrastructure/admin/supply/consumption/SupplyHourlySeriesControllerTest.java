@@ -258,6 +258,23 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].obtainMethod").value(nullValue()));
     }
 
+    // --- EVL-001: energy figures are rounded to 3 decimals ---
+
+    @Test
+    @DisplayName("EVL-001 the hourly series rounds each energy figure to 3 decimals")
+    void theHourlySeriesRoundsItsEnergyFigures() throws Exception {
+        influxFixture.writeAt(supply.getCode(), OffsetDateTime.parse("2026-09-01T10:00:00+02:00").toInstant(),
+                0.1234f, 0.2225f, 0.1111f);
+
+        request(SEPTEMBER_FIRST, SEPTEMBER_SECOND)
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"gridImportKWh\":0.123,")))
+                .andExpect(content().string(containsString("\"selfConsumptionKWh\":0.223,")))
+                .andExpect(content().string(containsString("\"surplusKWh\":0.111,")))
+                // 0.2225 + 0.1111 = 0.3336, rounded once after summing.
+                .andExpect(content().string(containsString("\"assignedProductionKWh\":0.334,")));
+    }
+
     // --- EPR-002: an end in the future is clipped to the current hour ---
 
     @Test
