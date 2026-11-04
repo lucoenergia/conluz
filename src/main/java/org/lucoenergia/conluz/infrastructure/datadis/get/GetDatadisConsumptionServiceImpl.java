@@ -23,6 +23,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -68,7 +69,7 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     public List<SupplyConsumptionBucket> getDailySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                  OffsetDateTime endDate) {
         ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
-        OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone);
+        OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone, EnergyMetricsPeriodValidator.MAX_LENGTH);
         Supply supply = getSupplyOrThrow(supplyId);
         // The period is half-open, so every bucket below clips against the same pair the query
         // itself was bounded by.
@@ -85,7 +86,7 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     public List<SupplyConsumptionBucket> getMonthlySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
                                                                    OffsetDateTime endDate) {
         ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
-        OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone);
+        OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone, EnergyMetricsPeriodValidator.MAX_LENGTH);
         Supply supply = getSupplyOrThrow(supplyId);
 
         return getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, effectiveEndDate)
@@ -98,10 +99,12 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      * Checks the requested period against the same rules every energy metrics period obeys, before
      * anything is read, and returns the end actually read up to: the requested one, clipped to the
      * start of the current hour so that no bucket starts at or after an hour that has not happened.
+     * {@code maxLength} is the longest period the series accepts.
      */
-    private OffsetDateTime effectiveEndDate(OffsetDateTime startDate, OffsetDateTime endDate, ZoneId zone) {
+    private OffsetDateTime effectiveEndDate(OffsetDateTime startDate, OffsetDateTime endDate, ZoneId zone,
+                                            Period maxLength) {
         OffsetDateTime startOfCurrentHour = EnergyMetricsPeriod.startOfCurrentHour(clock, zone);
-        EnergyMetricsPeriodValidator.validate(startDate, endDate, startOfCurrentHour, zone);
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, startOfCurrentHour, zone, maxLength);
         return new EnergyMetricsPeriod(startDate, endDate).endingNoLaterThan(startOfCurrentHour).getEndDate();
     }
 

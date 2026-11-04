@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption;
 
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 
 /**
@@ -15,23 +16,38 @@ public final class EnergyMetricsPeriodValidator {
      */
     public static final int MAX_MONTHS = 24;
 
+    /**
+     * The longest period that may be requested, as a calendar length: {@link #MAX_MONTHS} months.
+     */
+    public static final Period MAX_LENGTH = Period.ofMonths(MAX_MONTHS);
+
     private EnergyMetricsPeriodValidator() {
+    }
+
+    /**
+     * As {@link #validate(OffsetDateTime, OffsetDateTime, OffsetDateTime, ZoneId, Period)}, with the
+     * longest period that may be requested of most operations, {@link #MAX_LENGTH}.
+     */
+    public static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
+                                OffsetDateTime startOfCurrentHour, ZoneId zone) {
+        validate(startDate, endDate, startOfCurrentHour, zone, MAX_LENGTH);
     }
 
     /**
      * Both dates are optional and must be supplied together. When they are, the start must be
      * strictly before the end, since the period is half-open and equal bounds make an empty one;
      * the start must be before the start of the current hour, since a period that has not begun
-     * holds nothing; and the end must be no later than {@link #MAX_MONTHS} calendar months after
-     * the start, counted in {@code zone} on the bounds as requested.
+     * holds nothing; and the end must be no later than {@code maxLength} after the start, counted
+     * in calendar units in {@code zone} on the bounds as requested.
      *
      * @param startOfCurrentHour the start of the current hour in the period's zone, read once by
      *                           the caller so that it can clip the period against the same instant
-     * @param zone               the zone the period's calendar months are counted in
+     * @param zone               the zone the period's calendar units are counted in
+     * @param maxLength          the longest period the operation accepts
      * @throws InvalidEnergyMetricsPeriodException when the first of those rules is broken
      */
     public static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
-                                OffsetDateTime startOfCurrentHour, ZoneId zone) {
+                                OffsetDateTime startOfCurrentHour, ZoneId zone, Period maxLength) {
         if ((startDate == null) != (endDate == null)) {
             throw new InvalidEnergyMetricsPeriodException(
                     InvalidEnergyMetricsPeriodException.Reason.INCOMPLETE_PERIOD);
@@ -47,9 +63,8 @@ public final class EnergyMetricsPeriodValidator {
             throw new InvalidEnergyMetricsPeriodException(
                     InvalidEnergyMetricsPeriodException.Reason.START_IN_FUTURE);
         }
-        if (endDate.isAfter(startDate.atZoneSameInstant(zone).plusMonths(MAX_MONTHS).toOffsetDateTime())) {
-            throw new InvalidEnergyMetricsPeriodException(
-                    InvalidEnergyMetricsPeriodException.Reason.TOO_LONG);
+        if (endDate.isAfter(startDate.atZoneSameInstant(zone).plus(maxLength).toOffsetDateTime())) {
+            throw new InvalidEnergyMetricsPeriodException(maxLength);
         }
     }
 

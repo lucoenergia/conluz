@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -143,6 +144,40 @@ class EnergyMetricsPeriodValidatorTest {
         assertDoesNotThrow(() -> validate(start, OffsetDateTime.parse("2026-03-31T00:00:00+02:00"), null));
         assertReason(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG,
                 start, OffsetDateTime.parse("2026-03-31T00:30:00+02:00"), null);
+    }
+
+    @Test
+    @DisplayName("EPR-004 a refusal for length carries the 24 calendar months of the default cap")
+    void aRefusalForLengthCarriesTheDefaultCap() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validate(OffsetDateTime.parse("2024-10-01T00:00:00+02:00"),
+                        OffsetDateTime.parse("2026-10-02T00:00:00+02:00"), null));
+        assertEquals(Period.ofMonths(24), exception.getMaxLength());
+    }
+
+    /**
+     * An operation can pass a cap of its own: the period is held to it instead of the default, and
+     * the refusal carries it.
+     */
+    @Test
+    void aCapOfTheOperationReplacesTheDefault() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-07-01T00:00:00+02:00");
+        Period week = Period.ofDays(7);
+
+        assertDoesNotThrow(() -> EnergyMetricsPeriodValidator.validate(start,
+                OffsetDateTime.parse("2026-07-08T00:00:00+02:00"), CURRENT_HOUR, MADRID, week));
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> EnergyMetricsPeriodValidator.validate(start, OffsetDateTime.parse("2026-07-08T01:00:00+02:00"),
+                        CURRENT_HOUR, MADRID, week));
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG, exception.getReason());
+        assertEquals(week, exception.getMaxLength());
+    }
+
+    @Test
+    void aRefusalForAnotherReasonCarriesNoCap() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validate(END, START, null));
+        assertEquals(null, exception.getMaxLength());
     }
 
     private static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
