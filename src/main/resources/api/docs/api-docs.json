@@ -19526,7 +19526,7 @@
     },
     "/api/v1/supplies/{supplyId}/consumption/hourly" : {
       "get" : {
-        "description" : "This endpoint retrieves hourly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\nData is aggregated by hour within the specified date range.\n\n**`date` and `time`:** the local calendar date and local time, in the time zone the\napplication is configured with, at which each hour starts (`time` from `00:00` to\n`23:00`). On the day the clocks go back, two consecutive hours carry the same `date`\nand `time`; on the day they go forward, the local hour the clocks skip has no entry.\n",
+        "description" : "This endpoint retrieves hourly consumption data from Datadis for a specific supply within a given date range.\n\n**Authorization Rules:**\n- Community Admins can retrieve consumption data for any supply they administer\n- Supply owners can only retrieve consumption data for their own supplies\n\nThe consumption data includes:\n- Energy taken from the grid\n- Surplus energy (energy sent to grid)\n- Self-consumption energy\n- Obtain method (Real/Estimated)\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Maximum length:** on this operation the limit of rule 5 is **31 calendar days**\ninstead of 24 calendar months: `endDate` must be no later than 31 calendar days after\n`startDate`, counted in the period's time zone on the bounds as requested\n(`ENERGY_METRICS_PERIOD_TOO_LONG`).\n\n**Every hour:** one bucket is returned for every hour that starts inside the period,\nin chronological order: 24 for a whole local day, 23 on the day the clocks go forward\nand 25 on the day they go back. An hour with no stored record is returned with zero\nenergy and a null `obtainMethod` rather than omitted; an hour whose records carry no\nenergy has its `obtainMethod` set.\n\n**`date` and `time`:** the local calendar date and local time, in the time zone the\napplication is configured with, at which each hour starts (`time` from `00:00` to\n`23:00`). On the day the clocks go back, two consecutive hours carry the same `date`\nand `time`; on the day they go forward, the local hour the clocks skip has no entry.\n",
         "operationId" : "getSupplyHourlyConsumption",
         "parameters" : [
           {
@@ -19539,6 +19539,7 @@
             }
           },
           {
+            "description" : "Start of the period, inclusive.",
             "in" : "query",
             "name" : "startDate",
             "required" : true,
@@ -19548,6 +19549,7 @@
             }
           },
           {
+            "description" : "End of the period, exclusive.",
             "in" : "query",
             "name" : "endDate",
             "required" : true,

@@ -6,6 +6,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionMonthlyPoint;
@@ -82,6 +83,21 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     public List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.HOURLY, false, false);
+    }
+
+    /**
+     * The same grouped hourly statement the CSV report reads through
+     * {@link #getHourlyConsumptionsByRangeOfDates}, with the end bound exclusive, and each hour kept
+     * with the instant InfluxDB stamped its group with.
+     */
+    @Override
+    public List<DatadisHourlyConsumption> getHourlyConsumptionsByPeriod(Supply supply, OffsetDateTime startDate,
+                                                                        OffsetDateTime endDate) {
+        return queryGroupedPoints(supply, startDate, endDate, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                InfluxDuration.HOURLY, true, false)
+                .stream()
+                .map(point -> new DatadisHourlyConsumption(point.getTime(), toConsumption(point)))
+                .toList();
     }
 
     @Override

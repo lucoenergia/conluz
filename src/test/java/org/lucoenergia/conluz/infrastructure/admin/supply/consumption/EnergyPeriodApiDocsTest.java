@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -25,7 +26,8 @@ class EnergyPeriodApiDocsTest extends BaseControllerTest {
             "/api/v1/supplies/{supplyId}/consumption/monthly",
             "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics",
             "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly",
-            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily"
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily",
+            "/api/v1/supplies/{supplyId}/consumption/hourly"
     })
     void everyOperationTakingAPeriodDocumentsTheSameBounds(String path) throws Exception {
         String description = apiDocs().path("paths").path(path).path("get").path("description").asText();
@@ -39,7 +41,8 @@ class EnergyPeriodApiDocsTest extends BaseControllerTest {
             "/api/v1/supplies/{supplyId}/consumption/daily",
             "/api/v1/supplies/{supplyId}/consumption/monthly",
             "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly",
-            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily"
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily",
+            "/api/v1/supplies/{supplyId}/consumption/hourly"
     })
     @DisplayName("EPR-001 every consumption series describes startDate as inclusive and endDate as exclusive")
     void everyConsumptionSeriesDescribesItsBoundsAsHalfOpen(String path) throws Exception {
@@ -49,6 +52,20 @@ class EnergyPeriodApiDocsTest extends BaseControllerTest {
                 () -> path + " startDate");
         assertEquals("End of the period, exclusive.", parameterDescription(parameters, "endDate"),
                 () -> path + " endDate");
+    }
+
+    /**
+     * The shared paragraph states the 24 months of the other operations, so the hourly series has to
+     * say that its own limit replaces them.
+     */
+    @Test
+    @DisplayName("EPR-005 the supply hourly series documents its 31-day cap")
+    void theSupplyHourlySeriesDocumentsItsOwnCap() throws Exception {
+        String description = apiDocs().path("paths").path("/api/v1/supplies/{supplyId}/consumption/hourly")
+                .path("get").path("description").asText();
+
+        assertTrue(description.contains("the limit of rule 5 is **31 calendar days**"),
+                () -> "the hourly series does not state its cap:\n" + description);
     }
 
     private static String parameterDescription(JsonNode parameters, String name) {

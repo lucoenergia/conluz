@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
@@ -25,7 +26,13 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -56,6 +63,26 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
                                                                  OffsetDateTime endDate) {
         Supply supply = getSupplyOrThrow(supplyId);
         return getDatadisConsumptionRepository.getHourlyConsumptionsByRangeOfDates(supply, startDate, endDate);
+    }
+
+    @Override
+    public List<DatadisHourlyConsumption> getHourlySeriesBySupply(SupplyId supplyId, OffsetDateTime startDate,
+                                                                  OffsetDateTime endDate) {
+        ZoneId zone = zoneResolver.resolveZoneIdForSupply(supplyId.getId());
+        OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone,
+                EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH);
+        Supply supply = getSupplyOrThrow(supplyId);
+
+        Map<Instant, DatadisHourlyConsumption> storedHours = new HashMap<>();
+        for (DatadisHourlyConsumption hour : getDatadisConsumptionRepository.getHourlyConsumptionsByPeriod(
+                supply, startDate, effectiveEndDate)) {
+            storedHours.put(hour.getStartsAt(), hour);
+        }
+
+        return hoursStartingIn(startDate.toInstant(), effectiveEndDate.toInstant(), zone).stream()
+                .map(hour -> storedHours.getOrDefault(hour,
+                        new DatadisHourlyConsumption(hour, nothingStored(supply, hour, zone))))
+                .toList();
     }
 
     @Override
@@ -170,6 +197,45 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      */
     private double selfConsumptionOf(DatadisConsumption consumption) {
         return DatadisEnergyValues.exactlyAsReported(consumption.getSelfConsumptionEnergyKWh()).doubleValue();
+    }
+
+    /**
+     * Every hour that starts inside {@code [from, toExclusive)}, in chronological order: from the
+     * first whole hour at or after {@code from} -- the store stamps every record at the start of its
+     * hour, so an hour that started before the period holds nothing the period read -- up to the last
+     * one starting before the end.
+     *
+     * <p>The hours are counted on the instant line, not on the local clock, which is what makes a
+     * spring-forward day 23 hours long and a fall-back day 25, its repeated hour included twice.
+     */
+    private static List<Instant> hoursStartingIn(Instant from, Instant toExclusive, ZoneId zone) {
+        Instant hour = from.atZone(zone).truncatedTo(ChronoUnit.HOURS).toInstant();
+        if (hour.isBefore(from)) {
+            hour = hour.plus(1, ChronoUnit.HOURS);
+        }
+        List<Instant> hours = new ArrayList<>();
+        for (; hour.isBefore(toExclusive); hour = hour.plus(1, ChronoUnit.HOURS)) {
+            hours.add(hour);
+        }
+        return hours;
+    }
+
+    /**
+     * An hour for which the supply stored no record, reported as the store reports an hour with no
+     * record between two that have one: zero energy and no obtain method, labelled with the local
+     * date and time the hour starts at.
+     */
+    private static DatadisConsumption nothingStored(Supply supply, Instant hour, ZoneId zone) {
+        ZonedDateTime localStart = hour.atZone(zone);
+        DatadisConsumption consumption = new DatadisConsumption();
+        consumption.setCups(supply.getCode());
+        consumption.setDate(DateTimeFormatter.ofPattern(DateConverter.DATE_FORMAT).format(localStart));
+        consumption.setTime(DateTimeFormatter.ofPattern(DateConverter.TIME_FORMAT).format(localStart));
+        consumption.setConsumptionKWh(0f);
+        consumption.setSelfConsumptionEnergyKWh(0f);
+        consumption.setSurplusEnergyKWh(0f);
+        consumption.setGenerationEnergyKWh(0f);
+        return consumption;
     }
 
     private static Instant latest(Instant left, Instant right) {

@@ -1,10 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
@@ -54,7 +56,18 @@ public class GetSupplyHourlyConsumptionController {
                     - Self-consumption energy
                     - Obtain method (Real/Estimated)
 
-                    Data is aggregated by hour within the specified date range.
+                    """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
+
+                    **Maximum length:** on this operation the limit of rule 5 is **31 calendar days**
+                    instead of 24 calendar months: `endDate` must be no later than 31 calendar days after
+                    `startDate`, counted in the period's time zone on the bounds as requested
+                    (`ENERGY_METRICS_PERIOD_TOO_LONG`).
+
+                    **Every hour:** one bucket is returned for every hour that starts inside the period,
+                    in chronological order: 24 for a whole local day, 23 on the day the clocks go forward
+                    and 25 on the day they go back. An hour with no stored record is returned with zero
+                    energy and a null `obtainMethod` rather than omitted; an hour whose records carry no
+                    energy has its `obtainMethod` set.
 
                     **`date` and `time`:** the local calendar date and local time, in the time zone the
                     application is configured with, at which each hour starts (`time` from `00:00` to
@@ -80,9 +93,14 @@ public class GetSupplyHourlyConsumptionController {
     @PreAuthorize("@communityAccessGuard.canReadSupply(#supplyId)")
     public List<DatadisConsumption> getSupplyHourlyConsumption(
             @PathVariable("supplyId") UUID supplyId,
+            @Parameter(description = "Start of the period, inclusive.")
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startDate,
+            @Parameter(description = "End of the period, exclusive.")
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endDate) {
 
-        return getDatadisConsumptionService.getHourlyConsumptionBySupply(SupplyId.of(supplyId), startDate, endDate);
+        return getDatadisConsumptionService.getHourlySeriesBySupply(SupplyId.of(supplyId), startDate, endDate)
+                .stream()
+                .map(DatadisHourlyConsumption::getConsumption)
+                .toList();
     }
 }

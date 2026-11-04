@@ -21,6 +21,11 @@ public final class EnergyMetricsPeriodValidator {
      */
     public static final Period MAX_LENGTH = Period.ofMonths(MAX_MONTHS);
 
+    /**
+     * The longest period that may be requested of an hourly series, in calendar days.
+     */
+    public static final Period MAX_HOURLY_LENGTH = Period.ofDays(31);
+
     private EnergyMetricsPeriodValidator() {
     }
 

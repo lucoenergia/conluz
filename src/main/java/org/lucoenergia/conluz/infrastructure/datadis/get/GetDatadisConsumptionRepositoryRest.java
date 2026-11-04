@@ -9,6 +9,7 @@ import okhttp3.Response;
 import org.apache.commons.lang3.NotImplementedException;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.datadis.MeasurementType;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
@@ -142,6 +143,12 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
 
     @Override
     public List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
+        throw new NotImplementedException("Not yet implemented.");
+    }
+
+    @Override
+    public List<DatadisHourlyConsumption> getHourlyConsumptionsByPeriod(Supply supply, OffsetDateTime startDate,
+                                                                        OffsetDateTime endDate) {
         throw new NotImplementedException("Not yet implemented.");
     }
 

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -317,7 +318,8 @@ class GetSupplyHourlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].selfConsumptionEnergyKWh").value(closeTo(0.25, TOLERANCE)))
                 .andExpect(jsonPath("$[5].time").value("14:00"))
                 .andExpect(jsonPath("$[5].generationEnergyKWh").value(closeTo(4.00, TOLERANCE)))
-                .andExpect(jsonPath("$[9].time").value("18:00"))
-                .andExpect(jsonPath("$[9].generationEnergyKWh").value(closeTo(6.00, TOLERANCE)));
+                // The end is exclusive (EPR-001): the 18:00 hour is not part of the period.
+                .andExpect(jsonPath("$", hasSize(9)))
+                .andExpect(jsonPath("$[8].time").value("17:00"));
     }
 }

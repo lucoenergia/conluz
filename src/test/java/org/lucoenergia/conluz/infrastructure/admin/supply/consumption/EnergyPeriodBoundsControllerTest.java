@@ -42,8 +42,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * The period conventions every endpoint taking a requested period shares, checked endpoint by
- * endpoint against stored records: supply and membership energy metrics, the supply daily and
- * monthly series and the membership monthly series.
+ * endpoint against stored records: supply and membership energy metrics, the supply daily, monthly
+ * and hourly series and the membership monthly series. The hourly series is held to a cap of its
+ * own, which {@code SupplyHourlySeriesControllerTest} covers, so the EPR-004 cases leave it out.
  */
 class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
@@ -56,6 +57,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     private static final String SUPPLY_MONTHLY = "supply monthly series";
     private static final String MEMBERSHIP_ENERGY_METRICS = "membership energy metrics";
     private static final String MEMBERSHIP_MONTHLY = "membership monthly series";
+    private static final String SUPPLY_HOURLY = "supply hourly series";
 
     /**
      * 2026-10-26T10:30 in Madrid, the day after the clocks went back: the current hour started at
@@ -309,7 +311,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
-            MEMBERSHIP_MONTHLY})
+            MEMBERSHIP_MONTHLY, SUPPLY_HOURLY})
     @DisplayName("EPR-001 AC3 equal bounds are answered 400 ENERGY_METRICS_PERIOD_START_AFTER_END")
     void equalBoundsAreRejected(String endpoint) throws Exception {
         assertRejected(endpoint, DAY_START, DAY_START, "ENERGY_METRICS_PERIOD_START_AFTER_END");
@@ -317,7 +319,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
-            MEMBERSHIP_MONTHLY})
+            MEMBERSHIP_MONTHLY, SUPPLY_HOURLY})
     @DisplayName("EPR-001 AC3 inverted bounds are answered 400 ENERGY_METRICS_PERIOD_START_AFTER_END")
     void invertedBoundsAreRejected(String endpoint) throws Exception {
         assertRejected(endpoint, DAY_END, DAY_START, "ENERGY_METRICS_PERIOD_START_AFTER_END");
@@ -327,7 +329,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
-            MEMBERSHIP_MONTHLY})
+            MEMBERSHIP_MONTHLY, SUPPLY_HOURLY})
     @DisplayName("EPR-003 AC5 a start at the start of the current hour is answered 400 ENERGY_METRICS_PERIOD_START_IN_FUTURE")
     void aStartAtTheStartOfTheCurrentHourIsRejected(String endpoint) throws Exception {
         assertRejected(endpoint, "2026-10-26T10:00:00+01:00", "2026-11-01T00:00:00+01:00",
@@ -336,7 +338,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
-            MEMBERSHIP_MONTHLY})
+            MEMBERSHIP_MONTHLY, SUPPLY_HOURLY})
     @DisplayName("EPR-003 AC5 a start tomorrow is answered 400 ENERGY_METRICS_PERIOD_START_IN_FUTURE")
     void aStartTomorrowIsRejected(String endpoint) throws Exception {
         assertRejected(endpoint, "2026-10-27T00:00:00+01:00", "2026-10-28T00:00:00+01:00",
@@ -345,7 +347,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
-            MEMBERSHIP_MONTHLY})
+            MEMBERSHIP_MONTHLY, SUPPLY_HOURLY})
     @DisplayName("EPR-003 AC5 a start in the previous hour is accepted")
     void aStartInThePreviousHourIsAccepted(String endpoint) throws Exception {
         request(path(endpoint), "2026-10-26T09:00:00+01:00", "2026-10-26T10:00:00+01:00")
@@ -386,16 +388,17 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
                 "ENERGY_METRICS_PERIOD_TOO_LONG");
     }
 
-    // --- Out of scope: the supply hourly series keeps both bounds inclusive ---
+    // --- The supply hourly series reads the same half-open period ---
 
     @Test
-    @DisplayName("The supply hourly series still returns the record sitting exactly on endDate")
-    void theSupplyHourlySeriesStillIncludesTheRecordOnTheEndBound() throws Exception {
+    @DisplayName("EPR-001 AC1 the supply hourly series over a day is 24 hours without the record at the next midnight")
+    void theSupplyHourlySeriesExcludesTheRecordOnTheEndBound() throws Exception {
         givenRecordsAroundTheDay();
 
         request(supplyPath("/consumption/hourly"), DAY_START, DAY_END)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.date == '2026/08/11' && @.time == '00:00')]", hasSize(1)))
+                .andExpect(jsonPath("$", hasSize(24)))
+                .andExpect(jsonPath("$[?(@.date == '2026/08/11')]", hasSize(0)))
                 .andExpect(jsonPath("$[?(@.date == '2026/08/10' && @.time == '00:00')]", hasSize(1)));
     }
 
@@ -467,6 +470,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
             case SUPPLY_MONTHLY -> supplyPath("/consumption/monthly");
             case MEMBERSHIP_ENERGY_METRICS -> membershipPath("/energy-metrics");
             case MEMBERSHIP_MONTHLY -> membershipPath("/consumption/monthly");
+            case SUPPLY_HOURLY -> supplyPath("/consumption/hourly");
             default -> throw new IllegalArgumentException(endpoint);
         };
     }

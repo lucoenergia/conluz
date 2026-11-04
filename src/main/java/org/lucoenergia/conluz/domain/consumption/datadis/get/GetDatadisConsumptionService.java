@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.consumption.datadis.get;
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.time.OffsetDateTime;
@@ -49,6 +50,24 @@ public interface GetDatadisConsumptionService {
     List<SupplyConsumptionBucket> getMonthlySeriesBySupply(@NotNull SupplyId supplyId,
                                                             @NotNull OffsetDateTime startDate,
                                                             @NotNull OffsetDateTime endDate);
+
+    /**
+     * Retrieves the hourly consumption series for a supply over a half-open period.
+     *
+     * <p>The period obeys the same rules as the daily series' and is clipped the same way, with a
+     * cap of its own: {@code EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH}. One item is returned
+     * for every hour that starts inside the clipped period, in chronological order, whether or not
+     * the supply stored a record for it: an hour without one comes with zero energy and no obtain
+     * method.
+     *
+     * @param supplyId the supply ID for which to retrieve consumption data
+     * @param startDate the start of the period, inclusive
+     * @param endDate the end of the period, exclusive
+     * @return every hour of the period, each with the instant it starts at
+     */
+    List<DatadisHourlyConsumption> getHourlySeriesBySupply(@NotNull SupplyId supplyId,
+                                                           @NotNull OffsetDateTime startDate,
+                                                           @NotNull OffsetDateTime endDate);
 
     /**
      * Retrieves hourly consumption data for a specific supply within a date range.

@@ -180,6 +180,43 @@ class EnergyMetricsPeriodValidatorTest {
         assertEquals(null, exception.getMaxLength());
     }
 
+    // --- EPR-005: an hourly series is at most 31 calendar days, on the requested bounds ---
+
+    @Test
+    @DisplayName("EPR-005 exactly 31 calendar days are accepted for an hourly series")
+    void exactlyThirtyOneDaysAreAcceptedForAnHourlySeries() {
+        assertDoesNotThrow(() -> validateHourly(OffsetDateTime.parse("2026-09-01T00:00:00+02:00"),
+                OffsetDateTime.parse("2026-10-02T00:00:00+02:00")));
+    }
+
+    @Test
+    @DisplayName("EPR-005 31 calendar days and one hour are rejected for an hourly series, carrying the 31 days")
+    void thirtyOneDaysAndAnHourAreRejectedForAnHourlySeries() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validateHourly(OffsetDateTime.parse("2026-09-01T00:00:00+02:00"),
+                        OffsetDateTime.parse("2026-10-02T01:00:00+02:00")));
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG, exception.getReason());
+        assertEquals(Period.ofDays(31), exception.getMaxLength());
+    }
+
+    /**
+     * October 2026 in Madrid is 31 calendar days of 745 hours: a cap of 744 hours would reject it.
+     */
+    @Test
+    @DisplayName("EPR-005 the 31 calendar days are counted in the period's time zone")
+    void theThirtyOneDaysAreCountedInThePeriodsZone() {
+        assertDoesNotThrow(() -> validateHourly(OffsetDateTime.parse("2026-09-26T00:00:00+02:00"),
+                OffsetDateTime.parse("2026-10-27T00:00:00+01:00")));
+        assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validateHourly(OffsetDateTime.parse("2026-09-26T00:00:00+02:00"),
+                        OffsetDateTime.parse("2026-10-27T01:00:00+01:00")));
+    }
+
+    private static void validateHourly(OffsetDateTime startDate, OffsetDateTime endDate) {
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, CURRENT_HOUR, MADRID,
+                EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH);
+    }
+
     private static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
                                  EnergyMetricsReferencePeriod referencePeriod) {
         EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, CURRENT_HOUR, MADRID);
