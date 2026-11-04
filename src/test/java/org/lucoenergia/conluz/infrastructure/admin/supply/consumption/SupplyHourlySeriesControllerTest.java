@@ -75,13 +75,14 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     @Autowired
     private EstimatedTariffProperties estimatedTariff;
 
+    private Community community;
     private Supply supply;
     private String token;
 
     @BeforeEach
     void givenAMemberWithOneSupply() throws Exception {
         travelTo(NOW);
-        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        community = createCommunityRepository.create(CommunityMother.random().build());
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
@@ -319,6 +320,40 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_TOO_LONG"));
     }
 
+    // --- AC7: who may read the series is unchanged (canReadSupply) ---
+
+    @Test
+    @DisplayName("SCS-001 AC7 the supply's owner reads the hourly series")
+    void theOwnerReadsTheSeries() throws Exception {
+        requestAs(token, SEPTEMBER_FIRST, SEPTEMBER_SECOND)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(24)));
+    }
+
+    @Test
+    @DisplayName("SCS-001 AC7 an enabled admin of the supply's community reads the hourly series")
+    void anAdminOfTheCommunityReadsTheSeries() throws Exception {
+        requestAs(loginAsCommunityAdmin(community.getId()), SEPTEMBER_FIRST, SEPTEMBER_SECOND)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(24)));
+    }
+
+    @Test
+    @DisplayName("SCS-001 AC7 another member of the supply's community is answered 404")
+    void anotherMemberOfTheCommunityIsAnsweredNotFound() throws Exception {
+        requestAs(loginAsCommunityMember(community.getId()), SEPTEMBER_FIRST, SEPTEMBER_SECOND)
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("SCS-001 AC7 a member of another community is answered 404")
+    void aMemberOfAnotherCommunityIsAnsweredNotFound() throws Exception {
+        Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
+
+        requestAs(loginAsCommunityMember(otherCommunity.getId()), SEPTEMBER_FIRST, SEPTEMBER_SECOND)
+                .andExpect(status().isNotFound());
+    }
+
     // --- fixtures ---
 
     private static String[] localHoursOfADay() {
@@ -355,8 +390,12 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     }
 
     private ResultActions request(String startDate, String endDate) throws Exception {
+        return requestAs(token, startDate, endDate);
+    }
+
+    private ResultActions requestAs(String bearerToken, String startDate, String endDate) throws Exception {
         return mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/consumption/hourly")
-                .header(HttpHeaders.AUTHORIZATION, token)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
                 .queryParam("startDate", startDate)
                 .queryParam("endDate", endDate));
     }

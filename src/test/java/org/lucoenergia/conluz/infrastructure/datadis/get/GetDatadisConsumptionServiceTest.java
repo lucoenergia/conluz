@@ -13,7 +13,9 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSchedule;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
+import org.lucoenergia.conluz.domain.consumption.SupplyHourlyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
@@ -299,6 +301,69 @@ class GetDatadisConsumptionServiceTest {
                 series.stream().map(item -> item.getSavings().getTariffSource()).toList());
     }
 
+    // --- The hourly series (#545) ---
+
+    /**
+     * Three stored hours of different energy around a gap: each is priced from its own energy, and
+     * the gap is priced at zero rather than borrowing a neighbour's amount.
+     */
+    @Test
+    @DisplayName("SCS-001 each hour is priced from its own self-consumption, a gap at zero")
+    void eachHourIsPricedFromItsOwnEnergy() {
+        givenASingleSegmentAt("0.15");
+        givenStoredHours(
+                hour("2024-02-05T10:00+01:00", 4.0),
+                hour("2024-02-05T11:00+01:00", 0.0),
+                hour("2024-02-05T13:00+01:00", 2.5));
+
+        List<SupplyHourlyConsumptionBucket> series = service.getHourlySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-05T10:00+01:00"), madridOffset("2024-02-05T14:00+01:00"));
+
+        // 4.0 * 0.15 = 0.60, 0.0 * 0.15 = 0, nothing stored at 12:00, 2.5 * 0.15 = 0.375
+        assertEquals(List.of("0.6", "0", "0", "0.375"), amountsOf(series.stream()
+                .map(SupplyHourlyConsumptionBucket::getBucket).toList()));
+        assertEquals(List.of(madridOffset("2024-02-05T10:00+01:00"), madridOffset("2024-02-05T11:00+01:00"),
+                        madridOffset("2024-02-05T12:00+01:00"), madridOffset("2024-02-05T13:00+01:00")),
+                series.stream().map(SupplyHourlyConsumptionBucket::getStartsAt).toList());
+        assertEquals(null, series.get(2).getBucket().getConsumption().getObtainMethod());
+        assertEquals("12:00", series.get(2).getBucket().getConsumption().getTime());
+    }
+
+    /**
+     * The store returns nothing for a period in which the supply has no record at all, so every hour
+     * of the day comes from the series' own axis.
+     */
+    @Test
+    @DisplayName("SCS-001 a day with nothing stored is still its 24 hours")
+    void aDayWithNothingStoredIsStillItsTwentyFourHours() {
+        givenASingleSegmentAt("0.15");
+        givenStoredHours();
+
+        List<SupplyHourlyConsumptionBucket> series = service.getHourlySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-05T00:00+01:00"), madridOffset("2024-02-06T00:00+01:00"));
+
+        assertEquals(24, series.size());
+        assertEquals(madridOffset("2024-02-05T23:00+01:00"), series.get(23).getStartsAt());
+    }
+
+    /**
+     * A whole month of hours under one tariff segment costs one series query and no self-consumption
+     * query at all: every hour hands its own already-summed self-consumption to the calculator.
+     */
+    @Test
+    @DisplayName("SCS-001 a month of hours under a single segment issues no query per hour")
+    void aMonthOfHoursUnderASingleSegmentIssuesNoQueryPerHour() {
+        givenASingleSegmentAt("0.15");
+        givenStoredHours(hour("2024-02-05T10:00+01:00", 1.0));
+
+        List<SupplyHourlyConsumptionBucket> series = service.getHourlySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-01T00:00+01:00"), madridOffset("2024-03-01T00:00+01:00"));
+
+        assertEquals(29 * 24, series.size());
+        verify(consumptionRepository).getHourlyConsumptionsByPeriod(any(Supply.class), any(), any());
+        verify(aggregateRepository, never()).sumSelfConsumptionKWh(any(Supply.class), any(), any());
+    }
+
     /**
      * Amounts as their shortest exact decimal: the calculator leaves them unrounded, and their
      * scale is an artefact of how many segments were multiplied, not part of what is under test.
@@ -323,6 +388,19 @@ class GetDatadisConsumptionServiceTest {
     private void givenDailyBuckets(DatadisConsumption... buckets) {
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
                 .thenReturn(List.of(buckets));
+    }
+
+    private void givenStoredHours(DatadisHourlyConsumption... hours) {
+        when(consumptionRepository.getHourlyConsumptionsByPeriod(any(Supply.class), any(), any()))
+                .thenReturn(List.of(hours));
+    }
+
+    private DatadisHourlyConsumption hour(String startsAt, double selfConsumptionKWh) {
+        OffsetDateTime start = madridOffset(startsAt);
+        DatadisConsumption consumption = bucket(start.toLocalDate().toString().replace('-', '/'), selfConsumptionKWh);
+        consumption.setTime(start.toLocalTime().toString());
+        consumption.setObtainMethod("Real");
+        return new DatadisHourlyConsumption(start.toInstant(), consumption);
     }
 
     private void givenMonthlyBuckets(DatadisConsumption... buckets) {
