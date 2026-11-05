@@ -26,6 +26,7 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     private static final String SUPPLY_BUCKET = "SupplyConsumptionBucketResponse";
     private static final String MEMBERSHIP_BUCKET = "MembershipMonthlyConsumptionBucketResponse";
     private static final String MEMBERSHIP_DAILY_BUCKET = "MembershipDailyConsumptionBucketResponse";
+    private static final String MEMBERSHIP_HOURLY_BUCKET = "MembershipHourlyConsumptionBucketResponse";
     private static final String SUPPLY_ENERGY = "SupplyEnergyMetricsEnergyResponse";
     private static final String MEMBERSHIP_ENERGY = "MembershipEnergyMetricsEnergyResponse";
     private static final String HOURLY_PROFILE_BUCKET = "MembershipHourlyProfileBucketResponse";
@@ -40,6 +41,7 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
             SUPPLY_BUCKET, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
             MEMBERSHIP_BUCKET, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
             MEMBERSHIP_DAILY_BUCKET, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
+            MEMBERSHIP_HOURLY_BUCKET, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
             SUPPLY_ENERGY, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"),
             MEMBERSHIP_ENERGY, List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh"));
 
@@ -131,7 +133,8 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     }
 
     private static final List<String> SERIES_AND_METRICS =
-            List.of(SUPPLY_BUCKET, MEMBERSHIP_BUCKET, MEMBERSHIP_DAILY_BUCKET, SUPPLY_ENERGY, MEMBERSHIP_ENERGY);
+            List.of(SUPPLY_BUCKET, MEMBERSHIP_BUCKET, MEMBERSHIP_DAILY_BUCKET, MEMBERSHIP_HOURLY_BUCKET, SUPPLY_ENERGY,
+                    MEMBERSHIP_ENERGY);
 
     private static List<String> withRatioBasis(List<String> schemas) {
         List<String> all = new ArrayList<>(schemas);
