@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -68,10 +69,19 @@ public class MembershipEnergyMetricsScopeResolverImpl implements MembershipEnerg
     public MembershipEnergyMetricsScope resolve(UUID communityId, UUID userId, OffsetDateTime startDate,
                                                 OffsetDateTime endDate,
                                                 EnergyMetricsReferencePeriod referencePeriod) {
+        return resolve(communityId, userId, startDate, endDate, referencePeriod, EnergyMetricsPeriodValidator.MAX_LENGTH);
+    }
+
+    @Override
+    public MembershipEnergyMetricsScope resolve(UUID communityId, UUID userId, OffsetDateTime startDate,
+                                                OffsetDateTime endDate,
+                                                EnergyMetricsReferencePeriod referencePeriod,
+                                                Period maxLength) {
 
         ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
         OffsetDateTime startOfCurrentHour = EnergyMetricsPeriod.startOfCurrentHour(clock, zone);
-        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, startOfCurrentHour, zone);
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, startOfCurrentHour, zone,
+                maxLength);
 
         getMembershipsRepository.findByUserIdAndCommunityId(userId, communityId)
                 .orElseThrow(() -> new MembershipNotFoundException(communityId, userId));

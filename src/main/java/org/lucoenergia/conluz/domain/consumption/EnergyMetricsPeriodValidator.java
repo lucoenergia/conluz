@@ -85,10 +85,24 @@ public final class EnergyMetricsPeriodValidator {
     public static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
                                 EnergyMetricsReferencePeriod referencePeriod,
                                 OffsetDateTime startOfCurrentHour, ZoneId zone) {
+        validate(startDate, endDate, referencePeriod, startOfCurrentHour, zone, MAX_LENGTH);
+    }
+
+    /**
+     * As {@link #validate(OffsetDateTime, OffsetDateTime, EnergyMetricsReferencePeriod, OffsetDateTime, ZoneId)},
+     * with {@code maxLength} as the longest period the operation accepts.
+     *
+     * @param maxLength the longest period the operation accepts
+     * @throws InvalidEnergyMetricsPeriodException when a reference period is requested together
+     *         with a date, or when the dates themselves are invalid
+     */
+    public static void validate(OffsetDateTime startDate, OffsetDateTime endDate,
+                                EnergyMetricsReferencePeriod referencePeriod,
+                                OffsetDateTime startOfCurrentHour, ZoneId zone, Period maxLength) {
         if (referencePeriod != null && (startDate != null || endDate != null)) {
             throw new InvalidEnergyMetricsPeriodException(
                     InvalidEnergyMetricsPeriodException.Reason.CONFLICTING_PERIOD);
         }
-        validate(startDate, endDate, startOfCurrentHour, zone);
+        validate(startDate, endDate, startOfCurrentHour, zone, maxLength);
     }
 }

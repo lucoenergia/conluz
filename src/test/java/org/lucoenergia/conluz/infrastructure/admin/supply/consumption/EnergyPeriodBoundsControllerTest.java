@@ -397,6 +397,18 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
                 "ENERGY_METRICS_PERIOD_TOO_LONG");
     }
 
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {SUPPLY_ENERGY_METRICS, SUPPLY_DAILY, SUPPLY_MONTHLY, MEMBERSHIP_ENERGY_METRICS,
+            MEMBERSHIP_MONTHLY})
+    @DisplayName("EPR-004 the too-long refusal reports the limit it enforces, 24 MONTHS")
+    void theTooLongRefusalReportsTwentyFourMonths(String endpoint) throws Exception {
+        request(path(endpoint), "2024-10-01T00:00:00+02:00", "2026-10-02T00:00:00+02:00")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_TOO_LONG"))
+                .andExpect(jsonPath("$.errors[0].params.amount").value("24"))
+                .andExpect(jsonPath("$.errors[0].params.unit").value("MONTHS"));
+    }
+
     /**
      * The requested end is 24 months and a day after the start, but the end clipped to the current
      * hour (10:00) is before the start plus 24 months (12:00): the cap is evaluated on the bounds as

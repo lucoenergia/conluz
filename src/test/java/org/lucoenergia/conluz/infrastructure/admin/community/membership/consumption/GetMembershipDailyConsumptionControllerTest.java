@@ -364,7 +364,9 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
 
         request(community, member, loginUser(member), "2023-06-01T00:00:00+02:00", "2025-06-02T00:00:00+02:00")
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_TOO_LONG"));
+                .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_TOO_LONG"))
+                .andExpect(jsonPath("$.errors[0].params.amount").value("24"))
+                .andExpect(jsonPath("$.errors[0].params.unit").value("MONTHS"));
     }
 
     @Test

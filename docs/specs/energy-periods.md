@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EPR` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption` |
+| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #545 |
+| **Last reviewed against code** | #546 |
 
 ## Purpose
 
@@ -93,12 +93,15 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
 - **Status:** Active
 - **Rule:** A requested period whose `endDate` is later than `startDate` plus 24 calendar months,
   counted in the period's time zone, MUST be rejected. The limit MUST be evaluated on the requested
-  bounds, before EPR-002 clips the end.
+  bounds, before EPR-002 clips the end. The refusal MUST carry the limit it enforces, as an `amount`
+  of 24 and a `unit` of months.
 - **Rationale:** A cost guard: every request reads the hourly measurement or its pre-aggregates over
   the whole period. Months before the Datadis sync window (by default, the current month and the 12
   before it) are no longer re-aggregated, so a longer range adds cost without adding fresher data. Evaluating it before clipping keeps the
-  answer to a request independent of the time it is sent.
-- **Source:** #409
+  answer to a request independent of the time it is sent. The limit travels with the refusal
+  because it depends on the operation (EPR-005), so a client can state it without a table of its
+  own that would drift from the server's.
+- **Source:** #409; #546 added the limit to the refusal
 
 ### EPR-005 — A requested period of an hourly series is at most 31 calendar days long
 
@@ -106,12 +109,14 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
 - **Rule:** An hourly series MUST reject a requested period whose `endDate` is later than
   `startDate` plus 31 calendar days, counted in the period's time zone. The limit MUST be evaluated
   on the requested bounds, before EPR-002 clips the end. It replaces the limit of EPR-004 on the
-  hourly series, and is answered with the same code.
+  hourly series, and is answered with the same code, carrying the limit it enforces as an `amount`
+  of 31 and a `unit` of days.
 - **Rationale:** A cost guard, like EPR-004: an hourly series returns one row per hour, 24 times as
   many as a daily one, so 24 months would be about 17,500 rows for a view that shows one day. 31
   calendar days still covers any whole month. Calendar days rather than 744 hours keep a month with
-  the October change, which lasts 745 hours, within the limit.
-- **Source:** #545
+  the October change, which lasts 745 hours, within the limit. The refusal carries its own limit,
+  not the one of EPR-004, because the code is shared.
+- **Source:** #545; #546 added the limit to the refusal
 
 **Scenarios**
 

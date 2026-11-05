@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EVL` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption` |
+| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #545 |
+| **Last reviewed against code** | #546 |
 
 ## Purpose
 
@@ -38,7 +38,8 @@ touch it.
 - **Status:** Active
 - **Rule:** kWh values in `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`,
   `getSupplyHourlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`,
-  `getMembershipDailyConsumption` and `getMembershipEnergyMetrics` MUST be rounded to 3 decimals,
+  `getMembershipDailyConsumption`, `getMembershipHourlyConsumption` and `getMembershipEnergyMetrics`
+  MUST be rounded to 3 decimals,
   half-up, at response mapping. Stored values MUST NOT be rounded.
 - **Rationale:** Summing floating-point values leaves storage noise behind (`0.1 + 0.2` reads
   `0.30000000000000004`; the membership monthly series returned figures such as `161.308001`). That
@@ -47,7 +48,8 @@ touch it.
   is lost. Rounding stays out of storage so the stored records keep what Datadis published.
 - **Source:** #385; #410 added `getMembershipDailyConsumption`, which rounds through the same mapping
   as the membership monthly series; #545 added `getSupplyHourlyConsumption`, which rounds through the
-  same mapping as the supply daily and monthly series.
+  same mapping as the supply daily and monthly series; #546 added `getMembershipHourlyConsumption`,
+  which rounds through the same mapping as the membership daily and monthly series.
 
 **Scenarios**
 

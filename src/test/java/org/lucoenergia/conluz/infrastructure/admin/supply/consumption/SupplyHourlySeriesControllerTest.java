@@ -332,7 +332,9 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value("ENERGY_METRICS_PERIOD_TOO_LONG"))
                 // The limit the message states is the hourly one, not the 24 months of the other operations.
-                .andExpect(jsonPath("$.message", containsString(" 31 ")));
+                .andExpect(jsonPath("$.message", containsString(" 31 ")))
+                .andExpect(jsonPath("$.errors[0].params.amount").value("31"))
+                .andExpect(jsonPath("$.errors[0].params.unit").value("DAYS"));
     }
 
     /**
