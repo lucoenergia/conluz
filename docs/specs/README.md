@@ -84,3 +84,4 @@ are always called **tests**, never specs.
 | `MCS` | Membership consumption series | [`membership-consumption-series.md`](membership-consumption-series.md) |
 | `DHI` | Datadis hourly ingestion | [`datadis-hourly-ingestion.md`](datadis-hourly-ingestion.md) |
 | `SCS` | Supply consumption series | [`supply-consumption-series.md`](supply-consumption-series.md) |
+| `API` | API contract | [`api-contract.md`](api-contract.md) |

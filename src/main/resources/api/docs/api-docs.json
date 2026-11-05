@@ -654,6 +654,7 @@
             "type" : "string"
           },
           "totalPower" : {
+            "exclusiveMinimum" : 0,
             "format" : "double",
             "type" : "number"
           }
@@ -673,6 +674,7 @@
           "installedPowerKw" : {
             "description" : "Snapshot of the plant's installed power at authoring time, in kW",
             "example" : 12.5,
+            "exclusiveMinimum" : 0,
             "type" : "number"
           },
           "name" : {
@@ -1984,31 +1986,31 @@
         "properties" : {
           "assignedProductionKWh" : {
             "description" : "Energy assigned to every supply of the membership: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
-            "example" : 724.0,
+            "example" : 724,
             "format" : "double",
             "type" : "number"
           },
           "gridImportKWh" : {
             "description" : "Energy taken from the grid by every supply of the membership over the period. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
-            "example" : 670.0,
+            "example" : 670,
             "format" : "double",
             "type" : "number"
           },
           "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by every supply of the membership over the period, as reported by the distributor. In kWh, rounded to 3 decimals.",
-            "example" : 485.0,
+            "example" : 485,
             "format" : "double",
             "type" : "number"
           },
           "surplusKWh" : {
             "description" : "Energy assigned to every supply of the membership and fed back to the grid over the period. In kWh, rounded to 3 decimals.",
-            "example" : 239.0,
+            "example" : 239,
             "format" : "double",
             "type" : "number"
           },
           "totalConsumptionKWh" : {
             "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
-            "example" : 1155.0,
+            "example" : 1155,
             "format" : "double",
             "type" : "number"
           }
@@ -2379,7 +2381,7 @@
           },
           "investmentEur" : {
             "description" : "What the member initially contributed, in euros. Null when no investment has been recorded for this membership, which is not the same as an investment of zero.",
-            "example" : 1500.0,
+            "example" : 1500,
             "type" : [
               "number",
               "null"
@@ -3227,6 +3229,7 @@
           "coefficient" : {
             "description" : "Partition coefficient value",
             "example" : 0.030763,
+            "minimum" : 0,
             "type" : "number"
           },
           "supplyId" : {
@@ -3466,7 +3469,7 @@
         "properties" : {
           "assignedProductionKWh" : {
             "description" : "Energy assigned to the supplies the ratio covers: selfConsumptionKWh plus surplus over the period, and the ratio's denominator. In kWh, rounded to 3 decimals after summing.",
-            "example" : 724.0,
+            "example" : 724,
             "format" : "double",
             "type" : "number"
           },
@@ -3478,7 +3481,7 @@
           },
           "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by the supplies the ratio covers over the period, as reported by the distributor: the ratio's numerator. In kWh, rounded to 3 decimals.",
-            "example" : 485.0,
+            "example" : 485,
             "format" : "double",
             "type" : "number"
           }
@@ -3715,9 +3718,10 @@
       "SetMembershipInvestmentBody" : {
         "properties" : {
           "investmentEur" : {
-            "description" : "The member's initial contribution to the community, in euros. Must be greater than zero, with at most two decimals.",
-            "example" : 1500.0,
-            "minimum" : 0,
+            "description" : "The member's initial contribution to the community, in euros. Must be greater than zero and at most 9999999999.99, with at most two decimals.",
+            "example" : 1500,
+            "exclusiveMinimum" : 0,
+            "maximum" : 9999999999.99,
             "type" : "number"
           }
         },
@@ -4173,31 +4177,31 @@
         "properties" : {
           "assignedProductionKWh" : {
             "description" : "Energy assigned to this supply: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
-            "example" : 724.0,
+            "example" : 724,
             "format" : "double",
             "type" : "number"
           },
           "gridImportKWh" : {
             "description" : "Energy taken from the grid by this supply over the period. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
-            "example" : 670.0,
+            "example" : 670,
             "format" : "double",
             "type" : "number"
           },
           "selfConsumptionKWh" : {
             "description" : "Energy produced by the community and consumed by this supply over the period, as reported by the distributor. In kWh, rounded to 3 decimals.",
-            "example" : 485.0,
+            "example" : 485,
             "format" : "double",
             "type" : "number"
           },
           "surplusKWh" : {
             "description" : "Energy assigned to this supply and fed back to the grid over the period. In kWh, rounded to 3 decimals.",
-            "example" : 239.0,
+            "example" : 239,
             "format" : "double",
             "type" : "number"
           },
           "totalConsumptionKWh" : {
             "description" : "Energy consumed, whatever its origin: gridImportKWh plus selfConsumptionKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
-            "example" : 1155.0,
+            "example" : 1155,
             "format" : "double",
             "type" : "number"
           }
@@ -4916,6 +4920,7 @@
             "type" : "string"
           },
           "totalPower" : {
+            "exclusiveMinimum" : 0,
             "format" : "double",
             "type" : "number"
           }
@@ -4950,6 +4955,7 @@
           "installedPowerKw" : {
             "description" : "Snapshot of the plant's installed power at authoring time, in kW",
             "example" : 12.5,
+            "exclusiveMinimum" : 0,
             "type" : "number"
           },
           "name" : {

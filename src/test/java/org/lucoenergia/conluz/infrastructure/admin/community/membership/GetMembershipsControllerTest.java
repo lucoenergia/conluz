@@ -7,9 +7,11 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -128,6 +130,29 @@ class GetMembershipsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[?(@.fullName == 'Pending')].enabled", contains(true)))
                 .andExpect(jsonPath("$[?(@.fullName == 'Disabled')].acceptedAt", contains(notNullValue())))
                 .andExpect(jsonPath("$[?(@.fullName == 'Disabled')].enabled", contains(false)));
+    }
+
+    @Test
+    @DisplayName("MEM-039 the roster tells a community admin they may manage a pending membership's investment")
+    void theRosterReportsThatAnAdminMayManageAPendingMembershipsInvestment() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = createUser("Alice Admin", "alice@test.com");
+        User accepted = createUser("Bob Member", "bob@test.com");
+        User pending = createUser("Carol Pending", "carol@test.com");
+        createMembership(admin, community, CommunityRole.COMMUNITY_ADMIN);
+        createMembership(accepted, community, CommunityRole.COMMUNITY_MEMBER);
+        createMembershipRepository.createPending(community.getId(), UserId.of(pending.getId()),
+                new MemberRecord("Carol Pending", null, "carol@test.com", null, null),
+                CommunityRole.COMMUNITY_MEMBER, UserId.of(admin.getId()));
+        String pendingEntry = "$[?(@.user.id == '" + pending.getId() + "')]";
+
+        mockMvc.perform(get("/api/v1/communities/{id}/memberships", community.getId())
+                        .header("Authorization", loginUser(admin))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath(pendingEntry + ".acceptedAt", contains(nullValue())))
+                .andExpect(jsonPath(pendingEntry + ".capabilities.canManageInvestment", contains(true)));
     }
 
     private User createUser(String fullName, String email) {

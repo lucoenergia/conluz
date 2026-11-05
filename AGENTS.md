@@ -88,6 +88,23 @@ cp build/openapi/api-docs.actual.json src/main/resources/api/docs/api-docs.json
 There is deliberately **no** flag or task that rewrites the snapshot in place: CI could run it, and
 an API change would then land unreviewed.
 
+### Numeric bounds
+
+The numeric bean validation constraints on request body properties (`@Min`, `@Max`, `@DecimalMin`,
+`@DecimalMax`, `@Positive`, `@PositiveOrZero`, `@Negative`, `@NegativeOrZero`, `@Digits`) reach the
+contract through `NumericBoundsModelConverter` (`infrastructure/shared/web/apidocs`), which publishes
+the strictest bound on each side, exclusive bounds as `exclusiveMinimum`/`exclusiveMaximum` (#549).
+
+- **Never repeat a constraint with `@Schema(minimum/maximum/exclusiveMinimum/exclusiveMaximum)`**: the
+  constraint is the single source, and a hand-written copy can only drift from it.
+- **After upgrading springdoc or swagger-core**, review the `OpenApiSnapshotTest` diff for bounds that
+  are duplicated, conflicting or written in the OpenAPI 3.0 form: the converter corrects what
+  swagger-core writes, so a change in swagger-core changes what it has to correct.
+- **Operation parameters are not covered.** The converter only sees model properties. Whether
+  springdoc publishes numeric constraints on a `@RequestParam`, `@PathVariable` or `@RequestHeader`
+  correctly has not been verified; no operation parameter carries one today. When you add one, check
+  its bounds in the snapshot by hand, and open an issue if they are wrong.
+
 ## Specs
 
 `docs/specs/` holds the living specification of the domain: one document per capability, written as

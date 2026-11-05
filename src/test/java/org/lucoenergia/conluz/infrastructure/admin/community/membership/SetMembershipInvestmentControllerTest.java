@@ -1,12 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.MemberRecord;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
@@ -23,7 +28,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SetMembershipInvestmentControllerTest extends BaseControllerTest {
 
     private static final String PATH = "/api/v1/communities/{communityId}/memberships/{userId}/investment";
+    private static final String PAYBACK_PATH = "/api/v1/communities/{communityId}/memberships/{userId}/payback";
 
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
@@ -47,6 +55,8 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateMembershipRepository createMembershipRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
 
     // --- AC1: a community admin records an investment, and it is persisted ---
 
@@ -233,8 +243,27 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("MEM-038 an amount of zero is rejected")
     void anAmountOfZeroIsRejected() throws Exception {
         assertAmountIsRejected("0");
+    }
+
+    @Test
+    @DisplayName("MEM-038 the largest amount the contract declares is recorded")
+    void theLargestDeclaredAmountIsRecorded() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        String adminToken = loginAsCommunityAdmin(community.getId());
+
+        setInvestment(community.getId(), member.getId(), adminToken, "9999999999.99");
+
+        assertEquals(0, new BigDecimal("9999999999.99").compareTo(storedInvestment(community.getId(), member.getId())));
+    }
+
+    @Test
+    @DisplayName("MEM-038 one cent above the largest amount the contract declares is rejected")
+    void oneCentAboveTheLargestDeclaredAmountIsRejected() throws Exception {
+        assertAmountIsRejected("10000000000.00");
     }
 
     @Test
@@ -273,6 +302,78 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
         assertNull(storedInvestment(community.getId(), member.getId()));
     }
 
+    // --- MEM-039: a pending membership's investment ---
+
+    @Test
+    @DisplayName("MEM-039 a community admin records the investment of a pending membership")
+    void aCommunityAdminRecordsTheInvestmentOfAPendingMembership() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = persistAdmin(community.getId());
+        User pending = persistPendingMember(community.getId(), admin);
+
+        mockMvc.perform(put(PATH, community.getId(), pending.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"investmentEur\": 1500.00}"))
+                .andExpect(status().isNoContent());
+
+        assertEquals(0, new BigDecimal("1500.00").compareTo(storedInvestment(community.getId(), pending.getId())));
+    }
+
+    @Test
+    @DisplayName("MEM-039 a community admin clears the investment of a pending membership, and its payback shows none")
+    void aCommunityAdminClearsTheInvestmentOfAPendingMembership() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = persistAdmin(community.getId());
+        User pending = persistPendingMember(community.getId(), admin);
+        String adminToken = loginUser(admin);
+        setInvestment(community.getId(), pending.getId(), adminToken, "1500.00");
+
+        mockMvc.perform(delete(PATH, community.getId(), pending.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get(PAYBACK_PATH, community.getId(), pending.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
+                .andExpect(status().isOk())
+                // The key is always present; value(nullValue()) also fails when it is missing.
+                .andExpect(jsonPath("$.investmentEur").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("MEM-039 a non-admin member is answered 404 on a pending membership's investment")
+    void aNonAdminMemberIsAnsweredNotFoundOnAPendingMembership() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = persistAdmin(community.getId());
+        User pending = persistPendingMember(community.getId(), admin);
+        String memberToken = loginAsCommunityMember(community.getId());
+
+        mockMvc.perform(put(PATH, community.getId(), pending.getId())
+                        .header(HttpHeaders.AUTHORIZATION, memberToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"investmentEur\": 1500.00}"))
+                .andExpect(status().isNotFound());
+
+        assertNull(storedInvestment(community.getId(), pending.getId()));
+    }
+
+    @Test
+    @DisplayName("MEM-039 a platform admin who does not administer the community is answered 404 on a pending membership's investment")
+    void aPlatformAdminIsAnsweredNotFoundOnAPendingMembership() throws Exception {
+        String platformAdminToken = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User admin = persistAdmin(community.getId());
+        User pending = persistPendingMember(community.getId(), admin);
+
+        mockMvc.perform(put(PATH, community.getId(), pending.getId())
+                        .header(HttpHeaders.AUTHORIZATION, platformAdminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"investmentEur\": 1500.00}"))
+                .andExpect(status().isNotFound());
+
+        assertNull(storedInvestment(community.getId(), pending.getId()));
+    }
+
     // --- helpers ---
 
     private void setInvestment(UUID communityId, UUID userId, String token, String amount) throws Exception {
@@ -303,6 +404,23 @@ class SetMembershipInvestmentControllerTest extends BaseControllerTest {
     private User persistMember(UUID communityId) {
         User member = persistUser();
         createMembershipRepository.create(communityId, member.getId(), CommunityRole.COMMUNITY_MEMBER);
+        return member;
+    }
+
+    private User persistAdmin(UUID communityId) {
+        User admin = persistUser();
+        createMembershipRepository.create(communityId, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+        return admin;
+    }
+
+    /**
+     * A member registered by {@code invitedBy} who has not accepted yet: the membership is enabled but pending.
+     */
+    private User persistPendingMember(UUID communityId, User invitedBy) {
+        User member = persistUser();
+        createMembershipRepository.createPending(communityId, UserId.of(member.getId()),
+                new MemberRecord(member.getFullName(), null, "pending-" + UUID.randomUUID() + "@example.org", null, null),
+                CommunityRole.COMMUNITY_MEMBER, UserId.of(invitedBy.getId()));
         return member;
     }
 
