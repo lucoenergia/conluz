@@ -1,11 +1,14 @@
 package org.lucoenergia.conluz.domain.consumption;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A resolved period of energy metrics, half-open: {@code [startDate, endDate)}. A record sitting
@@ -55,6 +58,31 @@ public class EnergyMetricsPeriod {
      */
     public EnergyMetricsPeriod endingNoLaterThan(OffsetDateTime cutOff) {
         return endDate.isAfter(cutOff) ? new EnergyMetricsPeriod(startDate, cutOff) : this;
+    }
+
+    /**
+     * Every hour that starts inside the period, in chronological order: from the first whole hour at
+     * or after the start -- the store stamps every record at the start of its hour, so an hour that
+     * started before the period holds nothing the period read -- up to the last one starting before
+     * the end.
+     *
+     * <p>The hours are counted on the instant line, not on the local clock, which is what makes a
+     * spring-forward day 23 hours long and a fall-back day 25, its repeated hour included twice.
+     *
+     * @param zone the zone whose whole hours are counted
+     */
+    public List<Instant> hoursStartingIn(ZoneId zone) {
+        Instant from = startDate.toInstant();
+        Instant toExclusive = endDate.toInstant();
+        Instant hour = from.atZone(zone).truncatedTo(ChronoUnit.HOURS).toInstant();
+        if (hour.isBefore(from)) {
+            hour = hour.plus(1, ChronoUnit.HOURS);
+        }
+        List<Instant> hours = new ArrayList<>();
+        for (; hour.isBefore(toExclusive); hour = hour.plus(1, ChronoUnit.HOURS)) {
+            hours.add(hour);
+        }
+        return hours;
     }
 
     /**

@@ -30,7 +30,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +73,7 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         }
 
         Instant rangeToExclusive = effectiveEndDate.toInstant();
-        return hoursStartingIn(startDate.toInstant(), rangeToExclusive, zone).stream()
+        return new EnergyMetricsPeriod(startDate, effectiveEndDate).hoursStartingIn(zone).stream()
                 .map(hour -> {
                     DatadisHourlyConsumption stored = storedHours.get(hour);
                     DatadisConsumption consumption = stored != null
@@ -211,27 +210,6 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      */
     private double selfConsumptionOf(DatadisConsumption consumption) {
         return DatadisEnergyValues.exactlyAsReported(consumption.getSelfConsumptionEnergyKWh()).doubleValue();
-    }
-
-    /**
-     * Every hour that starts inside {@code [from, toExclusive)}, in chronological order: from the
-     * first whole hour at or after {@code from} -- the store stamps every record at the start of its
-     * hour, so an hour that started before the period holds nothing the period read -- up to the last
-     * one starting before the end.
-     *
-     * <p>The hours are counted on the instant line, not on the local clock, which is what makes a
-     * spring-forward day 23 hours long and a fall-back day 25, its repeated hour included twice.
-     */
-    private static List<Instant> hoursStartingIn(Instant from, Instant toExclusive, ZoneId zone) {
-        Instant hour = from.atZone(zone).truncatedTo(ChronoUnit.HOURS).toInstant();
-        if (hour.isBefore(from)) {
-            hour = hour.plus(1, ChronoUnit.HOURS);
-        }
-        List<Instant> hours = new ArrayList<>();
-        for (; hour.isBefore(toExclusive); hour = hour.plus(1, ChronoUnit.HOURS)) {
-            hours.add(hour);
-        }
-        return hours;
     }
 
     /**
