@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.admin.community.membership.energymetrics;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.util.UUID;
 
 /**
@@ -28,6 +29,17 @@ public interface MembershipEnergyMetricsScopeResolver {
      */
     MembershipEnergyMetricsScope resolve(UUID communityId, UUID userId, OffsetDateTime startDate,
                                          OffsetDateTime endDate, EnergyMetricsReferencePeriod referencePeriod);
+
+    /**
+     * As {@link #resolve(UUID, UUID, OffsetDateTime, OffsetDateTime, EnergyMetricsReferencePeriod)},
+     * with {@code maxLength} as the longest explicit period the operation accepts in place of
+     * {@code EnergyMetricsPeriodValidator.MAX_LENGTH}.
+     *
+     * @param maxLength the longest explicit period the operation accepts
+     */
+    MembershipEnergyMetricsScope resolve(UUID communityId, UUID userId, OffsetDateTime startDate,
+                                         OffsetDateTime endDate, EnergyMetricsReferencePeriod referencePeriod,
+                                         Period maxLength);
 
     /**
      * The member's supplies in the community and the
