@@ -81,6 +81,35 @@ class EnergyPeriodApiDocsTest extends BaseControllerTest {
                 () -> "the membership hourly series does not state its cap:\n" + description);
     }
 
+    /**
+     * The shared paragraph names the params of a too-long refusal and their unit values; the hourly
+     * series, whose limit is not the one that paragraph states, give their own.
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({
+            "/api/v1/supplies/{supplyId}/energy-metrics, MONTHS",
+            "/api/v1/supplies/{supplyId}/consumption/daily, MONTHS",
+            "/api/v1/supplies/{supplyId}/consumption/monthly, MONTHS",
+            "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics, MONTHS",
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/monthly, MONTHS",
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/daily, MONTHS",
+            "/api/v1/supplies/{supplyId}/consumption/hourly, DAYS",
+            "/api/v1/communities/{communityId}/memberships/{userId}/consumption/hourly, DAYS"
+    })
+    @DisplayName("EPR-004 EPR-005 every operation documents the params of its too-long refusal")
+    void everyOperationDocumentsTheTooLongParams(String path, String unit) throws Exception {
+        String description = apiDocs().path("paths").path(path).path("get").path("description").asText()
+                .replaceAll("\\s+", " ");
+
+        assertTrue(description.contains("The refusal states the limit in `params`: `amount`, a whole number "
+                        + "written as a string, and `unit`, `MONTHS` or `DAYS`"),
+                () -> path + " does not document the params:\n" + description);
+        String expected = "MONTHS".equals(unit)
+                ? "{\"amount\": \"24\", \"unit\": \"MONTHS\"}"
+                : "{\"amount\": \"31\", \"unit\": \"DAYS\"}";
+        assertTrue(description.contains(expected), () -> path + " does not state " + expected + ":\n" + description);
+    }
+
     private static String parameterDescription(JsonNode parameters, String name) {
         for (JsonNode parameter : parameters) {
             if (name.equals(parameter.path("name").asText())) {

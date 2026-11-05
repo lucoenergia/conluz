@@ -32,6 +32,8 @@ public final class EnergyPeriodApiDocs {
                (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).
             5. `endDate` is no later than 24 calendar months after `startDate`, counted in the
                period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).
+               The refusal states the limit in `params`: `amount`, a whole number written as a
+               string, and `unit`, `MONTHS` or `DAYS` -- here `{"amount": "24", "unit": "MONTHS"}`.
 
             A period that passes them and ends after the start of the current hour is then clipped
             to end there, before any data is read: no hour that has not fully happened is read or

@@ -194,8 +194,12 @@ public class SupplyExceptionHandler {
                 List.of("startDate", "endDate", "period", maxLengthAmount(e.getMaxLength())).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        // No params: the caller supplied every value the message refers to.
-        return errorBuilder.build(message, code, null, HttpStatus.BAD_REQUEST);
+        // A too-long refusal carries the limit it enforces, which depends on the operation; every
+        // other refusal refers only to values the caller supplied, so it carries no params.
+        Map<String, String> params = e.getReason() == InvalidEnergyMetricsPeriodException.Reason.TOO_LONG
+                ? TooLongPeriodParams.of(e.getMaxLength())
+                : null;
+        return errorBuilder.build(message, code, params, HttpStatus.BAD_REQUEST);
     }
 
     /**

@@ -59,7 +59,7 @@ public class GetSupplyHourlyConsumptionController {
                     **Maximum length:** on this operation the limit of rule 5 is **31 calendar days**
                     instead of 24 calendar months: `endDate` must be no later than 31 calendar days after
                     `startDate`, counted in the period's time zone on the bounds as requested
-                    (`ENERGY_METRICS_PERIOD_TOO_LONG`).
+                    (`ENERGY_METRICS_PERIOD_TOO_LONG`, with `params` `{"amount": "31", "unit": "DAYS"}`).
 
                     **Every hour:** one bucket is returned for every hour that starts inside the period,
                     in chronological order: 24 for a whole local day, 23 on the day the clocks go forward
