@@ -24,6 +24,7 @@ import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFix
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
@@ -33,6 +34,7 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -82,6 +84,10 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private final List<UUID> communities = new ArrayList<>();
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -94,6 +100,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     void givenAMemberWithOneSupply() throws Exception {
         travelTo(NOW);
         community = createCommunityRepository.create(CommunityMother.random().build());
+        communities.add(community.getId());
         member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
@@ -111,6 +118,22 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
             influxFixture.clear(cups);
             influxFixture.clearMonthlyAggregates(cups);
         });
+    }
+
+    /**
+     * The tests commit what they create, so that no session stays open through a request; this deletes it
+     * again, so that a later test class counting supplies, users or communities does not count these.
+     */
+    @AfterEach
+    void deleteTheData() {
+        for (UUID communityId : communities) {
+            List<UUID> users = jdbcTemplate.queryForList(
+                    "SELECT user_id FROM community_memberships WHERE community_id = ?", UUID.class, communityId);
+            jdbcTemplate.update("DELETE FROM supplies WHERE community_id = ?", communityId);
+            jdbcTemplate.update("DELETE FROM community_memberships WHERE community_id = ?", communityId);
+            users.forEach(user -> jdbcTemplate.update("DELETE FROM users WHERE id = ?", user));
+            jdbcTemplate.update("DELETE FROM communities WHERE id = ?", communityId);
+        }
     }
 
     // --- AC1: a day is [00:00, 00:00 of the next day) ---

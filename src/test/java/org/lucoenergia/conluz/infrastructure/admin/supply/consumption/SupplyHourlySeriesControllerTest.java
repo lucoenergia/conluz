@@ -21,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFix
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
@@ -30,6 +31,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.closeTo;
@@ -74,6 +78,10 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxFixture influxFixture;
     @Autowired
     private EstimatedTariffProperties estimatedTariff;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private final List<UUID> communities = new ArrayList<>();
 
     private Community community;
     private Supply supply;
@@ -83,6 +91,7 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     void givenAMemberWithOneSupply() throws Exception {
         travelTo(NOW);
         community = createCommunityRepository.create(CommunityMother.random().build());
+        communities.add(community.getId());
         User member = UserMother.randomUser();
         member.enable();
         createUserRepository.create(member);
@@ -95,6 +104,22 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     @AfterEach
     void clearWrittenSeries() {
         influxFixture.clear(supply.getCode());
+    }
+
+    /**
+     * The tests commit what they create, so that no session stays open through a request; this deletes it
+     * again, so that a later test class counting supplies, users or communities does not count these.
+     */
+    @AfterEach
+    void deleteTheData() {
+        for (UUID communityId : communities) {
+            List<UUID> users = jdbcTemplate.queryForList(
+                    "SELECT user_id FROM community_memberships WHERE community_id = ?", UUID.class, communityId);
+            jdbcTemplate.update("DELETE FROM supplies WHERE community_id = ?", communityId);
+            jdbcTemplate.update("DELETE FROM community_memberships WHERE community_id = ?", communityId);
+            users.forEach(user -> jdbcTemplate.update("DELETE FROM users WHERE id = ?", user));
+            jdbcTemplate.update("DELETE FROM communities WHERE id = ?", communityId);
+        }
     }
 
     // --- AC1: a day is its 24 hours, without the record at the next midnight ---
@@ -366,6 +391,7 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
     @DisplayName("SCS-001 AC7 a member of another community is answered 404")
     void aMemberOfAnotherCommunityIsAnsweredNotFound() throws Exception {
         Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
+        communities.add(otherCommunity.getId());
 
         requestAs(loginAsCommunityMember(otherCommunity.getId()), SEPTEMBER_FIRST, SEPTEMBER_SECOND)
                 .andExpect(status().isNotFound());
