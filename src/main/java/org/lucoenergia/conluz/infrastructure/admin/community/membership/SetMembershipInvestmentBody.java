@@ -21,7 +21,7 @@ public class SetMembershipInvestmentBody {
     @NotNull
     @DecimalMin(value = "0", inclusive = false)
     @Digits(integer = 10, fraction = 2)
-    @Schema(description = "The member's initial contribution to the community, in euros. Must be greater than zero, with at most two decimals.",
+    @Schema(description = "The member's initial contribution to the community, in euros. Must be greater than zero and at most 9999999999.99, with at most two decimals.",
             example = "1500.00")
     private BigDecimal investmentEur;
 
