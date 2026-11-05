@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EPR` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption` |
+| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #545 |
+| **Last reviewed against code** | #546 |
 
 ## Purpose
 
