@@ -3947,7 +3947,7 @@
             "type" : "string"
           },
           "date" : {
-            "description" : "Local calendar date the bucket starts on: the day itself on the daily series, the first day of the month on the monthly one.",
+            "description" : "Local calendar date the bucket starts on: the day itself on the daily series, the first day of the month on the monthly one, the hour's day on the hourly one.",
             "example" : "2023/04/10",
             "type" : "string"
           },
@@ -3992,7 +3992,7 @@
             "type" : "string"
           },
           "time" : {
-            "description" : "Local time the bucket starts at, in the zone the application is configured with.",
+            "description" : "Local time the bucket starts at, in the zone the application is configured with. On the hourly series, two consecutive hours share it on the day the clocks go back.",
             "example" : "00:00",
             "type" : "string"
           }
@@ -4287,29 +4287,29 @@
       "SupplyHourlyConsumptionBucketResponse" : {
         "properties" : {
           "assignedProductionKWh" : {
-            "description" : "Energy assigned to this supply over the hour: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
-            "example" : 1.0,
+            "description" : "Energy assigned to this supply over the bucket: selfConsumptionKWh plus surplusKWh. In kWh, rounded to 3 decimals after summing, so it can differ by 0.001 from the sum of the rounded figures.",
+            "example" : 8.75,
             "format" : "float",
             "type" : "number"
           },
           "cups" : {
-            "description" : "CUPS code of the supply the hour belongs to.",
+            "description" : "CUPS code of the supply the bucket belongs to.",
             "example" : "ES0031406912345678JN0F",
             "type" : "string"
           },
           "date" : {
-            "description" : "Local calendar date the hour starts on, in the zone the application is configured with.",
+            "description" : "Local calendar date the bucket starts on: the day itself on the daily series, the first day of the month on the monthly one, the hour's day on the hourly one.",
             "example" : "2023/04/10",
             "type" : "string"
           },
           "gridImportKWh" : {
-            "description" : "Energy taken from the grid by this supply over the hour. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
-            "example" : 0.5,
+            "description" : "Energy taken from the grid by this supply over the bucket. Does not include self-consumed energy. In kWh, rounded to 3 decimals.",
+            "example" : 12.5,
             "format" : "float",
             "type" : "number"
           },
           "obtainMethod" : {
-            "description" : "How the underlying record was obtained, as reported by Datadis. Null on an hour with no stored record.",
+            "description" : "How the underlying records were obtained, as reported by Datadis. Null on a bucket with no stored record.",
             "example" : "Real",
             "type" : [
               "string",
@@ -4317,13 +4317,13 @@
             ]
           },
           "savingsEur" : {
-            "description" : "Estimated amount the hour's self-consumed energy saved, in euros, rounded to cents. An hour with no self-consumption -- and an hour with no stored record at all -- reports 0.00.",
-            "example" : 0.11,
+            "description" : "Estimated amount the bucket's self-consumed energy saved, in euros, rounded to cents. A bucket with no self-consumption -- and a bucket with no stored record at all -- reports 0.00.",
+            "example" : 0.83,
             "type" : "number"
           },
           "selfConsumptionKWh" : {
-            "description" : "Energy produced by the community and consumed by this supply over the hour, as reported by the distributor. In kWh, rounded to 3 decimals.",
-            "example" : 0.75,
+            "description" : "Energy produced by the community and consumed by this supply over the bucket, as reported by the distributor. In kWh, rounded to 3 decimals.",
+            "example" : 5.5,
             "format" : "float",
             "type" : "number"
           },
@@ -4334,13 +4334,13 @@
             "type" : "string"
           },
           "surplusKWh" : {
-            "description" : "Energy assigned to this supply and fed back to the grid over the hour. In kWh, rounded to 3 decimals.",
-            "example" : 0.25,
+            "description" : "Energy assigned to this supply and fed back to the grid over the bucket. In kWh, rounded to 3 decimals.",
+            "example" : 3.25,
             "format" : "float",
             "type" : "number"
           },
           "tariffSource" : {
-            "description" : "Whether the prices behind the amount are the supply's contracted tariff or an estimate.",
+            "description" : "Whether the prices behind the amount are the supply's contracted tariff or an estimate. A single estimated stretch of the bucket makes the whole amount an estimate.",
             "enum" : [
               "REAL_TARIFF",
               "ESTIMATE"
@@ -4349,8 +4349,8 @@
             "type" : "string"
           },
           "time" : {
-            "description" : "Local time the hour starts at, in the zone the application is configured with. Two consecutive hours share it on the day the clocks go back.",
-            "example" : "13:00",
+            "description" : "Local time the bucket starts at, in the zone the application is configured with. On the hourly series, two consecutive hours share it on the day the clocks go back.",
+            "example" : "00:00",
             "type" : "string"
           }
         },

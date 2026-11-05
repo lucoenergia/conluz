@@ -9,14 +9,15 @@ import java.math.BigDecimal;
 
 /**
  * One bucket of a supply's consumption series -- a local calendar day on the daily endpoint, a local
- * calendar month on the monthly one.
+ * calendar month on the monthly one, an hour on the hourly one.
  *
- * <p>The two granularities share this shape because they carry the same fields with the same
- * meaning; only the width of the bucket differs, and the caller already chose it through the URL.
+ * <p>The granularities share this shape because they carry the same fields with the same meaning;
+ * only the width of the bucket differs, and the caller already chose it through the URL. An hour
+ * also needs the instant it starts at, which {@link SupplyHourlyConsumptionBucketResponse} adds.
  *
  * <p>This is the response contract, deliberately separate from {@link DatadisConsumption}, which is
- * the shape the external Datadis API speaks and is still serialised directly by the hourly and
- * yearly endpoints. Detaching them drops {@code empty} -- a boolean that never existed as data and
+ * the shape the external Datadis API speaks and is still serialised directly by the yearly
+ * endpoint. Detaching them drops {@code empty} -- a boolean that never existed as data and
  * only appeared in the JSON because {@code isEmpty()} is a getter -- and makes room for the savings
  * Datadis knows nothing about.
  *
@@ -35,11 +36,12 @@ public class SupplyConsumptionBucketResponse {
             example = "ES0031406912345678JN0F")
     private final String cups;
     @Schema(description = "Local calendar date the bucket starts on: the day itself on the daily " +
-            "series, the first day of the month on the monthly one.",
+            "series, the first day of the month on the monthly one, the hour's day on the hourly one.",
             example = "2023/04/10")
     private final String date;
     @Schema(description = "Local time the bucket starts at, in the zone the application is " +
-            "configured with.",
+            "configured with. On the hourly series, two consecutive hours share it on the day the " +
+            "clocks go back.",
             example = "00:00")
     private final String time;
     @Schema(description = "Energy taken from the grid by this supply over the bucket. Does not " +
