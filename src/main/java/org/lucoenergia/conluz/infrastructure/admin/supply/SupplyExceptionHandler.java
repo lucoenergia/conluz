@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.Period;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -174,7 +175,9 @@ public class SupplyExceptionHandler {
         String messageKey = switch (e.getReason()) {
             case START_AFTER_END -> "error.energy.metrics.period.start.after.end";
             case START_IN_FUTURE -> "error.energy.metrics.period.start.in.future";
-            case TOO_LONG -> "error.energy.metrics.period.too.long";
+            case TOO_LONG -> isCountedInDays(e.getMaxLength())
+                    ? "error.energy.metrics.period.too.long.days"
+                    : "error.energy.metrics.period.too.long";
             case INCOMPLETE_PERIOD -> "error.energy.metrics.period.incomplete";
             case CONFLICTING_PERIOD -> "error.energy.metrics.period.conflicting";
         };
@@ -188,10 +191,29 @@ public class SupplyExceptionHandler {
 
         String message = messageSource.getMessage(
                 messageKey,
-                List.of("startDate", "endDate", "period", EnergyMetricsPeriodValidator.MAX_MONTHS).toArray(),
+                List.of("startDate", "endDate", "period", maxLengthAmount(e.getMaxLength())).toArray(),
                 LocaleContextHolder.getLocale()
         );
         // No params: the caller supplied every value the message refers to.
         return errorBuilder.build(message, code, null, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Whether the longest period an operation accepts is a number of days rather than of months.
+     */
+    private static boolean isCountedInDays(Period maxLength) {
+        return maxLength != null && maxLength.toTotalMonths() == 0;
+    }
+
+    /**
+     * The number the message states as the longest period: its days or its months, as
+     * {@link #isCountedInDays} chose the message. A refusal without one is not a TOO_LONG one and
+     * its message does not state it.
+     */
+    private static long maxLengthAmount(Period maxLength) {
+        if (maxLength == null) {
+            return EnergyMetricsPeriodValidator.MAX_MONTHS;
+        }
+        return isCountedInDays(maxLength) ? maxLength.getDays() : maxLength.toTotalMonths();
     }
 }

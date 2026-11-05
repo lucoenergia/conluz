@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -143,6 +144,77 @@ class EnergyMetricsPeriodValidatorTest {
         assertDoesNotThrow(() -> validate(start, OffsetDateTime.parse("2026-03-31T00:00:00+02:00"), null));
         assertReason(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG,
                 start, OffsetDateTime.parse("2026-03-31T00:30:00+02:00"), null);
+    }
+
+    @Test
+    @DisplayName("EPR-004 a refusal for length carries the 24 calendar months of the default cap")
+    void aRefusalForLengthCarriesTheDefaultCap() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validate(OffsetDateTime.parse("2024-10-01T00:00:00+02:00"),
+                        OffsetDateTime.parse("2026-10-02T00:00:00+02:00"), null));
+        assertEquals(Period.ofMonths(24), exception.getMaxLength());
+    }
+
+    /**
+     * An operation can pass a cap of its own: the period is held to it instead of the default, and
+     * the refusal carries it.
+     */
+    @Test
+    void aCapOfTheOperationReplacesTheDefault() {
+        OffsetDateTime start = OffsetDateTime.parse("2026-07-01T00:00:00+02:00");
+        Period week = Period.ofDays(7);
+
+        assertDoesNotThrow(() -> EnergyMetricsPeriodValidator.validate(start,
+                OffsetDateTime.parse("2026-07-08T00:00:00+02:00"), CURRENT_HOUR, MADRID, week));
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> EnergyMetricsPeriodValidator.validate(start, OffsetDateTime.parse("2026-07-08T01:00:00+02:00"),
+                        CURRENT_HOUR, MADRID, week));
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG, exception.getReason());
+        assertEquals(week, exception.getMaxLength());
+    }
+
+    @Test
+    void aRefusalForAnotherReasonCarriesNoCap() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validate(END, START, null));
+        assertEquals(null, exception.getMaxLength());
+    }
+
+    // --- EPR-005: an hourly series is at most 31 calendar days, on the requested bounds ---
+
+    @Test
+    @DisplayName("EPR-005 exactly 31 calendar days are accepted for an hourly series")
+    void exactlyThirtyOneDaysAreAcceptedForAnHourlySeries() {
+        assertDoesNotThrow(() -> validateHourly(OffsetDateTime.parse("2026-09-01T00:00:00+02:00"),
+                OffsetDateTime.parse("2026-10-02T00:00:00+02:00")));
+    }
+
+    @Test
+    @DisplayName("EPR-005 31 calendar days and one hour are rejected for an hourly series, carrying the 31 days")
+    void thirtyOneDaysAndAnHourAreRejectedForAnHourlySeries() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validateHourly(OffsetDateTime.parse("2026-09-01T00:00:00+02:00"),
+                        OffsetDateTime.parse("2026-10-02T01:00:00+02:00")));
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG, exception.getReason());
+        assertEquals(Period.ofDays(31), exception.getMaxLength());
+    }
+
+    /**
+     * October 2026 in Madrid is 31 calendar days of 745 hours: a cap of 744 hours would reject it.
+     */
+    @Test
+    @DisplayName("EPR-005 the 31 calendar days are counted in the period's time zone")
+    void theThirtyOneDaysAreCountedInThePeriodsZone() {
+        assertDoesNotThrow(() -> validateHourly(OffsetDateTime.parse("2026-09-26T00:00:00+02:00"),
+                OffsetDateTime.parse("2026-10-27T00:00:00+01:00")));
+        assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> validateHourly(OffsetDateTime.parse("2026-09-26T00:00:00+02:00"),
+                        OffsetDateTime.parse("2026-10-27T01:00:00+01:00")));
+    }
+
+    private static void validateHourly(OffsetDateTime startDate, OffsetDateTime endDate) {
+        EnergyMetricsPeriodValidator.validate(startDate, endDate, CURRENT_HOUR, MADRID,
+                EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH);
     }
 
     private static void validate(OffsetDateTime startDate, OffsetDateTime endDate,

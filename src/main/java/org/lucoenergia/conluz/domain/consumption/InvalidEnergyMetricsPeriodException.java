@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.consumption;
 
+import java.time.Period;
+
 /**
  * Raised when the requested energy metrics period cannot be resolved from the dates supplied.
  */
@@ -33,12 +35,30 @@ public class InvalidEnergyMetricsPeriodException extends RuntimeException {
     }
 
     private final Reason reason;
+    private final Period maxLength;
 
     public InvalidEnergyMetricsPeriodException(Reason reason) {
         this.reason = reason;
+        this.maxLength = null;
+    }
+
+    /**
+     * A {@link Reason#TOO_LONG} refusal, carrying the longest period the operation accepts.
+     */
+    public InvalidEnergyMetricsPeriodException(Period maxLength) {
+        this.reason = Reason.TOO_LONG;
+        this.maxLength = maxLength;
     }
 
     public Reason getReason() {
         return reason;
+    }
+
+    /**
+     * The longest period the operation accepts, on a {@link Reason#TOO_LONG} refusal; null on any
+     * other.
+     */
+    public Period getMaxLength() {
+        return maxLength;
     }
 }

@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.consumption.datadis.get;
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 
 import java.time.Month;
 import java.time.OffsetDateTime;
@@ -38,6 +39,24 @@ public interface GetDatadisConsumptionRepository {
      */
     List<DatadisConsumption> getHourlyConsumptionsByRangeOfDates(@NotNull Supply supply,
                                                                  @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
+
+    /**
+     * Retrieves the supply's hourly consumption over a half-open period, each hour with the instant it
+     * starts at.
+     *
+     * <p>An hour is returned for every whole hour the store groups between the bounds in which the
+     * supply has at least one record anywhere in the period; an hour without a record of its own
+     * comes back with zero energy and no obtain method. A period in which the supply has no record
+     * at all returns nothing.
+     *
+     * @param supply the supply for which the consumption data is retrieved, must not be null
+     * @param startDate the start of the period, inclusive, must not be null
+     * @param endDate the end of the period, exclusive, must not be null
+     * @return the hours of the period, in chronological order
+     */
+    List<DatadisHourlyConsumption> getHourlyConsumptionsByPeriod(@NotNull Supply supply,
+                                                                 @NotNull OffsetDateTime startDate,
+                                                                 @NotNull OffsetDateTime endDate);
 
     /**
      * Retrieves a list of monthly consumption data within a specified date range for the given supply.

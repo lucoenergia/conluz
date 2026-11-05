@@ -4,12 +4,17 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
@@ -18,8 +23,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -40,6 +48,10 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxLoader datadisConsumptionInfluxLoader;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private DatadisConsumptionInfluxFixture influxFixture;
 
     @BeforeEach
     void beforeEach() {
@@ -106,6 +118,69 @@ class GetDatadisConsumptionCsvReportControllerTest extends BaseControllerTest {
         assertEquals("\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\","
                         + "\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"",
                 csv.lines().findFirst().orElseThrow());
+    }
+
+    /**
+     * Pins the report's whole output for a fixed dataset, so that a change to the read path it shares
+     * with the supply hourly series cannot alter it unnoticed (#545). The dataset holds what tells the
+     * bound modes apart: a record exactly on {@code endDate}, which the report includes because it reads
+     * both bounds inclusively, and an hour with no record, which it reports as zeros without an obtain
+     * method.
+     *
+     * <p>The community's supplies are read in no particular order, so either supply's rows may come
+     * first; each order is compared byte for byte.
+     */
+    @Test
+    @DisplayName("#545 AC6 the CSV report output for a fixed dataset is exactly what it was")
+    void testGetCsvReportOutputIsUnchangedForAFixedDataset() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String authHeader = loginAsCommunityAdmin(community.getId());
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply first = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+        Supply second = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+        try {
+            influxFixture.writeAt(first.getCode(), OffsetDateTime.parse("2023-06-10T10:00:00+02:00").toInstant(),
+                    1.5f, 0.25f, 0.5f);
+            influxFixture.writeAt(first.getCode(), OffsetDateTime.parse("2023-06-10T12:00:00+02:00").toInstant(),
+                    2.25f, 0f, 0f);
+            influxFixture.writeAt(first.getCode(), OffsetDateTime.parse("2023-06-10T13:00:00+02:00").toInstant(),
+                    4f, 1f, 0.125f);
+            influxFixture.writeAt(second.getCode(), OffsetDateTime.parse("2023-06-10T11:00:00+02:00").toInstant(),
+                    0.75f, 0.1f, 0.2f);
+
+            String csv = mockMvc.perform(get("/api/v1/communities/" + community.getId()
+                            + "/consumption/datadis/report/hourly/csv")
+                            .header(HttpHeaders.AUTHORIZATION, authHeader)
+                            .queryParam("startDate", "2023-06-10T10:00:00+02:00")
+                            .queryParam("endDate", "2023-06-10T13:00:00+02:00"))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            String header = "\"cups\",\"date\",\"time\",\"consumptionKWh\",\"obtainMethod\",\"surplusEnergyKWh\","
+                    + "\"generationEnergyKWh\",\"selfConsumptionEnergyKWh\"\n";
+            String firstRows = row(first, "10:00", "1.5", "\"Real\"", "0.5", "0.25")
+                    + row(first, "11:00", "0.0", "", "0.0", "0.0")
+                    + row(first, "12:00", "2.25", "\"Real\"", "0.0", "0.0")
+                    + row(first, "13:00", "4.0", "\"Real\"", "0.125", "1.0");
+            String secondRows = row(second, "10:00", "0.0", "", "0.0", "0.0")
+                    + row(second, "11:00", "0.75", "\"Real\"", "0.2", "0.1")
+                    + row(second, "12:00", "0.0", "", "0.0", "0.0")
+                    + row(second, "13:00", "0.0", "", "0.0", "0.0");
+
+            assertTrue(csv.equals(header + firstRows + secondRows) || csv.equals(header + secondRows + firstRows),
+                    () -> "unexpected CSV:\n" + csv);
+        } finally {
+            influxFixture.clear(first.getCode());
+            influxFixture.clear(second.getCode());
+        }
+    }
+
+    private static String row(Supply supply, String time, String consumptionKWh, String obtainMethod,
+                              String surplusEnergyKWh, String selfConsumptionEnergyKWh) {
+        return "\"" + supply.getCode() + "\",\"2023/06/10\",\"" + time + "\",\"" + consumptionKWh + "\","
+                + obtainMethod + ",\"" + surplusEnergyKWh + "\",\"0.0\",\"" + selfConsumptionEnergyKWh + "\"\n";
     }
 
     @Test

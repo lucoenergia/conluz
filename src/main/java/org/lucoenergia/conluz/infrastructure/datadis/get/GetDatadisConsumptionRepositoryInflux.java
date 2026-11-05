@@ -6,6 +6,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionMonthlyPoint;
@@ -84,6 +85,21 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.HOURLY, false, false);
     }
 
+    /**
+     * The same grouped hourly statement the CSV report reads through
+     * {@link #getHourlyConsumptionsByRangeOfDates}, with the end bound exclusive, and each hour kept
+     * with the instant InfluxDB stamped its group with.
+     */
+    @Override
+    public List<DatadisHourlyConsumption> getHourlyConsumptionsByPeriod(Supply supply, OffsetDateTime startDate,
+                                                                        OffsetDateTime endDate) {
+        return queryGroupedPoints(supply, startDate, endDate, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                InfluxDuration.HOURLY, true, false)
+                .stream()
+                .map(point -> new DatadisHourlyConsumption(point.getTime(), toConsumption(point)))
+                .toList();
+    }
+
     @Override
     public List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
@@ -155,6 +171,19 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                                                                          OffsetDateTime endDate, String measurementName,
                                                                          String duration, boolean exclusiveEnd,
                                                                          boolean localCalendarAligned) {
+        return mapToConsumption(queryGroupedPoints(supply, startDate, endDate, measurementName, duration,
+                exclusiveEnd, localCalendarAligned));
+    }
+
+    /**
+     * The grouped statement described on
+     * {@link #getConsumptionsByRangeOfDatesGroupedByDuration}, returning each group as the point
+     * InfluxDB stamped it with, the start instant of the group included.
+     */
+    private List<DatadisConsumptionPoint> queryGroupedPoints(Supply supply, OffsetDateTime startDate,
+                                                             OffsetDateTime endDate, String measurementName,
+                                                             String duration, boolean exclusiveEnd,
+                                                             boolean localCalendarAligned) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
             String timeZoneClause = localCalendarAligned
@@ -186,27 +215,27 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
             QueryResult queryResult = connection.query(query);
 
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
-            List<DatadisConsumptionPoint> consumptionPoints = resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class);
-            return mapToConsumption(consumptionPoints);
+            return resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class);
         }
     }
 
     private List<DatadisConsumption> mapToConsumption(List<DatadisConsumptionPoint> consumptionPoints) {
-        // Map fields from datadisConsumptionPoint to consumption here
         return consumptionPoints.stream()
-                .map(consumptionPoint -> {
-                    DatadisConsumption consumption = new DatadisConsumption();
-                    consumption.setCups(consumptionPoint.getCups());
-                    consumption.setDate(dateConverter.convertFromInstantToStringDate(consumptionPoint.getTime()));
-                    consumption.setTime(dateConverter.convertFromInstantToStringTime(consumptionPoint.getTime()));
-                    consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
-                    consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
-                    consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
-                    consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
-                    consumption.setObtainMethod(consumptionPoint.getObtainMethod());
-                    return consumption;
-                })
+                .map(this::toConsumption)
                 .toList();
+    }
+
+    private DatadisConsumption toConsumption(DatadisConsumptionPoint consumptionPoint) {
+        DatadisConsumption consumption = new DatadisConsumption();
+        consumption.setCups(consumptionPoint.getCups());
+        consumption.setDate(dateConverter.convertFromInstantToStringDate(consumptionPoint.getTime()));
+        consumption.setTime(dateConverter.convertFromInstantToStringTime(consumptionPoint.getTime()));
+        consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
+        consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
+        consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
+        consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
+        consumption.setObtainMethod(consumptionPoint.getObtainMethod());
+        return consumption;
     }
 
     private List<DatadisConsumption> mapMonthlyToConsumption(List<DatadisConsumptionMonthlyPoint> consumptionPoints) {

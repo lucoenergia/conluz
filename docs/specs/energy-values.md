@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EVL` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
+| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #410 |
+| **Last reviewed against code** | #545 |
 
 ## Purpose
 
@@ -37,16 +37,17 @@ touch it.
 
 - **Status:** Active
 - **Rule:** kWh values in `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`,
-  `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption` and
-  `getMembershipEnergyMetrics` MUST be rounded to 3 decimals, half-up, at response mapping. Stored
-  values MUST NOT be rounded.
+  `getSupplyHourlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`,
+  `getMembershipDailyConsumption` and `getMembershipEnergyMetrics` MUST be rounded to 3 decimals,
+  half-up, at response mapping. Stored values MUST NOT be rounded.
 - **Rationale:** Summing floating-point values leaves storage noise behind (`0.1 + 0.2` reads
   `0.30000000000000004`; the membership monthly series returned figures such as `161.308001`). That
   noise leaked into the API, so every client had to round, and equality checks between endpoints
   were fragile. 3 decimals is the resolution the distributor reports in, so no measured information
   is lost. Rounding stays out of storage so the stored records keep what Datadis published.
 - **Source:** #385; #410 added `getMembershipDailyConsumption`, which rounds through the same mapping
-  as the membership monthly series.
+  as the membership monthly series; #545 added `getSupplyHourlyConsumption`, which rounds through the
+  same mapping as the supply daily and monthly series.
 
 **Scenarios**
 
@@ -87,8 +88,9 @@ Then the month's grid import is 0.346 kWh, not 0.123 + 0.222 = 0.345 kWh
   quantities `gridImportKWh`, `surplusKWh` and `selfConsumptionKWh`, and the hourly profile called
   total consumption `averageConsumptionKWh`. A client showing two operations side by side had to
   map names by hand, and `consumptionKWh` read as total consumption when it is grid import.
-  Pass-through schemas keep the distributor's names because they speak its record shape.
-- **Source:** #460
+  Pass-through schemas keep the distributor's names because they speak its record shape. The supply
+  hourly series stopped being one in #545, when it moved to a series response.
+- **Source:** #460; #545
 
 **Scenarios**
 
@@ -96,7 +98,8 @@ Then the month's grid import is 0.346 kWh, not 0.123 + 0.222 = 0.345 kWh
 Given a supply with stored hourly records
 When its daily series and its energy metrics are read
 Then both report its grid import as gridImportKWh, described as energy taken from the grid
-And its hourly series still reports it as consumptionKWh
+And its hourly series reports it as gridImportKWh too
+And its yearly series still reports it as consumptionKWh
 ```
 
 ### EVL-004 — Assigned production is derived from self-consumption and surplus
