@@ -12,8 +12,8 @@ import java.util.Optional;
 /**
  * The figures of one bucket of a membership's consumption series as every membership series
  * presents them: each energy figure rounded once, to 3 decimals, on the unrounded sum, and the
- * savings rounded once, to cents. Shared by the monthly and the daily bucket responses so that the
- * two round alike.
+ * savings rounded once, to cents. Shared by the monthly, the daily and the hourly bucket responses
+ * so that they all round alike.
  */
 final class MembershipConsumptionBucketFigures {
 
