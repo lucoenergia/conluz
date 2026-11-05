@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Memberships`, `Users`, `Communities`; operations `registerMember`, `sendInvitation`, `resendInvitation`, `revokeInvitation`, `sendInvitations`, `inspectInvitation`, `acceptInvitation`, `acceptInvitationAsCurrentUser`, `inviteCommunityAdmin`, `getCommunityAdmins`, `resendCommunityAdminInvitation`, `revokeCommunityAdminInvitation`, `enableCommunityAdmin`, `disableCommunityAdmin`, `enableMembership`, `disableMembership`, `updateMemberRecord`, `updateMembershipRole`, `deleteMembership`, `importMembers`, `getAllUsers`, `getUserById`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `createSupply`, `updateSupply`, `enableSupply`, `disableSupply`, `getMemberships`, `getCurrentUser`, `getAllCommunities`, `getCommunityById`, `setMembershipInvestment`, `clearMembershipInvestment`, `getMembershipPayback`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`) |
-| **Last reviewed against code** | #546 |
+| **Last reviewed against code** | #549 |
 
 ## Purpose
 
 A membership links a person's account to one community. It also holds that community's own record
 of the member, and the state of the link: whether it has been accepted, and who invited it and
 when. This spec covers how member registration fills the record and that state, how
-a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, how they are told about every change to the community's admins, which memberships grant access, what a platform admin reaches of a community's memberships, and where responses read member data from; the rest of the capability is specified
+a registered member is invited, re-invited and has an invitation withdrawn, how an invitation is inspected and accepted, how the platform admin invites, lists, re-invites, enables and disables a community's admins, how a community admin enables and disables its members' memberships, edits member records and imports members from a CSV file, what giving a membership the admin role requires, how a community's admins manage each other and keep at least one active admin, how they are told about every change to the community's admins, which memberships grant access, what a platform admin reaches of a community's memberships, what investment a membership may record and who records it, and where responses read member data from; the rest of the capability is specified
 lazily, as issues touch it.
 
 ## Glossary
@@ -726,6 +726,33 @@ lazily, as issues touch it.
   the limit of 50 keeps a request from overflowing the email queue. Answering every id outside the community alike
   tells a caller nothing about accounts that are not theirs to see.
 - **Source:** #527, #393, #482, ADR-0003 §5
+
+### MEM-038 — A recorded investment is greater than zero, with at most ten integer digits and two decimals
+
+- **Status:** Active
+- **Rule:** The investment recorded on a membership (`setMembershipInvestment`) MUST be greater than zero, with at
+  most two decimals and at most ten integer digits, so the largest amount is 9999999999.99. Any other amount MUST
+  be refused with 400 and leave the stored investment unchanged. The contract MUST declare these bounds: zero as an
+  exclusive lower bound and 9999999999.99 as the upper bound, as API-001 requires.
+- **Rationale:** A contribution of nothing is not an investment: "no investment recorded" is expressed by clearing
+  it, so a stored zero would be a second way of saying the same thing. The column stores euros with cents in ten
+  integer digits, so a third decimal or an eleventh digit could not be stored as sent. Declaring the bounds lets a
+  client generated from the contract refuse an amount before sending it, instead of learning it from a 400.
+- **Source:** #549, #287
+
+### MEM-039 — A community admin records the investment of a pending membership
+
+- **Status:** Active
+- **Rule:** An active community admin of a community MAY set and clear the investment of a membership of that
+  community that has not been accepted yet, exactly as of an accepted one, and `canManageInvestment` MUST be `true`
+  for that membership in the responses read by that admin. Who else is answered 404 does not depend on whether the
+  membership is pending: a member who is not an admin of the community, and a platform admin who does not
+  administer it (MEM-031), are refused alike.
+- **Rationale:** A community onboards its members before they accept their invitation, and the contribution is part
+  of that onboarding; waiting for the member to accept would leave the admin unable to record what was already
+  paid. MEM-004 governs what the holder of a pending membership may reach, not what the community's admins may do
+  with it.
+- **Source:** #549
 
 ## Impossible states
 
