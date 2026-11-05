@@ -1,7 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.apidocs;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.util.DefaultIndenter;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.junit.jupiter.api.Test;
@@ -9,9 +11,12 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -68,17 +73,37 @@ class OpenApiSnapshotTest extends BaseControllerTest {
      * shift for reasons that are not API changes. Sorting every object's keys and pinning the
      * indentation leaves a diff that shows only what a client would actually notice. Array order is
      * left alone: it <em>is</em> meaningful for {@code enum} and {@code required}.
+     *
+     * <p>Decimal numbers are read as {@link BigDecimal} rather than {@code double}, so a bound such as
+     * {@code 9999999999.99} is written as itself and not as {@code 9.99999999999E9}. Their scale is
+     * not part of the contract either: trailing zeros are stripped and the value is written in plain
+     * notation, so {@code 1500.0} and {@code 1500.00} both normalise to {@code 1500}.</p>
      */
     private String normalise(String json) throws Exception {
         ObjectMapper normalising = new ObjectMapper()
+                .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
                 .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS)
                 .enable(SerializationFeature.INDENT_OUTPUT);
         DefaultPrettyPrinter printer = new DefaultPrettyPrinter()
                 .withObjectIndenter(new DefaultIndenter("  ", "\n"))
                 .withArrayIndenter(new DefaultIndenter("  ", "\n"));
 
-        Object tree = normalising.readValue(json, Object.class);
+        Object tree = stripTrailingZeros(normalising.readValue(json, Object.class));
         return normalising.writer(printer).writeValueAsString(tree) + "\n";
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object stripTrailingZeros(Object node) {
+        if (node instanceof BigDecimal decimal) {
+            return decimal.stripTrailingZeros();
+        }
+        if (node instanceof Map<?, ?> map) {
+            ((Map<Object, Object>) map).replaceAll((key, value) -> stripTrailingZeros(value));
+        } else if (node instanceof List<?> list) {
+            ((List<Object>) list).replaceAll(this::stripTrailingZeros);
+        }
+        return node;
     }
 
     private String readSnapshot() throws Exception {
