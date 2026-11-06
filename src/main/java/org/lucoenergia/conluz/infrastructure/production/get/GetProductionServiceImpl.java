@@ -166,7 +166,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     // intentionally moves the ownership boundary: community membership used to be a second line of
     // defence (production was always scoped to "plants in the supply's community"); now, a wrong row
     // in supply_partition_coefficient could in principle let one community's production reach another
-    // community's supply, with no second check. This is intentional -- the epic's model states
+    // community's supply, with no second check. This is intentional -- the domain model states
     // (plant_id, supply_id) IS the participation relation, so the coefficient table is the sole
     // authority for per-supply production -- but it is a deliberate asymmetry with the CONSUMPTION
     // path (Datadis-based), which remains community-scoped. Do not "fix" this by reintroducing a
