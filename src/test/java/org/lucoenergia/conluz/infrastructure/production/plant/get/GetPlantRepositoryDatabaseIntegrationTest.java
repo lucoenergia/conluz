@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -47,6 +48,8 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private GetPlantRepositoryDatabase getPlantRepositoryDatabase;
+    @Autowired
+    private GetPlantRepository getPlantRepository;
 
     @Autowired
     private CreatePlantRepository createPlantRepository;
@@ -139,6 +142,38 @@ class GetPlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         List<UUID> ids = result.getItems().stream().map(Plant::getId).collect(Collectors.toList());
         assertTrue(ids.contains(plantInCommunity.getId()));
         assertFalse(ids.contains(plantInOtherCommunity.getId()));
+    }
+
+    @Test
+    void findAllByCommunityIdReturnsEveryPlantOfTheCommunityByNameAndNoneOfAnother() {
+
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Community otherCommunity = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+
+        Plant second = createPlantIn(community, user, "Rooftop B");
+        Plant first = createPlantIn(community, user, "Rooftop A");
+        createPlantIn(otherCommunity, user, "Rooftop C");
+
+        List<Plant> plants = getPlantRepository.findAllByCommunityId(community.getId());
+
+        assertEquals(List.of(first.getId(), second.getId()), plants.stream().map(Plant::getId).toList());
+        // The production of a plant is read through its supply's code.
+        plants.forEach(plant -> assertNotNull(plant.getSupply().getCode()));
+    }
+
+    @Test
+    void findAllByCommunityIdReturnsNothingForACommunityWithoutPlants() {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+
+        assertTrue(getPlantRepository.findAllByCommunityId(community.getId()).isEmpty());
+    }
+
+    private Plant createPlantIn(Community community, User user, String name) {
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()),
+                community.getId());
+        return createPlantRepository.create(PlantMother.random(supply).withName(name).build(),
+                SupplyId.of(supply.getId()));
     }
 
     @Test
