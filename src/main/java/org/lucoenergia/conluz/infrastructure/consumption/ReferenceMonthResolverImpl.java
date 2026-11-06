@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.consumption;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.consumption.PublicationThreshold;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
@@ -88,8 +89,7 @@ public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
         long publishedHours = getDatadisConsumptionAggregateRepository
                 .countPublishedHours(publication.supply(), monthStart, monthEnd);
 
-        // Integer arithmetic, so the threshold is exact rather than subject to rounding.
-        return publishedHours * 100 >= possibleHours * PUBLISHED_HOURS_MIN_PERCENT;
+        return PublicationThreshold.isReached(publishedHours, possibleHours);
     }
 
     private static Instant startOf(YearMonth month, ZoneId zone) {
