@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EPR` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption` |
+| **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`, `Communities`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #546 |
+| **Last reviewed against code** | #554 |
 
 ## Purpose
 
@@ -20,7 +20,7 @@ production endpoints, payback and the CSV report are not covered.
 | Term | Meaning |
 | --- | --- |
 | Period | The interval `[startDate, endDate)` a response is computed over, either requested by the caller or resolved by the server (the latest published month, or the span of the stored records). |
-| Period's time zone | The supply's time zone for a supply operation, the community's for a membership operation. |
+| Period's time zone | The supply's time zone for a supply operation, the community's for a membership or a community operation. |
 | Start of the current hour | The current instant, read in the period's time zone and truncated to the hour. |
 
 ## Rules
@@ -43,7 +43,7 @@ production endpoints, payback and the CSV report are not covered.
   never share a record. It matches the domain's other validity intervals (a coefficient's `validTo`,
   the effective date of a supply's leave) and the production endpoints, which already cut half-open.
   Equal bounds make an empty period, so they are rejected like inverted ones.
-- **Source:** #409
+- **Source:** #409; #554 added the community energy operations
 
 **Scenarios**
 
@@ -69,7 +69,7 @@ Then the period is [2026-08-01T00:00+02:00, 2026-09-01T00:00+02:00) and spans 74
   clipped bound is returned rather than the one requested. The start of the hour, not the current
   instant, is the cut because the current hour has not fully happened and its record, if any, is not
   final.
-- **Source:** #409
+- **Source:** #409; #554 added the community energy operations
 
 **Scenarios**
 
@@ -86,7 +86,7 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
 - **Rule:** A requested `startDate` at or after the start of the current hour MUST be rejected.
 - **Rationale:** Such a period has not begun, and clipping it under EPR-002 would leave it empty; an
   entirely future period is a client error, not an empty answer.
-- **Source:** #409
+- **Source:** #409; #554 added the community energy operations
 
 ### EPR-004 — A requested period is at most 24 calendar months long
 
@@ -101,7 +101,7 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
   answer to a request independent of the time it is sent. The limit travels with the refusal
   because it depends on the operation (EPR-005), so a client can state it without a table of its
   own that would drift from the server's.
-- **Source:** #409; #546 added the limit to the refusal
+- **Source:** #409; #546 added the limit to the refusal; #554 added the community energy operations
 
 ### EPR-005 — A requested period of an hourly series is at most 31 calendar days long
 
@@ -116,7 +116,7 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
   calendar days still covers any whole month. Calendar days rather than 744 hours keep a month with
   the October change, which lasts 745 hours, within the limit. The refusal carries its own limit,
   not the one of EPR-004, because the code is shared.
-- **Source:** #545; #546 added the limit to the refusal
+- **Source:** #545; #546 added the limit to the refusal; #554 added the community hourly energy series
 
 **Scenarios**
 
