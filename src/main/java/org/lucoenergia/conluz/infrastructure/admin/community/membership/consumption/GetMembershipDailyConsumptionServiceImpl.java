@@ -101,7 +101,7 @@ public class GetMembershipDailyConsumptionServiceImpl implements GetMembershipDa
         }
 
         ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
-        return daysOverlapping(period.getStartDate(), period.getEndDate(), zone).stream()
+        return period.daysOverlapping(zone).stream()
                 .map(day -> MembershipDailyConsumptionBucket.of(day, supplies.size(),
                         contributionsByDay.getOrDefault(day, Map.of())))
                 .toList();
@@ -121,16 +121,5 @@ public class GetMembershipDailyConsumptionServiceImpl implements GetMembershipDa
      */
     private static LocalDate dayOf(SupplyConsumptionBucket bucket) {
         return DateConverter.convertStringToLocalDate(bucket.getConsumption().getDate());
-    }
-
-    /**
-     * Every local day that overlaps the half-open bounds, in chronological order: from the day the
-     * start falls on to the day of the last instant before the end. The period rules guarantee the
-     * start is before the end, so there is at least one.
-     */
-    private static List<LocalDate> daysOverlapping(OffsetDateTime startDate, OffsetDateTime endDate, ZoneId zone) {
-        LocalDate first = startDate.atZoneSameInstant(zone).toLocalDate();
-        LocalDate last = endDate.minusNanos(1).atZoneSameInstant(zone).toLocalDate();
-        return first.datesUntil(last.plusDays(1)).toList();
     }
 }

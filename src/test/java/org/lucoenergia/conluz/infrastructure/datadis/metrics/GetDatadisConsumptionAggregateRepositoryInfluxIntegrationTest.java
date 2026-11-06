@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
@@ -16,9 +17,12 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -530,6 +534,80 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
 
         assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
         assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
+    }
+
+    /**
+     * 25 October 2026 lasts 25 hours in Madrid; the day groups follow local midnight, so all of them
+     * fall on that day and none on its neighbours.
+     */
+    @Test
+    @DisplayName("CEM-006 the daily totals follow local days, the day the clocks go back included")
+    void aggregateByLocalDayFollowsLocalDaysAcrossTheDaylightSavingChange() {
+        Supply supply = supply();
+        ZoneId madrid = ZoneId.of("Europe/Madrid");
+        Instant dayStart = Instant.parse("2026-10-24T22:00:00Z");
+        List<Instant> hours = new ArrayList<>();
+        for (int hour = 0; hour < 25; hour++) {
+            hours.add(dayStart.plusSeconds(3600L * hour));
+        }
+        fixture.writeAt(supply.getCode(), hours, 1f, 0.5f, 0.25f);
+        // The next day: one record without self-consumption and one with it.
+        fixture.writeAt(supply.getCode(), Instant.parse("2026-10-25T23:00:00Z"), 1f, null, 4f);
+        fixture.writeAt(supply.getCode(), Instant.parse("2026-10-26T00:00:00Z"), 1f, 2f, 0f);
+
+        List<DailyPublishedAggregate> days = repository.aggregateByLocalDay(supply,
+                Instant.parse("2026-10-23T22:00:00Z"), Instant.parse("2026-10-26T23:00:00Z"), madrid);
+
+        assertEquals(2, days.size(), "a day without records is absent: " + days);
+        assertEquals(new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 12.5, 6.25, 25), days.get(0));
+        assertEquals(LocalDate.of(2026, 10, 26), days.get(1).day());
+        assertEquals(2.0, days.get(1).selfConsumptionKWh(), 1e-6);
+        assertEquals(4.0, days.get(1).surplusKWh(), 1e-6);
+        assertEquals(1L, days.get(1).publishedHours());
+    }
+
+    @Test
+    @DisplayName("EPR-001 the daily totals include the record on the start bound and exclude the one on the end bound")
+    void aggregateByLocalDayIsHalfOpen() {
+        Supply supply = supply();
+        ZoneId madrid = ZoneId.of("Europe/Madrid");
+        Instant from = Instant.parse("2026-05-10T10:00:00Z");
+        Instant to = Instant.parse("2026-05-10T12:00:00Z");
+        fixture.writeAt(supply.getCode(), List.of(from.minusSeconds(3600), from, from.plusSeconds(3600), to),
+                1f, 1f, 0f);
+
+        List<DailyPublishedAggregate> days = repository.aggregateByLocalDay(supply, from, to, madrid);
+
+        assertEquals(1, days.size());
+        assertEquals(2L, days.get(0).publishedHours());
+        assertEquals(2.0, days.get(0).selfConsumptionKWh(), 1e-6);
+    }
+
+    @Test
+    @DisplayName("CEM-006 the daily totals of several supplies come back from one read, keyed by supply")
+    void aggregateByLocalDayOfSeveralSuppliesIsKeyedBySupply() {
+        Supply first = supply();
+        Supply second = supply();
+        Supply silent = supply();
+        ZoneId madrid = ZoneId.of("Europe/Madrid");
+        Instant may10 = Instant.parse("2026-05-09T22:00:00Z");
+        fixture.writeAt(first.getCode(), List.of(may10, may10.plusSeconds(3600)), 1f, 1f, 0.5f);
+        fixture.writeAt(second.getCode(), may10.plusSeconds(86_400), 1f, 3f, 0f);
+
+        Map<String, List<DailyPublishedAggregate>> days = repository.aggregateByLocalDay(
+                List.of(first, second, silent), may10, may10.plusSeconds(2 * 86_400), madrid);
+
+        assertEquals(2, days.size(), "a supply without records is absent: " + days);
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 2.0, 1.0, 2)),
+                days.get(first.getCode()));
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 3.0, 0.0, 1)),
+                days.get(second.getCode()));
+    }
+
+    @Test
+    void aggregateByLocalDayOfNoSupplyReadsNothing() {
+        assertTrue(repository.aggregateByLocalDay(List.of(), Instant.parse("2026-05-09T22:00:00Z"),
+                Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
     }
 
     private Supply supply() {

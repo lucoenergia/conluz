@@ -5,9 +5,11 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -116,5 +118,41 @@ class EnergyMetricsPeriodTest {
 
         assertEquals(OffsetDateTime.parse("2026-10-26T10:00:00+01:00"),
                 EnergyMetricsPeriod.startOfCurrentHour(clock, MADRID));
+    }
+
+    @Test
+    @DisplayName("MCS-001 the days overlapping a period include the days it starts and ends inside")
+    void theDaysOverlappingAPeriodIncludeTheDaysItStartsAndEndsInside() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(
+                OffsetDateTime.parse("2026-05-10T12:00:00+02:00"), OffsetDateTime.parse("2026-05-12T01:00:00+02:00"));
+
+        assertEquals(List.of(LocalDate.of(2026, 5, 10), LocalDate.of(2026, 5, 11), LocalDate.of(2026, 5, 12)),
+                period.daysOverlapping(MADRID));
+    }
+
+    @Test
+    @DisplayName("EPR-001 a period ending on a local midnight does not overlap the day that midnight starts")
+    void aPeriodEndingOnAMidnightDoesNotOverlapTheNextDay() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(
+                OffsetDateTime.parse("2026-10-25T00:00:00+02:00"), OffsetDateTime.parse("2026-10-26T00:00:00+01:00"));
+
+        assertEquals(List.of(LocalDate.of(2026, 10, 25)), period.daysOverlapping(MADRID));
+    }
+
+    @Test
+    @DisplayName("EPR-001 a month is selected when its local midnight on day 1 falls inside the period")
+    void aMonthIsSelectedWhenItsFirstMidnightFallsInsideThePeriod() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(
+                OffsetDateTime.parse("2026-01-15T00:00:00+01:00"), OffsetDateTime.parse("2026-04-01T00:00:00+02:00"));
+
+        assertEquals(List.of(YearMonth.of(2026, 2), YearMonth.of(2026, 3)), period.monthsStartingIn(MADRID));
+    }
+
+    @Test
+    void aPeriodStartingOnAFirstMidnightSelectsThatMonth() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(
+                OffsetDateTime.parse("2026-03-01T00:00:00+01:00"), OffsetDateTime.parse("2026-03-01T01:00:00+01:00"));
+
+        assertEquals(List.of(YearMonth.of(2026, 3)), period.monthsStartingIn(MADRID));
     }
 }

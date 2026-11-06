@@ -4,14 +4,14 @@
 | --- | --- |
 | **Prefix** | `EVL` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption` |
+| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #546 |
+| **Last reviewed against code** | #554 |
 
 ## Purpose
 
-The energy figures, in kWh, that the consumption series and the energy metrics report for a supply
-or a membership. They are sums of the hourly records Datadis publishes, which are stored as floating
+The energy figures, in kWh, that the consumption series and the energy metrics report for a supply,
+a membership or a community. They are sums of the hourly records Datadis publishes, which are stored as floating
 point numbers. This spec covers the precision those figures are reported with and where in the
 calculation they are rounded, the names and descriptions each quantity carries across operations,
 and how assigned production is derived. The rest of the capability is specified lazily, as issues
@@ -38,8 +38,9 @@ touch it.
 - **Status:** Active
 - **Rule:** kWh values in `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`,
   `getSupplyHourlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`,
-  `getMembershipDailyConsumption`, `getMembershipHourlyConsumption` and `getMembershipEnergyMetrics`
-  MUST be rounded to 3 decimals,
+  `getMembershipDailyConsumption`, `getMembershipHourlyConsumption`, `getMembershipEnergyMetrics`,
+  `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries` and
+  `getCommunityMonthlyEnergySeries` MUST be rounded to 3 decimals,
   half-up, at response mapping. Stored values MUST NOT be rounded.
 - **Rationale:** Summing floating-point values leaves storage noise behind (`0.1 + 0.2` reads
   `0.30000000000000004`; the membership monthly series returned figures such as `161.308001`). That
@@ -49,7 +50,8 @@ touch it.
 - **Source:** #385; #410 added `getMembershipDailyConsumption`, which rounds through the same mapping
   as the membership monthly series; #545 added `getSupplyHourlyConsumption`, which rounds through the
   same mapping as the supply daily and monthly series; #546 added `getMembershipHourlyConsumption`,
-  which rounds through the same mapping as the membership daily and monthly series.
+  which rounds through the same mapping as the membership daily and monthly series; #554 added the
+  community energy metrics and series, which round through the same `KWhRounding`.
 
 **Scenarios**
 
@@ -92,7 +94,8 @@ Then the month's grid import is 0.346 kWh, not 0.123 + 0.222 = 0.345 kWh
   map names by hand, and `consumptionKWh` read as total consumption when it is grid import.
   Pass-through schemas keep the distributor's names because they speak its record shape. The supply
   hourly series stopped being one in #545, when it moved to a series response.
-- **Source:** #460; #545
+- **Source:** #460; #545; #554 added the community energy operations, which reuse `selfConsumptionKWh`,
+  `surplusKWh`, `selfConsumptionRatio`, `supplyCount` and `suppliesWithData`
 
 **Scenarios**
 

@@ -70,6 +70,14 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
     Page<PlantEntity> findBySupplyCommunityIdIn(Collection<UUID> communityIds, Pageable pageable);
 
     /**
+     * Every plant whose supply belongs to the given community, by name, then by id so that plants sharing a name keep
+     * a stable order.
+     */
+    @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",
+            "supply.distributor", "supply.shelly"})
+    List<PlantEntity> findAllBySupplyCommunityIdOrderByNameAscIdAsc(UUID communityId);
+
+    /**
      * The single plant whose supply belongs to the given community. Throws
      * {@link org.springframework.dao.IncorrectResultSizeDataAccessException} if more than one plant
      * matches, which should never happen under the one-plant-per-community invariant relied on by

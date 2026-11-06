@@ -4,6 +4,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
@@ -14,9 +15,14 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Aggregates a supply's hourly consumption records inside InfluxDB. The sums are pushed down to
@@ -42,6 +48,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     private static final String COLUMN_SURPLUS_ENERGY_KWH = "surplus_energy_kwh";
     private static final String COLUMN_HOURS_WITH_DATA = "hours_with_data";
     private static final String COLUMN_PUBLISHED_HOURS = "published_hours";
+    private static final String TAG_CUPS = "cups";
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
     private final DateConverter dateConverter;
@@ -176,6 +183,74 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
             }
             return (long) readDouble(series, series.getValues().get(0), COLUMN_PUBLISHED_HOURS);
         }
+    }
+
+    @Override
+    public List<DailyPublishedAggregate> aggregateByLocalDay(Supply supply, Instant from, Instant toExclusive,
+                                                             ZoneId zone) {
+        return aggregateByLocalDay(List.of(supply), from, toExclusive, zone)
+                .getOrDefault(supply.getCode(), List.of());
+    }
+
+    @Override
+    public Map<String, List<DailyPublishedAggregate>> aggregateByLocalDay(Collection<Supply> supplies, Instant from,
+                                                                          Instant toExclusive, ZoneId zone) {
+        if (supplies.isEmpty()) {
+            return Map.of();
+        }
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // tz() aligns the day groups on local midnight, so a day with a daylight saving change
+            // holds its 23 or 25 hours; fill(none) leaves out the days without any record. A group
+            // starting before the interval only totals the records inside it, as the WHERE bounds
+            // them. Grouping by cups as well returns one series per supply. tz() comes after fill(),
+            // as InfluxQL requires.
+            Query query = new Query(String.format(
+                    """
+                            SELECT
+                                SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
+                                SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
+                                COUNT("self_consumption_energy_kwh") AS "published_hours"
+                            FROM "%s"
+                            WHERE (%s)
+                                AND time >= '%s'
+                                AND time < '%s'
+                            GROUP BY time(1d), cups fill(none) tz('%s')
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supplies.stream()
+                            .map(supply -> String.format("cups = '%s'", supply.getCode()))
+                            .collect(Collectors.joining(" OR ")),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive),
+                    zone.getId()));
+
+            // Times in milliseconds come back as a number, whatever the server's precision.
+            QueryResult queryResult = connection.query(query, TimeUnit.MILLISECONDS);
+            Map<String, List<DailyPublishedAggregate>> daysBySupplyCode = new HashMap<>();
+            if (queryResult == null || queryResult.getResults() == null) {
+                return daysBySupplyCode;
+            }
+            queryResult.getResults().stream()
+                    .filter(result -> result.getSeries() != null)
+                    .flatMap(result -> result.getSeries().stream())
+                    .filter(series -> series.getTags() != null && series.getValues() != null)
+                    .forEach(series -> daysBySupplyCode.put(series.getTags().get(TAG_CUPS),
+                            toDays(series, zone)));
+            return daysBySupplyCode;
+        }
+    }
+
+    private List<DailyPublishedAggregate> toDays(QueryResult.Series series, ZoneId zone) {
+        int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
+        return series.getValues().stream()
+                .map(row -> new DailyPublishedAggregate(
+                        dateConverter.convertMillisecondsToInstant(((Number) row.get(timeIndex)).longValue())
+                                .atZone(zone).toLocalDate(),
+                        readDouble(series, row, COLUMN_SELF_CONSUMPTION_ENERGY_KWH),
+                        readDouble(series, row, COLUMN_SURPLUS_ENERGY_KWH),
+                        (long) readDouble(series, row, COLUMN_PUBLISHED_HOURS)))
+                .toList();
     }
 
     /**
