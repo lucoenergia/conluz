@@ -328,6 +328,160 @@
         ],
         "type" : "object"
       },
+      "CommunityEnergyMetricsCoverageResponse" : {
+        "properties" : {
+          "suppliesWithData" : {
+            "description" : "Number of those supplies with data for the period: whose hourly records carrying self-consumed energy cover at least 90% of the hours the period spans. Measured against a threshold, whereas the energy metrics of a membership count a supply with at least one hourly record, so the two figures are not comparable across endpoints. 0 when no period could be resolved.",
+            "example" : 11,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "supplyCount" : {
+            "description" : "Number of enabled supplies of the community, whatever the membership status of their owners",
+            "example" : 12,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "suppliesWithData",
+          "supplyCount"
+        ],
+        "type" : "object"
+      },
+      "CommunityEnergyMetricsEnergyResponse" : {
+        "properties" : {
+          "productionKWh" : {
+            "description" : "Energy produced by every plant of the community over the period, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals after summing. Null when no plant stored a production record in the period, or when no period could be resolved.",
+            "example" : 1520,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "selfConsumptionKWh" : {
+            "description" : "Energy produced by the community and consumed by every supply of the community over the period, as reported by the distributor. In kWh, rounded to 3 decimals. Null when no supply stored a record in the period, or when no period could be resolved.",
+            "example" : 1210,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "surplusKWh" : {
+            "description" : "Energy assigned to every supply of the community and fed back to the grid over the period. In kWh, rounded to 3 decimals. Null when no supply stored a record in the period, or when no period could be resolved.",
+            "example" : 260,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "productionKWh",
+          "selfConsumptionKWh",
+          "surplusKWh"
+        ],
+        "type" : "object"
+      },
+      "CommunityEnergyMetricsResponse" : {
+        "properties" : {
+          "coverage" : {
+            "$ref" : "#/components/schemas/CommunityEnergyMetricsCoverageResponse",
+            "description" : "How many supplies of the community have data for the period."
+          },
+          "energy" : {
+            "$ref" : "#/components/schemas/CommunityEnergyMetricsEnergyResponse",
+            "description" : "The energy totals of the community: its plants' production, and the self-consumption and surplus of every supply of the community, summed."
+          },
+          "installedPowerKWp" : {
+            "description" : "Installed power of every plant of the community, summed, in kWp.",
+            "example" : 200,
+            "format" : "double",
+            "type" : "number"
+          },
+          "period" : {
+            "$ref" : "#/components/schemas/SupplyEnergyMetricsPeriodResponse",
+            "description" : "The period the metrics were computed over, the same for every supply and plant."
+          },
+          "plants" : {
+            "description" : "Every plant of the community, ordered by name, with its production over the period.",
+            "items" : {
+              "$ref" : "#/components/schemas/CommunityPlantEnergyResponse"
+            },
+            "type" : "array"
+          },
+          "selfConsumptionRatio" : {
+            "description" : "Share of the energy assigned to the community's supplies that they consumed rather than fed back to the grid, on a 0-1 scale, computed once from the summed self-consumption and surplus of every supply of the community, plant's own supplies included. Adds up to 1 with surplusRatio. Null when both are zero or unknown.",
+            "example" : 0.82,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "surplusRatio" : {
+            "description" : "Share of the energy assigned to the community's supplies that was fed back to the grid, on a 0-1 scale, computed once from the summed self-consumption and surplus of every supply of the community. Adds up to 1 with selfConsumptionRatio. Null when both are zero or unknown.",
+            "example" : 0.18,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "coverage",
+          "energy",
+          "installedPowerKWp",
+          "period",
+          "plants",
+          "selfConsumptionRatio",
+          "surplusRatio"
+        ],
+        "type" : "object"
+      },
+      "CommunityPlantEnergyResponse" : {
+        "properties" : {
+          "installedPowerKWp" : {
+            "description" : "Installed power of the plant, in kWp.",
+            "example" : 100,
+            "format" : "double",
+            "type" : "number"
+          },
+          "plant" : {
+            "$ref" : "#/components/schemas/PlantReferenceResponse",
+            "description" : "The plant."
+          },
+          "productionKWh" : {
+            "description" : "Energy the plant produced over the period, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, which is not a measured zero, or when no period could be resolved.",
+            "example" : 760,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "productionShare" : {
+            "description" : "Share of the community's production that came from this plant, on a 0-1 scale, computed from the unrounded figures. Null when productionKWh is null, and when the community produced nothing in the period.",
+            "example" : 0.5,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "installedPowerKWp",
+          "plant",
+          "productionKWh",
+          "productionShare"
+        ],
+        "type" : "object"
+      },
       "CommunityReferenceResponse" : {
         "properties" : {
           "id" : {
@@ -2924,6 +3078,8 @@
             "description" : "The supply this plant produces onto. A reference: the full supply, including its owner, is fetched from GET /supplies/{supplyId}, which not every caller who may list plants is allowed to call."
           },
           "totalPower" : {
+            "description" : "Installed power of the plant, in kWp.",
+            "example" : 100,
             "format" : "double",
             "type" : "number"
           }
@@ -8373,6 +8529,165 @@
           }
         ],
         "summary" : "Enables a community.",
+        "tags" : [
+          "Communities"
+        ]
+      }
+    },
+    "/api/v1/communities/{communityId}/energy-metrics" : {
+      "get" : {
+        "description" : "Aggregates the distributor's records of the whole community over one period. Only\ncommunity totals are reported: no figure, identifier or code of a single supply or\nmember.\n\n- `energy.productionKWh`: what every plant of the community produced, as reported for\n  the plant's own supply.\n- `energy.selfConsumptionKWh` and `energy.surplusKWh`: summed over every **enabled**\n  supply of the community, whatever the membership status of its owner. A plant's own\n  supply counts with its self-consumption; its surplus is stored as 0, since it is\n  reported as production.\n- `selfConsumptionRatio` and `surplusRatio`: the shares of the assigned energy that\n  was used in the community and that went to the grid, on a 0-1 scale, computed\n  **once** from the summed self-consumption and surplus, so they add up to 1. Both\n  are `null` when both figures are zero or unknown, never `0`.\n- `installedPowerKWp`: the installed power of every plant of the community.\n- `plants`: every plant of the community with its installed power, its production\n  and its share of the community's production.\n\nA figure nothing was stored for is `null`, never `0`: a plant without any production\nrecord in the period has null production and share, and so do the energy totals\nwhen nothing was stored for any plant or supply.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period. They must be supplied together, and\n  a `startDate` that is not before the `endDate` is a bad request.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the\n  community's time zone, that the distributor has published for any supply of the\n  community, exactly as a membership's latest published month is resolved over the\n  member's supplies. An hourly record is published when it carries self-consumed\n  energy, zero included, and a month is published for a supply when at least\n  90% of the hours it could have published carry it. The search goes backwards\n  through the 24 complete months before the current one; the current month is never\n  a candidate. When no month in the search window is published, no period is\n  resolved. Combining it with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest record stored for any supply of the community to the end\n  of the hour of the latest.\n\nWhen no period can be resolved, the response is still successful, with null period\nbounds, null figures and ratios, no supply with data, and every plant listed with\nits installed power alone.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n   The refusal states the limit in `params`: `amount`, a whole number written as a\n   string, and `unit`, `MONTHS` or `DAYS` -- here `{\"amount\": \"24\", \"unit\": \"MONTHS\"}`.\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Coverage:**\n`coverage.supplyCount` is the number of enabled supplies of the community, and\n`coverage.suppliesWithData` how many of them have data for the period: their hourly\nrecords carrying self-consumed energy cover at least 90% of the hours the period\nspans, the same threshold a month is published by.\n\nReadable by any active member of the community, whatever their role. A platform\nadmin who is not a member is answered 403, and every other caller who may not read\nit 404.\n",
+        "operationId" : "getCommunityEnergyMetrics",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "communityId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "Start of an explicit period, inclusive. Requires endDate.",
+            "in" : "query",
+            "name" : "startDate",
+            "required" : false,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "End of an explicit period, exclusive. Requires startDate.",
+            "in" : "query",
+            "name" : "endDate",
+            "required" : false,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "A period the server resolves by itself. Cannot be combined with startDate or endDate.",
+            "in" : "query",
+            "name" : "period",
+            "required" : false,
+            "schema" : {
+              "enum" : [
+                "LATEST_PUBLISHED_MONTH"
+              ],
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommunityEnergyMetricsResponse"
+                }
+              }
+            },
+            "description" : "Energy metrics retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the energy metrics of a community: its production and how it was used.",
         "tags" : [
           "Communities"
         ]

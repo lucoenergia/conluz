@@ -72,6 +72,11 @@ public class GetPlantRepositoryDatabase implements GetPlantRepository {
     }
 
     @Override
+    public List<Plant> findAllByCommunityId(UUID communityId) {
+        return plantEntityMapper.mapList(plantRepository.findAllBySupplyCommunityIdOrderByNameAscIdAsc(communityId));
+    }
+
+    @Override
     public Optional<Plant> findByCommunityId(UUID communityId) {
         return plantRepository.findBySupplyCommunityId(communityId).map(plantEntityMapper::map);
     }

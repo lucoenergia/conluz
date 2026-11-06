@@ -32,6 +32,7 @@ public class PlantResponse {
     @Schema(types = {"string", "null"})
     private final String description;
     private final InverterProvider inverterProvider;
+    @Schema(description = "Installed power of the plant, in kWp.", example = "100.0")
     private final Double totalPower;
     @Schema(types = {"string", "null"})
     private final LocalDate connectionDate;
