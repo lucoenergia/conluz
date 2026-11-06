@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -580,6 +581,33 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         assertEquals(1, days.size());
         assertEquals(2L, days.get(0).publishedHours());
         assertEquals(2.0, days.get(0).selfConsumptionKWh(), 1e-6);
+    }
+
+    @Test
+    @DisplayName("CEM-006 the daily totals of several supplies come back from one read, keyed by supply")
+    void aggregateByLocalDayOfSeveralSuppliesIsKeyedBySupply() {
+        Supply first = supply();
+        Supply second = supply();
+        Supply silent = supply();
+        ZoneId madrid = ZoneId.of("Europe/Madrid");
+        Instant may10 = Instant.parse("2026-05-09T22:00:00Z");
+        fixture.writeAt(first.getCode(), List.of(may10, may10.plusSeconds(3600)), 1f, 1f, 0.5f);
+        fixture.writeAt(second.getCode(), may10.plusSeconds(86_400), 1f, 3f, 0f);
+
+        Map<String, List<DailyPublishedAggregate>> days = repository.aggregateByLocalDay(
+                List.of(first, second, silent), may10, may10.plusSeconds(2 * 86_400), madrid);
+
+        assertEquals(2, days.size(), "a supply without records is absent: " + days);
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 2.0, 1.0, 2)),
+                days.get(first.getCode()));
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 3.0, 0.0, 1)),
+                days.get(second.getCode()));
+    }
+
+    @Test
+    void aggregateByLocalDayOfNoSupplyReadsNothing() {
+        assertTrue(repository.aggregateByLocalDay(List.of(), Instant.parse("2026-05-09T22:00:00Z"),
+                Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
     }
 
     private Supply supply() {

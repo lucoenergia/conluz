@@ -6,7 +6,9 @@ import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -71,4 +73,12 @@ public interface GetDatadisConsumptionAggregateRepository {
      * total only their part inside the interval.
      */
     List<DailyPublishedAggregate> aggregateByLocalDay(Supply supply, Instant from, Instant toExclusive, ZoneId zone);
+
+    /**
+     * As {@link #aggregateByLocalDay(Supply, Instant, Instant, ZoneId)}, for every given supply in a
+     * single read, keyed by supply code. A supply without any record in the interval is absent. An
+     * empty collection issues no read.
+     */
+    Map<String, List<DailyPublishedAggregate>> aggregateByLocalDay(Collection<Supply> supplies, Instant from,
+                                                                   Instant toExclusive, ZoneId zone);
 }

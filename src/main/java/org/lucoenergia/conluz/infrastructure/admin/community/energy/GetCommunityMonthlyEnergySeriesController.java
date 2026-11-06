@@ -53,9 +53,9 @@ public class GetCommunityMonthlyEnergySeriesController {
 
                     **Every month is emitted:**
                     A bucket is returned for every month whose local midnight on day 1 falls inside the
-                    period, in chronological order, whether or not any supply has data that month. The
-                    figures are read from the monthly pre-aggregates, refreshed daily for the months of
-                    the Datadis sync window, which cover the whole month.
+                    period, in chronological order, whether or not any supply has data that month. A
+                    month the period ends inside counts only its part inside the period. The figures are
+                    totalled from the hourly records, not from the monthly pre-aggregates.
 
                     **Completeness:**
                     `supplyCount` is the number of enabled supplies of the community, the same in every
@@ -63,12 +63,12 @@ public class GetCommunityMonthlyEnergySeriesController {
                     `suppliesWithData` below `supplyCount` is incomplete.
 
                     **Gaps and measured zeros:**
-                    A supply has data in a month when it stored a monthly record for it. The
-                    monthly records keep no count of the hours carrying self-consumed energy, so the
-                    90% threshold of the daily and hourly series is not applied, and a month aggregated
-                    before the distributor published its self-consumed energy reads as `0`. A month in
-                    which no supply stored a monthly record has `null` energy figures and a
-                    `suppliesWithData` of 0, never zeros.
+                    A supply has data in a month when its hourly records carrying self-consumed
+                    energy, zero included, cover at least 90% of the month's hours inside the period,
+                    the same threshold the community energy metrics count `suppliesWithData` by, so the
+                    two agree for the same month. Only those supplies are added up. A month in which no
+                    supply has data has `null` energy figures and a `suppliesWithData` of 0, never zeros;
+                    a month whose supplies with data carry no energy is a measured zero, `0`.
 
                     Readable by any active member of the community, whatever their role. A platform
                     admin who is not a member is answered 403, and every other caller who may not read

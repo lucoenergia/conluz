@@ -8,16 +8,17 @@ import org.lucoenergia.conluz.domain.admin.community.energy.SupplyEnergyContribu
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
-import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.lucoenergia.conluz.domain.consumption.PublicationThreshold;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,30 +27,32 @@ import java.util.UUID;
 
 /**
  * Resolves the community's supplies and period through the same scope resolver as the community energy
- * metrics, reads every supply's monthly pre-aggregates, as the membership monthly series does, and
- * folds them month by month.
+ * metrics, reads every supply's records totalled per local day in a single read, and folds the days
+ * into local calendar months.
  *
- * <p>A supply has data in a month when it has a stored monthly point for it. The pre-aggregate keeps no
- * count of the hours that carry self-consumption, and stores self-consumption a month's records lack
- * as 0, so the publication threshold the daily and hourly series apply cannot be applied here: a month
- * aggregated before the distributor published it reads as a measured zero.
+ * <p>A supply has data in a month when its records carrying self-consumption reach the
+ * {@link PublicationThreshold publication threshold} of the month's hours inside the period: the
+ * criterion the metrics' coverage applies to a period and the daily series to a day. The monthly
+ * pre-aggregates are not read, since they keep no count of those records and store a month's missing
+ * self-consumption as 0.
  *
  * <h2>Query cost</h2>
  *
- * <p>One relational query (the supplies), then one InfluxDB read of the monthly measurement per supply.
+ * <p>One relational query (the supplies), then a single InfluxDB query for every supply, grouped by
+ * day and supply inside the store: at most 731 rows per supply for the longest period.
  */
 @Service
 @Transactional(readOnly = true)
 public class GetCommunityMonthlyEnergySeriesServiceImpl implements GetCommunityMonthlyEnergySeriesService {
 
     private final CommunityEnergyScopeResolver communityEnergyScopeResolver;
-    private final GetDatadisConsumptionRepository getDatadisConsumptionRepository;
+    private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
 
     public GetCommunityMonthlyEnergySeriesServiceImpl(
             CommunityEnergyScopeResolver communityEnergyScopeResolver,
-            @Qualifier("getDatadisConsumptionRepositoryInflux") GetDatadisConsumptionRepository getDatadisConsumptionRepository) {
+            GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository) {
         this.communityEnergyScopeResolver = communityEnergyScopeResolver;
-        this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
+        this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
     }
 
     @Override
@@ -70,25 +73,71 @@ public class GetCommunityMonthlyEnergySeriesServiceImpl implements GetCommunityM
 
     private List<CommunityEnergySeriesBucket> getMonthlySeries(List<Supply> supplies, ZoneId zone,
                                                                EnergyMetricsPeriod period) {
+        Instant from = period.getStartDate().toInstant();
+        Instant toExclusive = period.getEndDate().toInstant();
+        List<YearMonth> months = period.monthsStartingIn(zone);
+
+        Map<String, List<DailyPublishedAggregate>> daysBySupplyCode =
+                getDatadisConsumptionAggregateRepository.aggregateByLocalDay(supplies, from, toExclusive, zone);
+
         Map<YearMonth, List<SupplyEnergyContribution>> contributionsByMonth = new HashMap<>();
         for (Supply supply : supplies) {
-            for (DatadisConsumption month : getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(
-                    supply, period.getStartDate(), period.getEndDate())) {
-                contributionsByMonth
-                        .computeIfAbsent(YearMonth.from(DateConverter.convertStringToLocalDate(month.getDate())),
-                                m -> new ArrayList<>())
-                        .add(new SupplyEnergyContribution(valueOf(month.getSelfConsumptionEnergyKWh()),
-                                valueOf(month.getSurplusEnergyKWh())));
+            for (Map.Entry<YearMonth, MonthTotals> month : foldIntoMonths(
+                    daysBySupplyCode.getOrDefault(supply.getCode(), List.of())).entrySet()) {
+                // A day before the first selected month belongs to no bucket.
+                if (!months.contains(month.getKey())) {
+                    continue;
+                }
+                MonthTotals totals = month.getValue();
+                long possibleHours = possibleHours(month.getKey(), zone, from, toExclusive);
+                if (totals.publishedHours > 0
+                        && PublicationThreshold.isReached(totals.publishedHours, possibleHours)) {
+                    contributionsByMonth
+                            .computeIfAbsent(month.getKey(), m -> new ArrayList<>())
+                            .add(new SupplyEnergyContribution(totals.selfConsumptionKWh, totals.surplusKWh));
+                }
             }
         }
 
-        return period.monthsStartingIn(zone).stream()
+        return months.stream()
                 .map(month -> CommunityEnergySeriesBucket.of(month.atDay(1).atStartOfDay(zone).toOffsetDateTime(),
                         supplies.size(), contributionsByMonth.getOrDefault(month, List.of())))
                 .toList();
     }
 
-    private static double valueOf(Float kWh) {
-        return kWh == null ? 0d : kWh;
+    /**
+     * One supply's days added up per local calendar month, unrounded.
+     */
+    private static Map<YearMonth, MonthTotals> foldIntoMonths(List<DailyPublishedAggregate> days) {
+        Map<YearMonth, MonthTotals> months = new HashMap<>();
+        for (DailyPublishedAggregate day : days) {
+            months.computeIfAbsent(YearMonth.from(day.day()), m -> new MonthTotals()).add(day);
+        }
+        return months;
+    }
+
+    /**
+     * The hours of the local month that lie inside the period, counted on the instant line, so a month
+     * with a daylight saving change has one hour less or more.
+     */
+    private static long possibleHours(YearMonth month, ZoneId zone, Instant from, Instant toExclusive) {
+        Instant monthStart = month.atDay(1).atStartOfDay(zone).toInstant();
+        Instant monthEnd = month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant();
+        Instant start = monthStart.isAfter(from) ? monthStart : from;
+        Instant end = monthEnd.isBefore(toExclusive) ? monthEnd : toExclusive;
+        return ChronoUnit.HOURS.between(start, end);
+    }
+
+    private static final class MonthTotals {
+
+        private double selfConsumptionKWh;
+        private double surplusKWh;
+        private long publishedHours;
+
+        void add(DailyPublishedAggregate day) {
+            selfConsumptionKWh += day.selfConsumptionKWh();
+            surplusKWh += day.surplusKWh();
+            publishedHours += day.publishedHours();
+        }
     }
 }
