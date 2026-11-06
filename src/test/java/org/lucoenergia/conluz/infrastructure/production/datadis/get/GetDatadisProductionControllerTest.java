@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.datadis.get;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -177,6 +179,33 @@ class GetDatadisProductionControllerTest extends BaseControllerTest {
                             .queryParam("supplyId", supplyB.getId().toString()))
                     .andDo(print())
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Test
+    @DisplayName("CPR-001 every Datadis production read answers 404 for a consumer supply of the community, and accepts the plant's backing supply")
+    void acceptsOnlyThePlantsBackingSupplyOfTheCommunity() throws Exception {
+        // A supply of community A, owned by its member, that backs no plant.
+        Supply consumerSupply = createSupplyRepository.create(
+                SupplyMother.random(memberA).withCommunity(communityA).withEnabled(true).build(),
+                UserId.of(memberA.getId()), communityA.getId());
+        String tokenA = loginUser(memberA);
+
+        for (String granularity : GRANULARITIES) {
+            mockMvc.perform(get(url(communityA.getId(), granularity))
+                            .header("Authorization", tokenA)
+                            .queryParam("startDate", YEAR_START)
+                            .queryParam("endDate", YEAR_END)
+                            .queryParam("supplyId", consumerSupply.getId().toString()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.errors[0].code").value(nullValue()));
+            mockMvc.perform(get(url(communityA.getId(), granularity))
+                            .header("Authorization", tokenA)
+                            .queryParam("startDate", YEAR_START)
+                            .queryParam("endDate", YEAR_END)
+                            .queryParam("supplyId", supplyA.getId().toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].cups").value(CUPS_A));
         }
     }
 
