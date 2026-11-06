@@ -14,7 +14,6 @@ import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -92,7 +91,7 @@ public class GetMembershipMonthlyConsumptionServiceImpl implements GetMembership
         }
 
         ZoneId zone = zoneResolver.resolveZoneIdForCommunity(communityId);
-        return monthsSelectedBy(period.getStartDate(), period.getEndDate(), zone).stream()
+        return period.monthsStartingIn(zone).stream()
                 .map(month -> MembershipMonthlyConsumptionBucket.of(month, supplies.size(),
                         contributionsByMonth.getOrDefault(month, Map.of())))
                 .toList();
@@ -104,29 +103,5 @@ public class GetMembershipMonthlyConsumptionServiceImpl implements GetMembership
      */
     private static YearMonth monthOf(SupplyConsumptionBucket bucket) {
         return YearMonth.from(DateConverter.convertStringToLocalDate(bucket.getConsumption().getDate()));
-    }
-
-    /**
-     * Every month whose local midnight on day 1 falls inside the half-open bounds, in chronological
-     * order: the rule by which the per-supply series selects the pre-aggregated point stamped at
-     * that instant.
-     */
-    private static List<YearMonth> monthsSelectedBy(OffsetDateTime startDate, OffsetDateTime endDate, ZoneId zone) {
-        Instant from = startDate.toInstant();
-        Instant to = endDate.toInstant();
-        YearMonth month = YearMonth.from(startDate.atZoneSameInstant(zone));
-        if (startOf(month, zone).isBefore(from)) {
-            month = month.plusMonths(1);
-        }
-        List<YearMonth> months = new ArrayList<>();
-        while (startOf(month, zone).isBefore(to)) {
-            months.add(month);
-            month = month.plusMonths(1);
-        }
-        return months;
-    }
-
-    private static Instant startOf(YearMonth month, ZoneId zone) {
-        return month.atDay(1).atStartOfDay(zone).toInstant();
     }
 }

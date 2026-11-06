@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.consumption;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -83,6 +84,41 @@ public class EnergyMetricsPeriod {
             hours.add(hour);
         }
         return hours;
+    }
+
+    /**
+     * Every local day of {@code zone} that overlaps the period, in chronological order: from the day the
+     * start falls on to the day of the last instant before the end. A period whose start is before its
+     * end overlaps at least one.
+     */
+    public List<LocalDate> daysOverlapping(ZoneId zone) {
+        LocalDate first = startDate.atZoneSameInstant(zone).toLocalDate();
+        LocalDate last = endDate.minusNanos(1).atZoneSameInstant(zone).toLocalDate();
+        return first.datesUntil(last.plusDays(1)).toList();
+    }
+
+    /**
+     * Every month whose local midnight on day 1, in {@code zone}, falls inside the period, in
+     * chronological order: the rule by which a monthly series selects the pre-aggregated point stamped
+     * at that instant.
+     */
+    public List<YearMonth> monthsStartingIn(ZoneId zone) {
+        Instant from = startDate.toInstant();
+        Instant to = endDate.toInstant();
+        YearMonth month = YearMonth.from(startDate.atZoneSameInstant(zone));
+        if (startOf(month, zone).isBefore(from)) {
+            month = month.plusMonths(1);
+        }
+        List<YearMonth> months = new ArrayList<>();
+        while (startOf(month, zone).isBefore(to)) {
+            months.add(month);
+            month = month.plusMonths(1);
+        }
+        return months;
+    }
+
+    private static Instant startOf(YearMonth month, ZoneId zone) {
+        return month.atDay(1).atStartOfDay(zone).toInstant();
     }
 
     /**
