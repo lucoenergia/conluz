@@ -5,6 +5,8 @@ import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -61,4 +63,12 @@ public interface GetDatadisConsumptionAggregateRepository {
      * {@link #findPublishedPeriod}. Zero when there is none.
      */
     long countPublishedHours(Supply supply, Instant from, Instant toExclusive);
+
+    /**
+     * The supply's hourly records in the half-open interval {@code [from, toExclusive)}, totalled per
+     * local day of {@code zone}, in chronological order. A day without any record in the interval is
+     * absent, which is not the same as a day whose records carry zero. The first and the last day
+     * total only their part inside the interval.
+     */
+    List<DailyPublishedAggregate> aggregateByLocalDay(Supply supply, Instant from, Instant toExclusive, ZoneId zone);
 }

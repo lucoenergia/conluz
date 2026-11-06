@@ -4,6 +4,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -175,6 +177,50 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                 return 0L;
             }
             return (long) readDouble(series, series.getValues().get(0), COLUMN_PUBLISHED_HOURS);
+        }
+    }
+
+    @Override
+    public List<DailyPublishedAggregate> aggregateByLocalDay(Supply supply, Instant from, Instant toExclusive,
+                                                             ZoneId zone) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // tz() aligns the day groups on local midnight, so a day with a daylight saving change
+            // holds its 23 or 25 hours; fill(none) leaves out the days without any record. A group
+            // starting before the interval only totals the records inside it, as the WHERE bounds
+            // them. tz() comes after fill(), as InfluxQL requires.
+            Query query = new Query(String.format(
+                    """
+                            SELECT
+                                SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
+                                SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
+                                COUNT("self_consumption_energy_kwh") AS "published_hours"
+                            FROM "%s"
+                            WHERE cups = '%s'
+                                AND time >= '%s'
+                                AND time < '%s'
+                            GROUP BY time(1d) fill(none) tz('%s')
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode(),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive),
+                    zone.getId()));
+
+            // Times in milliseconds come back as a number, whatever the server's precision.
+            QueryResult.Series series = firstSeries(connection.query(query, TimeUnit.MILLISECONDS));
+            if (series == null) {
+                return List.of();
+            }
+            int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
+            return series.getValues().stream()
+                    .map(row -> new DailyPublishedAggregate(
+                            dateConverter.convertMillisecondsToInstant(((Number) row.get(timeIndex)).longValue())
+                                    .atZone(zone).toLocalDate(),
+                            readDouble(series, row, COLUMN_SELF_CONSUMPTION_ENERGY_KWH),
+                            readDouble(series, row, COLUMN_SURPLUS_ENERGY_KWH),
+                            (long) readDouble(series, row, COLUMN_PUBLISHED_HOURS)))
+                    .toList();
         }
     }
 
