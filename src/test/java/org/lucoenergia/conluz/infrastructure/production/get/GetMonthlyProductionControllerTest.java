@@ -57,6 +57,7 @@ class GetMonthlyProductionControllerTest extends BaseControllerTest {
     @Autowired
     private SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
 
+    private Supply plantSupply;
     private Plant plant;
 
     @BeforeEach
@@ -65,7 +66,7 @@ class GetMonthlyProductionControllerTest extends BaseControllerTest {
         // Register a plant in the default community whose code matches the seeded InfluxDB station_code,
         // so the community-scoped production query resolves data.
         User plantOwner = createUserRepository.create(UserMother.randomUser());
-        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()), DEFAULT_COMMUNITY_ID);
+        plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(plantOwner.getId()), DEFAULT_COMMUNITY_ID);
         plant = createPlantRepository.create(
                 PlantMother.random(plantSupply).withProviderCode(EnergyProductionInfluxLoader.STATION_CODE).build(),
                 SupplyId.of(plantSupply.getId()));
@@ -132,9 +133,8 @@ class GetMonthlyProductionControllerTest extends BaseControllerTest {
 
         String authHeader = loginAsCommunityMember(DEFAULT_COMMUNITY_ID);
 
-        User user = createUserRepository.create(UserMother.randomUser());
-
-        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        // Only the backing supply of a plant of the community is accepted as supplyId (CPR-001).
+        Supply supply = plantSupply;
         persistCoefficient(supply.getId());
 
         mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/monthly")

@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.get.GetProductionService;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.get.CommunityPlantSupplyResolver;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -55,10 +56,13 @@ class GetProductionServiceTest {
     private final GetSupplyRepository getSupplyRepository = Mockito.mock(GetSupplyRepository.class);
     private final GetPlantRepository getPlantRepository = Mockito.mock(GetPlantRepository.class);
     private final CoefficientResolver coefficientResolver = Mockito.mock(CoefficientResolver.class);
+    private final CommunityPlantSupplyResolver communityPlantSupplyResolver =
+            Mockito.mock(CommunityPlantSupplyResolver.class);
     private final TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
 
     private final GetProductionService service = new GetProductionServiceImpl(
-            getProductionRepository, getSupplyRepository, getPlantRepository, coefficientResolver, timeConfiguration,
+            getProductionRepository, getSupplyRepository, getPlantRepository, coefficientResolver,
+            communityPlantSupplyResolver, timeConfiguration,
             Clock.fixed(Instant.parse("2025-01-01T00:00:00Z"), ZoneOffset.UTC));
 
     private static final UUID PLANT_ID = UUID.randomUUID();
@@ -450,7 +454,7 @@ class GetProductionServiceTest {
         SupplyId supplyId = SupplyId.of(supplyUuid);
         Community community = CommunityMother.random().withId(communityId).build();
         Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(community).build();
-        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        when(communityPlantSupplyResolver.resolve(communityId, supplyId)).thenReturn(supply);
         stubPlant(PLANT_ID, STATION_CODE);
         when(coefficientResolver.resolveCoefficientsBySupplyAtInstant(supplyUuid, Instant.parse("2025-01-01T00:00:00Z")))
                 .thenReturn(Map.of(PLANT_ID, BigDecimal.valueOf(0.5)));
@@ -462,31 +466,15 @@ class GetProductionServiceTest {
     }
 
     @Test
-    void getInstantProductionByCommunityAndSupply_throwsWhenSupplyBelongsToAnotherCommunity() {
+    void getInstantProductionByCommunityAndSupply_propagatesTheRefusalOfTheResolver() {
         UUID communityId = UUID.randomUUID();
-        UUID supplyUuid = UUID.randomUUID();
-        SupplyId supplyId = SupplyId.of(supplyUuid);
-        Community otherCommunity = CommunityMother.random().withId(UUID.randomUUID()).build();
-        Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(otherCommunity).build();
-
-        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        SupplyId supplyId = SupplyId.of(UUID.randomUUID());
+        when(communityPlantSupplyResolver.resolve(communityId, supplyId)).thenThrow(new SupplyNotFoundException(supplyId));
 
         assertThrows(SupplyNotFoundException.class,
                 () -> service.getInstantProductionByCommunityAndSupply(communityId, supplyId));
         verify(getProductionRepository, never()).getInstantProduction(Mockito.anyCollection());
-    }
-
-    @Test
-    void getInstantProductionByCommunityAndSupply_throwsWhenSupplyHasNoCommunity() {
-        UUID communityId = UUID.randomUUID();
-        UUID supplyUuid = UUID.randomUUID();
-        SupplyId supplyId = SupplyId.of(supplyUuid);
-        Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(null).build();
-
-        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
-
-        assertThrows(SupplyNotFoundException.class,
-                () -> service.getInstantProductionByCommunityAndSupply(communityId, supplyId));
+        verifyNoInteractions(coefficientResolver);
     }
 
     @Test
@@ -496,7 +484,7 @@ class GetProductionServiceTest {
         SupplyId supplyId = SupplyId.of(supplyUuid);
         Community community = CommunityMother.random().withId(communityId).build();
         Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(community).build();
-        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        when(communityPlantSupplyResolver.resolve(communityId, supplyId)).thenReturn(supply);
         stubPlant(PLANT_ID, STATION_CODE);
 
         Instant exclusiveTo = exclusiveTo(endDate);
@@ -514,16 +502,20 @@ class GetProductionServiceTest {
     }
 
     @Test
-    void communityAndSupplyVariant_throwsWhenSupplyBelongsToAnotherCommunity() {
+    void communityAndSupplyVariants_propagateTheRefusalOfTheResolver() {
         UUID communityId = UUID.randomUUID();
-        UUID supplyUuid = UUID.randomUUID();
-        SupplyId supplyId = SupplyId.of(supplyUuid);
-        Community otherCommunity = CommunityMother.random().withId(UUID.randomUUID()).build();
-        Supply supply = SupplyMother.random().withId(supplyUuid).withCommunity(otherCommunity).build();
-
-        when(getSupplyRepository.findById(supplyId)).thenReturn(Optional.of(supply));
+        SupplyId supplyId = SupplyId.of(UUID.randomUUID());
+        when(communityPlantSupplyResolver.resolve(communityId, supplyId)).thenThrow(new SupplyNotFoundException(supplyId));
 
         assertThrows(SupplyNotFoundException.class,
                 () -> service.getHourlyProductionByRangeOfDatesAndCommunityAndSupply(startDate, endDate, communityId, supplyId));
+        assertThrows(SupplyNotFoundException.class,
+                () -> service.getDailyProductionByRangeOfDatesAndCommunityAndSupply(startDate, endDate, communityId, supplyId));
+        assertThrows(SupplyNotFoundException.class,
+                () -> service.getMonthlyProductionByRangeOfDatesAndCommunityAndSupply(startDate, endDate, communityId, supplyId));
+        assertThrows(SupplyNotFoundException.class,
+                () -> service.getYearlyProductionByRangeOfDatesAndCommunityAndSupply(startDate, endDate, communityId, supplyId));
+        verifyNoInteractions(coefficientResolver);
+        verifyNoInteractions(getProductionRepository);
     }
 }

@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.production.ProductionByTime;
 import org.lucoenergia.conluz.domain.production.get.GetProductionRepository;
 import org.lucoenergia.conluz.domain.production.get.GetProductionService;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.get.CommunityPlantSupplyResolver;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
@@ -42,6 +43,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     private final GetSupplyRepository getSupplyRepository;
     private final GetPlantRepository getPlantRepository;
     private final CoefficientResolver coefficientResolver;
+    private final CommunityPlantSupplyResolver communityPlantSupplyResolver;
     private final TimeConfiguration timeConfiguration;
     private final Clock clock;
 
@@ -49,12 +51,14 @@ public class GetProductionServiceImpl implements GetProductionService {
                                 GetSupplyRepository getSupplyRepository,
                                 GetPlantRepository getPlantRepository,
                                 CoefficientResolver coefficientResolver,
+                                CommunityPlantSupplyResolver communityPlantSupplyResolver,
                                 TimeConfiguration timeConfiguration,
                                 Clock clock) {
         this.getProductionRepository = getProductionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.getPlantRepository = getPlantRepository;
         this.coefficientResolver = coefficientResolver;
+        this.communityPlantSupplyResolver = communityPlantSupplyResolver;
         this.timeConfiguration = timeConfiguration;
         this.clock = clock;
     }
@@ -91,7 +95,7 @@ public class GetProductionServiceImpl implements GetProductionService {
 
     @Override
     public InstantProduction getInstantProductionByCommunityAndSupply(UUID communityId, SupplyId id) {
-        Supply supply = requireSupplyInCommunity(id, communityId);
+        Supply supply = communityPlantSupplyResolver.resolve(communityId, id);
         return instantProductionForSupply(supply.getId());
     }
 
@@ -106,7 +110,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     public List<ProductionByTime> getHourlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
                                                                                          OffsetDateTime endDate,
                                                                                          UUID communityId, SupplyId id) {
-        Supply supply = requireSupplyInCommunity(id, communityId);
+        Supply supply = communityPlantSupplyResolver.resolve(communityId, id);
         return hourlyProductionForSupply(startDate, endDate, supply.getId());
     }
 
@@ -121,7 +125,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     public List<ProductionByTime> getDailyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
                                                                                         OffsetDateTime endDate,
                                                                                         UUID communityId, SupplyId id) {
-        Supply supply = requireSupplyInCommunity(id, communityId);
+        Supply supply = communityPlantSupplyResolver.resolve(communityId, id);
         return dailyProductionForSupply(startDate, endDate, supply.getId());
     }
 
@@ -136,7 +140,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     public List<ProductionByTime> getMonthlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
                                                                                           OffsetDateTime endDate,
                                                                                           UUID communityId, SupplyId id) {
-        Supply supply = requireSupplyInCommunity(id, communityId);
+        Supply supply = communityPlantSupplyResolver.resolve(communityId, id);
         return monthlyProductionForSupply(startDate, endDate, supply.getId());
     }
 
@@ -151,7 +155,7 @@ public class GetProductionServiceImpl implements GetProductionService {
     public List<ProductionByTime> getYearlyProductionByRangeOfDatesAndCommunityAndSupply(OffsetDateTime startDate,
                                                                                          OffsetDateTime endDate,
                                                                                          UUID communityId, SupplyId id) {
-        Supply supply = requireSupplyInCommunity(id, communityId);
+        Supply supply = communityPlantSupplyResolver.resolve(communityId, id);
         return yearlyProductionForSupply(startDate, endDate, supply.getId());
     }
 
@@ -342,18 +346,5 @@ public class GetProductionServiceImpl implements GetProductionService {
         if (getSupplyRepository.findById(id).isEmpty()) {
             throw new SupplyNotFoundException(id);
         }
-    }
-
-    /**
-     * Loads the supply and verifies it belongs to the given community. A supply that does not exist
-     * or belongs to another community yields a {@link SupplyNotFoundException} (404) so the caller
-     * cannot probe supplies outside their community.
-     */
-    private Supply requireSupplyInCommunity(SupplyId id, UUID communityId) {
-        Supply supply = getSupplyRepository.findById(id).orElseThrow(() -> new SupplyNotFoundException(id));
-        if (supply.getCommunity() == null || !communityId.equals(supply.getCommunity().getId())) {
-            throw new SupplyNotFoundException(id);
-        }
-        return supply;
     }
 }
