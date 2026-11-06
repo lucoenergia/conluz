@@ -2,21 +2,22 @@ package org.lucoenergia.conluz.infrastructure.production.get;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
-import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
-import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
-import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.production.EnergyProductionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -29,11 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GetInstantProductionControllerTest extends BaseControllerTest {
 
     @Autowired
-    private UserRepository userRepository;
+    private CreateUserRepository createUserRepository;
     @Autowired
-    private SupplyRepository supplyRepository;
+    private CreateSupplyRepository createSupplyRepository;
     @Autowired
-    private CommunityJpaRepository communityJpaRepository;
+    private CreatePlantRepository createPlantRepository;
     @Autowired
     private EnergyProductionInfluxLoader energyProductionInfluxLoader;
 
@@ -69,21 +70,17 @@ class GetInstantProductionControllerTest extends BaseControllerTest {
     @Test
     void testGetInstantProductionBySupply() throws Exception {
 
-        UserEntity user = UserMother.randomUserEntity();
-        user = userRepository.save(user);
-
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
-        CommunityEntity community = communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID);
-        UUID supplyId = UUID.randomUUID();
-        SupplyEntity supplyEntity = SupplyEntityMother.random(user, community);
-        supplyEntity.setId(supplyId);
+        User user = createUserRepository.create(UserMother.randomUser());
 
-        // Create some supplies
-        supplyRepository.saveAll(Arrays.asList(
-                supplyEntity,
-                SupplyEntityMother.random(user, community),
-                SupplyEntityMother.random(user, community)
-        ));
+        // Only the backing supply of a plant of the community is accepted as supplyId (CPR-001).
+        Supply plantSupply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createPlantRepository.create(PlantMother.random(plantSupply).build(), SupplyId.of(plantSupply.getId()));
+        UUID supplyId = plantSupply.getId();
+
+        // Create some other supplies
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        createSupplyRepository.create(SupplyMother.random().build(), UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
 
         mockMvc.perform(get("/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

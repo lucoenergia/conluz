@@ -33,9 +33,8 @@ public interface GetPlantRepository {
     PagedResult<Plant> findByCommunities(PagedRequest pagedRequest, Set<UUID> communityIds);
 
     /**
-     * The single plant of a community. Relies on the one-plant-per-community invariant enforced by
-     * the phase 2d migration precondition; if that invariant is ever violated, the underlying query
-     * throws rather than silently picking one plant.
+     * The single plant of a community. Relies on the one-plant-per-community invariant; if that
+     * invariant is ever violated, the underlying query throws rather than silently picking one plant.
      */
     Optional<Plant> findByCommunityId(UUID communityId);
 

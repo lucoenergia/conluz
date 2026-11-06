@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProduction
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionService;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.production.plant.get.CommunityPlantSupplyResolverImpl;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,7 +47,7 @@ class GetDatadisProductionServiceTest {
 
     private GetDatadisProductionService service() {
         return new GetDatadisProductionServiceImpl(getDatadisProductionRepository, getPlantRepository,
-                getSupplyRepository);
+                new CommunityPlantSupplyResolverImpl(getSupplyRepository, getPlantRepository));
     }
 
     private static final OffsetDateTime START = OffsetDateTime.parse("2023-04-01T00:00:00Z");

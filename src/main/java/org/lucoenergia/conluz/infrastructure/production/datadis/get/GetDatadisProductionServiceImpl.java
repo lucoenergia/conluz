@@ -1,11 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.production.datadis.get;
 
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.production.datadis.DatadisProduction;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionRepository;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionService;
+import org.lucoenergia.conluz.domain.production.plant.get.CommunityPlantSupplyResolver;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -26,15 +23,15 @@ public class GetDatadisProductionServiceImpl implements GetDatadisProductionServ
 
     private final GetDatadisProductionRepository getDatadisProductionRepository;
     private final GetPlantRepository getPlantRepository;
-    private final GetSupplyRepository getSupplyRepository;
+    private final CommunityPlantSupplyResolver communityPlantSupplyResolver;
 
     public GetDatadisProductionServiceImpl(
             @Qualifier("getDatadisProductionRepositoryInflux") GetDatadisProductionRepository getDatadisProductionRepository,
             GetPlantRepository getPlantRepository,
-            GetSupplyRepository getSupplyRepository) {
+            CommunityPlantSupplyResolver communityPlantSupplyResolver) {
         this.getDatadisProductionRepository = getDatadisProductionRepository;
         this.getPlantRepository = getPlantRepository;
-        this.getSupplyRepository = getSupplyRepository;
+        this.communityPlantSupplyResolver = communityPlantSupplyResolver;
     }
 
     @Override
@@ -73,26 +70,15 @@ public class GetDatadisProductionServiceImpl implements GetDatadisProductionServ
      */
     private List<DatadisProduction> query(UUID communityId, SupplyId supplyId,
                                           Function<Collection<String>, List<DatadisProduction>> reader) {
-        Set<String> communityCups = getPlantRepository.findSupplyCodesByCommunity(communityId);
-
         if (supplyId != null) {
-            String code = resolveSupplyCodeInCommunity(supplyId, communityCups);
+            String code = communityPlantSupplyResolver.resolve(communityId, supplyId).getCode();
             return reader.apply(List.of(code));
         }
 
+        Set<String> communityCups = getPlantRepository.findSupplyCodesByCommunity(communityId);
         if (communityCups.isEmpty()) {
             return List.of();
         }
         return reader.apply(communityCups);
-    }
-
-    private String resolveSupplyCodeInCommunity(SupplyId supplyId, Set<String> communityCups) {
-        Optional<Supply> supplyOptional = getSupplyRepository.findById(supplyId);
-        // A supply that does not exist, or whose CUPS does not back a plant of this community, is
-        // reported as 404 (never 403) so we do not confirm the existence of another community's supply.
-        if (supplyOptional.isEmpty() || !communityCups.contains(supplyOptional.get().getCode())) {
-            throw new SupplyNotFoundException(supplyId);
-        }
-        return supplyOptional.get().getCode();
     }
 }
