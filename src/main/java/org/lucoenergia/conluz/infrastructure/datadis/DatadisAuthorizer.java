@@ -67,9 +67,7 @@ public class DatadisAuthorizer implements Authorizer {
         }
     }
 
-    private boolean isOwner(UserPersonalId id) {
-        DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
-                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
+    private boolean isOwner(DatadisConfig config, UserPersonalId id) {
         return normalize(config.getUsername()).equals(normalize(id.getPersonalId()));
     }
 
@@ -77,7 +75,12 @@ public class DatadisAuthorizer implements Authorizer {
         return value == null ? "" : value.trim().toUpperCase();
     }
 
-    public boolean requiresAuthorizedNif(UserPersonalId id) {
-        return !isOwner(id);
+    /**
+     * Whether a request made with the given configuration must name the supply's owner in {@code authorizedNif}: it
+     * must, unless the owner is the holder of that configuration's Datadis account. The configuration is always the
+     * one of the supply's community (#562).
+     */
+    public boolean requiresAuthorizedNif(DatadisConfig config, UserPersonalId id) {
+        return !isOwner(config, id);
     }
 }

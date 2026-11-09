@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.shared.datadis;
 import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.datadis.DatadisException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
@@ -95,56 +96,58 @@ class DatadisAuthorizerTest {
     }
 
     @Test
-    void testRequiresAuthorizedNifResolvesConfigFromRepository() {
-        final DatadisConfig config = new DatadisConfig.Builder()
-                .setUsername("accountNif")
-                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
-                .build();
-        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
+    void testRequiresAuthorizedNifComparesWithTheGivenConfiguration() {
+        final DatadisConfig config = configWithUsername("accountNif");
 
         // The owner NIF matches the account, so no authorizedNif is required.
-        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("accountNif")));
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of("accountNif")));
         // A different owner NIF requires the authorizedNif.
-        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("otherNif")));
+        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of("otherNif")));
     }
 
     @Test
     void testRequiresAuthorizedNifIgnoresCase() {
-        givenConfigWithUsername("12345678Z");
-
         // Same NIF differing only by letter case is still the owner.
-        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("12345678z")));
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("12345678Z"),
+                UserPersonalId.of("12345678z")));
     }
 
     @Test
     void testRequiresAuthorizedNifIgnoresSurroundingWhitespace() {
-        givenConfigWithUsername("12345678Z");
-
         // Same NIF with leading/trailing whitespace is still the owner.
-        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(" 12345678Z ")));
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("12345678Z"),
+                UserPersonalId.of(" 12345678Z ")));
     }
 
     @Test
     void testRequiresAuthorizedNifIgnoresCaseAndWhitespace() {
-        givenConfigWithUsername("12345678Z");
-
         // Same NIF differing by both case and surrounding whitespace is still the owner.
-        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("  12345678z  ")));
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("12345678Z"),
+                UserPersonalId.of("  12345678z  ")));
     }
 
     @Test
     void testRequiresAuthorizedNifForDifferentNif() {
-        givenConfigWithUsername("12345678Z");
-
         // A genuinely different NIF still requires the authorizedNif.
-        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of("87654321X")));
+        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("12345678Z"),
+                UserPersonalId.of("87654321X")));
     }
 
-    private void givenConfigWithUsername(String username) {
-        final DatadisConfig config = new DatadisConfig.Builder()
+    @Test
+    @DisplayName("DSS-004 the owner of one community's Datadis account is not the owner for another community's account")
+    void testRequiresAuthorizedNifDependsOnTheConfiguration() {
+        UserPersonalId owner = UserPersonalId.of("12345678Z");
+
+        Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("12345678Z"), owner));
+        Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("87654321X"), owner));
+        // The decision never looks the configuration up
+        Mockito.verifyNoInteractions(getDatadisConfigRepository);
+    }
+
+    private DatadisConfig configWithUsername(String username) {
+        return new DatadisConfig.Builder()
                 .setUsername(username)
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .build();
-        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
     }
 }

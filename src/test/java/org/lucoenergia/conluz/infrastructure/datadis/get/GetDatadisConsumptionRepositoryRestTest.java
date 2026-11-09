@@ -5,6 +5,7 @@ import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.user.User;
@@ -23,10 +24,12 @@ import java.time.Duration;
 import java.time.Month;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 class GetDatadisConsumptionRepositoryRestTest {
 
     private static final String ACCOUNT_NIF = "accountNif";
+    private static final UUID COMMUNITY_ID = UUID.randomUUID();
 
     private DatadisAuthorizer datadisAuthorizer;
     private ConluzRestClientBuilder conluzRestClientBuilder;
@@ -42,7 +45,7 @@ class GetDatadisConsumptionRepositoryRestTest {
                 .setUsername(ACCOUNT_NIF)
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .build();
-        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
+        Mockito.when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.of(config));
         // Spy on a real authorizer so requiresAuthorizedNif uses the real NIF comparison,
         // while getAuthToken is stubbed to avoid any HTTP call.
         datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(getDatadisConfigRepository,
@@ -55,6 +58,7 @@ class GetDatadisConsumptionRepositoryRestTest {
     private Supply supplyOwnedBy(String personalId) {
         return new Supply.Builder()
                 .withCode("ES0031300329693002BQ0F")
+                .withCommunity(new Community.Builder().withId(COMMUNITY_ID).build())
                 .withUser(new User.Builder().personalId(personalId).build())
                 .withDistributor(new SupplyDistributor.Builder()
                         .withCode("distributorCode")

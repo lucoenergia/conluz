@@ -78,7 +78,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
         final UUID communityId = supply.getCommunity() != null ? supply.getCommunity().getId() : null;
         final Optional<DatadisConfig> configOpt = communityId != null
                 ? getDatadisConfigRepository.findByCommunityId(communityId)
-                : getDatadisConfigRepository.getDatadisConfig();
+                : Optional.empty();
 
         if (configOpt.isEmpty()) {
             LOGGER.warn("No Datadis config found for supply {} (community {}), skipping.", supply.getId(), communityId);
@@ -100,7 +100,7 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
                 .queryParam(DatadisParams.END_DATE, monthDate)
                 .queryParam(DatadisParams.MEASUREMENT_TYPE, MeasurementType.PER_HOUR)
                 .queryParam(DatadisParams.POINT_TYPE, supply.getDistributor().getPointType());
-        if (datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(supply.getUser().getPersonalId()))) {
+        if (datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of(supply.getUser().getPersonalId()))) {
             urlBuilder = urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, supply.getUser().getPersonalId());
         }
         final String url = urlBuilder.build().toUriString();

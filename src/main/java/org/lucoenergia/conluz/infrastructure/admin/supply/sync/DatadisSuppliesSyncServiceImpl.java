@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
@@ -9,7 +10,10 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.DatadisException;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,32 +35,42 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
     private final GetSupplyRepository getSupplyRepository;
     private final UpdateSupplyRepository updateSupplyRepository;
     private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis;
-    private final GetUserRepository getUserRepository;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
+    private final DatadisAuthorizer datadisAuthorizer;
     private final DateConverter dateConverter;
 
     public DatadisSuppliesSyncServiceImpl(GetSupplyRepository getSupplyRepository, UpdateSupplyRepository updateSupplyRepository,
-                                          GetSupplyRepositoryDatadis getSupplyRepositoryDatadis, GetUserRepository getUserRepository, DateConverter dateConverter) {
+                                          GetSupplyRepositoryDatadis getSupplyRepositoryDatadis,
+                                          GetDatadisConfigRepository getDatadisConfigRepository,
+                                          DatadisAuthorizer datadisAuthorizer, DateConverter dateConverter) {
         this.getSupplyRepository = getSupplyRepository;
         this.updateSupplyRepository = updateSupplyRepository;
         this.getSupplyRepositoryDatadis = getSupplyRepositoryDatadis;
-        this.getUserRepository = getUserRepository;
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+        this.datadisAuthorizer = datadisAuthorizer;
         this.dateConverter = dateConverter;
     }
 
     /**
-     * Synchronizes the supplies for all users retrieving data from datadis
+     * Synchronizes the supplies of every community that has any, each with its own Datadis configuration.
      */
     public void synchronizeSupplies() {
-        // Get all users with at least one supply
-        List<User> allUsers = getUserRepository.findAllUsersWithAtLeastOneSupply();
-        Map<String, Supply> allSupplies = getSupplyRepository.findAll().stream()
-                .collect(Collectors.toMap(Supply::getCode, supply -> supply));
-
-        processUsers(allUsers, allSupplies);
+        List<UUID> communityIds = getSupplyRepository.findAll().stream()
+                .map(Supply::getCommunity)
+                .filter(Objects::nonNull)
+                .map(Community::getId)
+                .distinct()
+                .toList();
+        for (UUID communityId : communityIds) {
+            synchronizeSupplies(communityId);
+        }
     }
 
     @Override
     public void synchronizeSupplies(UUID communityId) {
+        DatadisConfig config = getDatadisConfigRepository.findByCommunityId(communityId)
+                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
+
         List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
         Map<String, Supply> suppliesByCode = communitySupplies.stream()
                 .collect(Collectors.toMap(Supply::getCode, supply -> supply));
@@ -69,15 +83,19 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
                 .values().stream()
                 .toList();
 
-        processUsers(users, suppliesByCode);
+        // One login per community and run: every owner is requested with the same token
+        String bearerToken = "Bearer " + datadisAuthorizer.getAuthToken(config);
+
+        processUsers(config, bearerToken, users, suppliesByCode);
     }
 
-    private void processUsers(List<User> users, Map<String, Supply> suppliesByCode) {
+    private void processUsers(DatadisConfig config, String bearerToken, List<User> users,
+                              Map<String, Supply> suppliesByCode) {
         for (User user : users) {
 
             LOGGER.info("Processing users with ID {}", user.getId());
 
-            List<DatadisSupply> datadisSupplies = getSupplyRepositoryDatadis.getSuppliesByUser(user);
+            List<DatadisSupply> datadisSupplies = getSupplyRepositoryDatadis.getSuppliesByUser(config, bearerToken, user);
             for (DatadisSupply datadisSupply : datadisSupplies) {
                 Supply supply = suppliesByCode.get(datadisSupply.getCups());
                 if (supply != null) {
