@@ -36,6 +36,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -453,6 +454,65 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
         assertThat(distributorCode(third)).isEqualTo("1");
     }
 
+    @Test
+    @DisplayName("DSS-009 a supply gets the distributor, point type and start date of its latest Datadis contract, "
+            + "whatever the order Datadis returns its contracts in")
+    void theLatestContractIsStoredWhateverTheOrder() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        Supply forward = supply(owner, communityId);
+        Supply backward = supply(owner, communityId);
+        List<DatadisSupply> forwardContracts = contracts(forward.getCode());
+        List<DatadisSupply> backwardContracts = new ArrayList<>(contracts(backward.getCode()));
+        Collections.reverse(backwardContracts);
+        List<DatadisSupply> entries = new ArrayList<>(forwardContracts);
+        entries.addAll(backwardContracts);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(), entries);
+
+        datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+        assertThat(List.of(stored(forward), stored(backward))).allSatisfy(supply -> {
+            assertThat(supply.getDistributor().getCode()).isEqualTo("2");
+            assertThat(supply.getDistributor().getName()).isEqualTo("Distributor 2");
+            assertThat(supply.getDistributor().getPointType()).isEqualTo(3);
+            assertThat(supply.getContract().getValidDateFrom()).isEqualTo(LocalDate.of(2024, 6, 1));
+        });
+
+        // A second run, with the orders swapped, stores the same
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(), List.of(backwardContracts.get(0), backwardContracts.get(1),
+                backwardContracts.get(2), forwardContracts.get(2), forwardContracts.get(1), forwardContracts.get(0)));
+        datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+        assertThat(List.of(stored(forward), stored(backward))).allSatisfy(supply -> {
+            assertThat(supply.getDistributor().getCode()).isEqualTo("2");
+            assertThat(supply.getContract().getValidDateFrom()).isEqualTo(LocalDate.of(2024, 6, 1));
+        });
+    }
+
+    @Test
+    @DisplayName("DSS-010 Datadis' address fills a blank address, and never replaces one the community admin entered")
+    void anEnteredAddressIsKept() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        // Built with a blank address, which a creation refuses: rows stored before that validation may have one
+        Supply blank = createSupplyRepository.create(SupplyMother.random(owner)
+                .withCode(SupplyMother.randomCups())
+                .withEnabled(true)
+                .withAddress(" ")
+                .withDistributor(null)
+                .withContract(null)
+                .build(), UserId.of(owner.getId()), communityId);
+        Supply entered = supply(owner, communityId);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(),
+                List.of(entry(blank.getCode(), "1"), entry(entered.getCode(), "1")));
+
+        datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+        assertThat(stored(blank).getAddress()).isEqualTo("Datadis address");
+        assertThat(stored(entered).getAddress()).isEqualTo(entered.getAddress()).isNotEqualTo("Datadis address");
+        assertThat(distributorCode(entered)).isEqualTo("1");
+    }
+
     private static Object argument(ILoggingEvent event, int index) {
         Object[] arguments = event.getArgumentArray();
         return arguments == null || arguments.length <= index ? null : arguments[index];
@@ -495,6 +555,27 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
 
     private Supply stored(Supply supply) {
         return getSupplyRepository.findById(SupplyId.of(supply.getId())).orElseThrow();
+    }
+
+    /**
+     * Three contracts of one CUPS: an older one, the latest, and one without a start date.
+     */
+    private static List<DatadisSupply> contracts(String cups) {
+        return List.of(
+                contract(cups, "2023/01/01", "1", 5),
+                contract(cups, "2024/06/01", "2", 3),
+                contract(cups, null, "3", 4));
+    }
+
+    private static DatadisSupply contract(String cups, String validDateFrom, String distributorCode, int pointType) {
+        return new DatadisSupply.Builder()
+                .withCups(cups)
+                .withAddress("Datadis address")
+                .withDistributor("Distributor " + distributorCode)
+                .withDistributorCode(distributorCode)
+                .withPointType(pointType)
+                .withValidDateFrom(validDateFrom)
+                .build();
     }
 
     private static DatadisSupply entry(String cups, String distributorCode) {

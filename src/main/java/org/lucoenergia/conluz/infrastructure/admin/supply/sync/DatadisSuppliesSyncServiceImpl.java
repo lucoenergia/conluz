@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSupplySelection;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
@@ -17,12 +18,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -83,12 +82,13 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
             entries.addAll(getSupplyRepositoryDatadis.getSuppliesByUser(config, bearerToken, owner));
         }
 
-        Set<String> returned = new HashSet<>();
+        // Datadis returns one entry per contract of a CUPS: the supply is synced from the latest one
+        Map<String, List<DatadisSupply>> entriesByCups = entries.stream()
+                .collect(Collectors.groupingBy(entry -> cupsKey(entry.getCups())));
         int notRegistered = 0;
-        for (DatadisSupply entry : entries) {
-            String key = cupsKey(entry.getCups());
-            returned.add(key);
-            List<Supply> matches = registeredByCups.getOrDefault(key, List.of());
+        for (Map.Entry<String, List<DatadisSupply>> cups : entriesByCups.entrySet()) {
+            DatadisSupply entry = DatadisSupplySelection.latest(cups.getValue());
+            List<Supply> matches = registeredByCups.getOrDefault(cups.getKey(), List.of());
             if (matches.isEmpty()) {
                 // Datadis returns every supply authorised for an owner, also those of other communities
                 notRegistered++;
@@ -101,7 +101,7 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
         }
         LOGGER.debug("{} Datadis supplies not registered in community {}", notRegistered, communityId);
         registeredByCups.forEach((key, supplies) -> {
-            if (!returned.contains(key)) {
+            if (!entriesByCups.containsKey(key)) {
                 supplies.forEach(supply -> LOGGER.warn("Registered supply {} not returned by Datadis in community {}",
                         supply.getId(), communityId));
             }

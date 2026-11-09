@@ -6,9 +6,9 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSupplySelection;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +36,10 @@ public class DatadisSupplyUpdateStep {
         Supply supply = getSupplyRepository.findById(supplyId)
                 .orElseThrow(() -> new SupplyNotFoundException(supplyId));
 
-        supply.setAddress(datadisSupply.getAddress());
+        // An address the community admin entered is kept; Datadis only fills one that is missing
+        if (supply.getAddress() == null || supply.getAddress().isBlank()) {
+            supply.setAddress(datadisSupply.getAddress());
+        }
 
         supply.setDistributor(new SupplyDistributor.Builder()
                 .withCode(datadisSupply.getDistributorCode())
@@ -45,9 +48,7 @@ public class DatadisSupplyUpdateStep {
                 .build());
 
         supply.setContract(new SupplyContract.Builder()
-                .withValidDateFrom(datadisSupply.getValidDateFrom() != null ?
-                        DateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
-                        null)
+                .withValidDateFrom(DatadisSupplySelection.startDate(datadisSupply).orElse(null))
                 .build());
 
         updateSupplyRepository.update(supply);
