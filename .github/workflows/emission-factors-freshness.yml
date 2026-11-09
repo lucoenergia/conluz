@@ -1,0 +1,56 @@
+# Checks every month that the shipped electricity emission factors are up to date (#559).
+#
+# Why: CO₂ avoided on the community energy metrics uses the MITECO "Mix sin
+# GdO" emission factors kept in application.properties. MITECO publishes each
+# year's factors in May of the following year, and nothing else reminds anyone
+# to add them. The check depends on today's date, so it is excluded from the
+# regular build, where a date must never break an unrelated pull request.
+#
+# What it does: runs the `emissionFactorFreshness` Gradle task, which binds the
+# factors from application.properties without starting the application (no
+# database, no secret) and fails when the year MITECO has published by today,
+# in Europe/Madrid, is missing. The failure names the year and the document to
+# update from. When it fails, update every year the new MITECO version
+# revises, and redeploy.
+#
+# A failing run is the notification: GitHub emails the owner of the schedule
+# (the last person to edit the cron) about failed scheduled runs, so their
+# notifications for failed workflows must stay enabled.
+#
+# GitHub disables scheduled workflows in public repositories after 60 days
+# without repository activity. If that happens, re-enable it from the Actions
+# tab.
+
+name: Check emission factors freshness
+
+on:
+  schedule:
+    # The 1st of every month at 06:00 UTC.
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Check emission factors freshness
+        run: ./gradlew emissionFactorFreshness --info
