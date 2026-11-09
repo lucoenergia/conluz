@@ -16,8 +16,6 @@ import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProduction
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 
 /**
  * Resolves one period for the whole community, totals every supply in scope over it, counts the
@@ -47,11 +43,10 @@ import java.util.concurrent.CompletionException;
  *
  * <p>The cost of resolving the scope (see {@link CommunityEnergyScopeResolverImpl}) and one relational
  * query for the plants, then two Influx queries per supply (its totals and its published hours) and a
- * single one for the production of every plant. Two more Influx queries, the hours with surplus of every
- * supply summed per hour and the mean price of every hour, start on the application task executor as
- * soon as the period is resolved, so they run while the supplies are totalled; their results are
- * discarded when no supply stored a record. Every sum and mean is pushed down to the store, so the
- * number of queries grows with the number of supplies, not with the length of the period.
+ * single one for the production of every plant. When a supply stored a record, two more: the hours with
+ * surplus of every supply summed per hour, and the mean price of every hour. Every sum and mean is
+ * pushed down to the store, so the number of queries grows with the number of supplies, not with the
+ * length of the period.
  */
 @Service
 @Transactional(readOnly = true)
@@ -62,21 +57,18 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository;
     private final GetPriceRepository getPriceRepository;
-    private final TaskExecutor taskExecutor;
 
     public GetCommunityEnergyMetricsServiceImpl(
             CommunityEnergyScopeResolver communityEnergyScopeResolver,
             GetPlantRepository getPlantRepository,
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository,
-            GetPriceRepository getPriceRepository,
-            @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
+            GetPriceRepository getPriceRepository) {
         this.communityEnergyScopeResolver = communityEnergyScopeResolver;
         this.getPlantRepository = getPlantRepository;
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getDatadisProductionAggregateRepository = getDatadisProductionAggregateRepository;
         this.getPriceRepository = getPriceRepository;
-        this.taskExecutor = taskExecutor;
     }
 
     @Override
@@ -97,19 +89,6 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
         Instant from = period.getStartDate().toInstant();
         Instant toExclusive = period.getEndDate().toInstant();
         long possibleHours = period.getExpectedHours();
-        ZoneId zone = scope.getZone();
-
-        // Started before the totals, which decide whether they are needed, so the reads overlap them; when
-        // no supply stored a record their results are discarded. The surplus is read over the same supplies
-        // and interval as its total, and the prices over whole hours, so an hour the interval's bounds cut
-        // through is still priced at the mean of all its prices.
-        CompletableFuture<Map<Instant, Double>> surplusByHour = CompletableFuture.supplyAsync(
-                () -> getDatadisConsumptionAggregateRepository.sumSurplusByHour(supplies, from, toExclusive, zone),
-                taskExecutor);
-        CompletableFuture<Map<Instant, Double>> meanPriceByHour = CompletableFuture.supplyAsync(
-                () -> getPriceRepository.meanPriceByHour(startOfHour(from, zone), endOfLastHour(toExclusive, zone),
-                        zone),
-                taskExecutor);
 
         double selfConsumptionKWh = 0d;
         double surplusKWh = 0d;
@@ -138,26 +117,21 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
         return CommunityEnergyMetrics.of(period,
                 anyRecord ? selfConsumptionKWh : null,
                 anyRecord ? surplusKWh : null,
-                anyRecord ? SurplusIncome.estimate(await(surplusByHour), await(meanPriceByHour)) : null,
+                anyRecord ? estimateSurplusIncome(supplies, from, toExclusive, scope.getZone()) : null,
                 supplies.size(), suppliesWithData, plants, productionBySupplyCode);
     }
 
     /**
-     * The read's result, or the exception it failed with, unwrapped, so a failed read is answered as it
-     * would be on the request's own thread.
+     * The surplus is read over the same supplies and interval as its total, and the prices over whole
+     * hours, so an hour the interval's bounds cut through is still priced at the mean of all its prices.
      */
-    private static <T> T await(CompletableFuture<T> read) {
-        try {
-            return read.join();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof RuntimeException cause) {
-                throw cause;
-            }
-            if (e.getCause() instanceof Error cause) {
-                throw cause;
-            }
-            throw e;
-        }
+    private SurplusIncome estimateSurplusIncome(List<Supply> supplies, Instant from, Instant toExclusive,
+                                                ZoneId zone) {
+        Map<Instant, Double> surplusByHour = getDatadisConsumptionAggregateRepository.sumSurplusByHour(supplies,
+                from, toExclusive, zone);
+        Map<Instant, Double> meanPriceByHour = getPriceRepository.meanPriceByHour(startOfHour(from, zone),
+                endOfLastHour(toExclusive, zone), zone);
+        return SurplusIncome.estimate(surplusByHour, meanPriceByHour);
     }
 
     private static Instant startOfHour(Instant instant, ZoneId zone) {

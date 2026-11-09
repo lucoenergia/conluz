@@ -18,7 +18,6 @@ import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProduction
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
-import org.springframework.core.task.SyncTaskExecutor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -30,11 +29,10 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -62,7 +60,7 @@ class GetCommunityEnergyMetricsServiceTest {
     private final GetPriceRepository priceRepository = mock(GetPriceRepository.class);
 
     private final GetCommunityEnergyMetricsService service = new GetCommunityEnergyMetricsServiceImpl(scopeResolver,
-            getPlantRepository, consumptionRepository, productionRepository, priceRepository, new SyncTaskExecutor());
+            getPlantRepository, consumptionRepository, productionRepository, priceRepository);
 
     private final Supply first = SupplyMother.random().withEnabled(true).build();
     private final Supply second = SupplyMother.random().withEnabled(true).build();
@@ -183,27 +181,18 @@ class GetCommunityEnergyMetricsServiceTest {
     }
 
     @Test
-    @DisplayName("CEM-010 AC6 the income and the unpriced surplus are null when no supply stored a record")
-    void theIncomeIsNullWhenNoSupplyStoredARecord() {
+    @DisplayName("CEM-010 AC6 no record means no surplus or price query and a null income")
+    void noRecordMeansNoSurplusOrPriceQueryAndANullIncome() {
         givenScope(SEPTEMBER, first, second);
         when(consumptionRepository.aggregateByRangeOfDates(any(), any(), any()))
                 .thenReturn(DatadisConsumptionAggregate.empty());
-        when(priceRepository.meanPriceByHour(any(), any(), any())).thenReturn(Map.of(FROM, 0.07));
 
         CommunityEnergyMetrics metrics = getSeptember();
 
         assertNull(metrics.getSurplusIncomeEur());
         assertNull(metrics.getUnpricedSurplusKWh());
-    }
-
-    @Test
-    void aFailedPriceReadIsRethrownAsItFailed() {
-        givenScope(SEPTEMBER, first);
-        givenAggregate(first, 1, 1);
-        IllegalStateException failure = new IllegalStateException("InfluxDB is down");
-        when(priceRepository.meanPriceByHour(any(), any(), any())).thenThrow(failure);
-
-        assertSame(failure, assertThrows(IllegalStateException.class, this::getSeptember));
+        verify(consumptionRepository, never()).sumSurplusByHour(any(), any(), any(), any());
+        verifyNoInteractions(priceRepository);
     }
 
     private CommunityEnergyMetrics getSeptember() {
