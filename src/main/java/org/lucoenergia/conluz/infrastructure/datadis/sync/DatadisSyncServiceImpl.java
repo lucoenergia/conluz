@@ -100,8 +100,13 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
     }
 
     private void processSingleSupply(Supply supply, LocalDate startDate, LocalDate endDate, Set<String> plantCups) {
-        if (supply.getDistributor() == null || StringUtils.isBlank(supply.getDistributor().getCode())) {
-            LOGGER.warn("Skipping supply with ID: {} because does not have distributor code", supply.getId());
+        // Both are filled by the Datadis supplies sync: until then, the supply is skipped once per run, not refused
+        // once per month
+        if (supply.getDistributor() == null || StringUtils.isBlank(supply.getDistributor().getCode())
+                || supply.getDistributor().getPointType() == null) {
+            LOGGER.warn("Skipping Datadis consumption sync for supply {} in community {}: missing distributor code or "
+                            + "point type", supply.getId(),
+                    supply.getCommunity() != null ? supply.getCommunity().getId() : null);
             return;
         }
 

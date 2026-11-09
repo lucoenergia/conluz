@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
@@ -41,6 +43,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -170,6 +173,54 @@ class DatadisSyncServiceImplTest {
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisProductionRepository);
+    }
+
+    @Test
+    @DisplayName("DHI-004 a supply without a distributor code, or without a point type, is skipped with one warning "
+            + "per run, and the others are synced")
+    void synchronizeByCommunity_skipsSuppliesWithoutDistributorCodeOrPointType() {
+        UUID communityId = UUID.randomUUID();
+        Community community = CommunityMother.random().withId(communityId).build();
+        LocalDate startDate = LocalDate.of(2024, 1, 10);
+        LocalDate endDate = LocalDate.of(2024, 3, 10);
+
+        Supply withoutPointType = SupplyMother.random().withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withCode("2").withName("EDISTRIBUCION").build())
+                .build();
+        Supply withoutCode = SupplyMother.random().withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withName("EDISTRIBUCION").withPointType(5).build())
+                .build();
+        Supply complete = SupplyMother.random().withCommunity(community).build();
+        when(getSupplyRepository.findAllByCommunityId(communityId))
+                .thenReturn(List.of(withoutPointType, withoutCode, complete));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+                .thenReturn(List.of());
+
+        try (LogCapture logs = LogCapture.of(DatadisSyncServiceImpl.class)) {
+            assertDoesNotThrow(() -> service.synchronize(communityId, startDate, endDate));
+
+            List<ILoggingEvent> skips = logs.warningsAndAbove().stream()
+                    .filter(event -> event.getMessage().startsWith("Skipping Datadis consumption sync"))
+                    .toList();
+            assertEquals(2, skips.size(), () -> "skips: " + skips);
+            for (ILoggingEvent skip : skips) {
+                assertEquals(Level.WARN, skip.getLevel());
+                assertEquals("Skipping Datadis consumption sync for supply {} in community {}: missing distributor "
+                        + "code or point type", skip.getMessage());
+                assertEquals(communityId, skip.getArgumentArray()[1]);
+            }
+            assertEquals(List.of(withoutPointType.getId(), withoutCode.getId()),
+                    skips.stream().map(event -> event.getArgumentArray()[0]).toList());
+            assertFalse(logs.warningsAndAbove().stream()
+                    .anyMatch(event -> event.getLevel() == Level.ERROR), "no error is logged");
+        }
+
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(eq(withoutPointType), any(Month.class), anyInt());
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(eq(withoutCode), any(Month.class), anyInt());
+        verify(getDatadisConsumptionRepository, times(3))
+                .getHourlyConsumptionsByMonth(eq(complete), any(Month.class), anyInt());
     }
 
     @Test
