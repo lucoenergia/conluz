@@ -3,9 +3,7 @@ package org.lucoenergia.conluz.infrastructure.datadis;
 import okhttp3.*;
 import org.lucoenergia.conluz.domain.datadis.DatadisException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -13,25 +11,16 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
-public class DatadisAuthorizer implements Authorizer {
+public class DatadisAuthorizer {
 
     private static final String AUTH_PATH = "/nikola-auth/tokens/login";
     private static final String BODY_PARAM_USERNAME = "username";
     private static final String BODY_PARAM_PASSWORD = "password";
 
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
 
-    public DatadisAuthorizer(GetDatadisConfigRepository getDatadisConfigRepository, ConluzRestClientBuilder conluzRestClientBuilder) {
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    public DatadisAuthorizer(ConluzRestClientBuilder conluzRestClientBuilder) {
         this.conluzRestClientBuilder = conluzRestClientBuilder;
-    }
-
-    @Override
-    public String getAuthToken() {
-        DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
-                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
-        return getAuthToken(config);
     }
 
     public String getAuthToken(DatadisConfig config) {

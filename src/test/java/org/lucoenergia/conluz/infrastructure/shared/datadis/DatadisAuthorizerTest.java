@@ -7,30 +7,24 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.datadis.DatadisException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class DatadisAuthorizerTest {
 
     private DatadisAuthorizer datadisAuthorizer;
-    private GetDatadisConfigRepository getDatadisConfigRepository;
     private ConluzRestClientBuilder conluzRestClientBuilder;
 
     @BeforeEach
     public void setUp() {
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
-        getDatadisConfigRepository = Mockito.mock(GetDatadisConfigRepository.class);
-        datadisAuthorizer = new DatadisAuthorizer(getDatadisConfigRepository, conluzRestClientBuilder);
+        datadisAuthorizer = new DatadisAuthorizer(conluzRestClientBuilder);
     }
 
     @Test
@@ -45,7 +39,6 @@ class DatadisAuthorizerTest {
                 .setPassword(password)
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .build();
-        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
 
         OkHttpClient client = Mockito.mock(OkHttpClient.class);
         Call call = Mockito.mock(Call.class);
@@ -69,7 +62,7 @@ class DatadisAuthorizerTest {
                 """);
 
         // Act and Assert
-        final Throwable exception = assertThrows(DatadisException.class, () -> datadisAuthorizer.getAuthToken());
+        final Throwable exception = assertThrows(DatadisException.class, () -> datadisAuthorizer.getAuthToken(config));
         Assertions.assertTrue(exception.getMessage().startsWith("""
                 Unable to get auth token from datadis. Code: 500, message: {
                     "timestamp": "2024-02-14T13:49:09.918Z",
@@ -78,21 +71,6 @@ class DatadisAuthorizerTest {
                     "message": "Bad credentials"
                 }
                 """));
-    }
-
-    @Test
-    void testGetAuthTokenNoConfig() {
-        // setup
-        GetDatadisConfigRepository getDatadisConfigRepository = mock(GetDatadisConfigRepository.class);
-        ConluzRestClientBuilder conluzRestClientBuilder = mock(ConluzRestClientBuilder.class);
-
-        when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.empty());
-
-        // invocation
-        DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(getDatadisConfigRepository, conluzRestClientBuilder);
-
-        // verification and assertion
-        Assertions.assertThrows(DatadisException.class, datadisAuthorizer::getAuthToken);
     }
 
     @Test
@@ -140,8 +118,6 @@ class DatadisAuthorizerTest {
 
         Assertions.assertFalse(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("12345678Z"), owner));
         Assertions.assertTrue(datadisAuthorizer.requiresAuthorizedNif(configWithUsername("87654321X"), owner));
-        // The decision never looks the configuration up
-        Mockito.verifyNoInteractions(getDatadisConfigRepository);
     }
 
     private DatadisConfig configWithUsername(String username) {

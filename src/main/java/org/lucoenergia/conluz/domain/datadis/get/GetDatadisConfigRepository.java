@@ -8,8 +8,6 @@ import java.util.UUID;
 
 public interface GetDatadisConfigRepository {
 
-    Optional<DatadisConfig> getDatadisConfig();
-
     Optional<DatadisConfig> findByCommunityId(UUID communityId);
 
     List<DatadisConfig> findAllEnabled();

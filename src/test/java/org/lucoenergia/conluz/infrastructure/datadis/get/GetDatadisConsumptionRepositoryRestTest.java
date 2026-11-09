@@ -48,8 +48,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         Mockito.when(getDatadisConfigRepository.findByCommunityId(COMMUNITY_ID)).thenReturn(Optional.of(config));
         // Spy on a real authorizer so requiresAuthorizedNif uses the real NIF comparison,
         // while getAuthToken is stubbed to avoid any HTTP call.
-        datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(getDatadisConfigRepository,
-                Mockito.mock(ConluzRestClientBuilder.class)));
+        datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(Mockito.mock(ConluzRestClientBuilder.class)));
         Mockito.doReturn("testToken").when(datadisAuthorizer).getAuthToken(Mockito.any(DatadisConfig.class));
         repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter, getDatadisConfigRepository);

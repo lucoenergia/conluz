@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
-import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
@@ -49,21 +48,6 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
         this.getDatadisConfigRepository = getDatadisConfigRepository;
         this.datadisAuthorizer = datadisAuthorizer;
         this.dateConverter = dateConverter;
-    }
-
-    /**
-     * Synchronizes the supplies of every community that has any, each with its own Datadis configuration.
-     */
-    public void synchronizeSupplies() {
-        List<UUID> communityIds = getSupplyRepository.findAll().stream()
-                .map(Supply::getCommunity)
-                .filter(Objects::nonNull)
-                .map(Community::getId)
-                .distinct()
-                .toList();
-        for (UUID communityId : communityIds) {
-            synchronizeSupplies(communityId);
-        }
     }
 
     @Override
