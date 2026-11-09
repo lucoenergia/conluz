@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.consumption.SupplyEner
 import java.util.List;
 
 @Schema(requiredProperties = {"period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-        "surplusIncome", "coverage", "plants"})
+        "surplusIncome", "co2Avoided", "coverage", "plants"})
 public class CommunityEnergyMetricsResponse {
 
     @Schema(description = "The period the metrics were computed over, the same for every supply and plant.")
@@ -33,6 +33,10 @@ public class CommunityEnergyMetricsResponse {
             "over the period, and the surplus that could not be priced. Computed over exactly the surplus " +
             "reported in energy.surplusKWh.")
     private final CommunityEnergyMetricsSurplusIncomeResponse surplusIncome;
+    @Schema(description = "An estimate of the CO₂ the community's plants avoided over the period, " +
+            "computed from exactly the production reported in energy.productionKWh with the MITECO " +
+            "\"Mix sin GdO\" electricity emission factors, and the years of the factors applied.")
+    private final CommunityEnergyMetricsCo2AvoidedResponse co2Avoided;
     @Schema(description = "How many supplies of the community have data for the period.")
     private final CommunityEnergyMetricsCoverageResponse coverage;
     @Schema(description = "Every plant of the community, ordered by name, with its production over the " +
@@ -46,6 +50,7 @@ public class CommunityEnergyMetricsResponse {
         this.surplusRatio = metrics.getSurplusRatio();
         this.installedPowerKWp = metrics.getInstalledPowerKWp();
         this.surplusIncome = new CommunityEnergyMetricsSurplusIncomeResponse(metrics);
+        this.co2Avoided = new CommunityEnergyMetricsCo2AvoidedResponse(metrics);
         this.coverage = new CommunityEnergyMetricsCoverageResponse(metrics.getSupplyCount(),
                 metrics.getSuppliesWithData());
         this.plants = metrics.getPlants().stream().map(CommunityPlantEnergyResponse::new).toList();
@@ -73,6 +78,10 @@ public class CommunityEnergyMetricsResponse {
 
     public CommunityEnergyMetricsSurplusIncomeResponse getSurplusIncome() {
         return surplusIncome;
+    }
+
+    public CommunityEnergyMetricsCo2AvoidedResponse getCo2Avoided() {
+        return co2Avoided;
     }
 
     public CommunityEnergyMetricsCoverageResponse getCoverage() {

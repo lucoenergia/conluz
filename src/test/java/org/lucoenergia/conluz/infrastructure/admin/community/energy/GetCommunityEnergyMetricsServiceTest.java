@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProduction
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.shared.emission.EmissionFactors;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -60,7 +61,8 @@ class GetCommunityEnergyMetricsServiceTest {
     private final GetPriceRepository priceRepository = mock(GetPriceRepository.class);
 
     private final GetCommunityEnergyMetricsService service = new GetCommunityEnergyMetricsServiceImpl(scopeResolver,
-            getPlantRepository, consumptionRepository, productionRepository, priceRepository);
+            getPlantRepository, consumptionRepository, productionRepository, priceRepository,
+            EmissionFactors.of(Map.of(2024, new BigDecimal("0.200"), 2025, new BigDecimal("0.150"))));
 
     private final Supply first = SupplyMother.random().withEnabled(true).build();
     private final Supply second = SupplyMother.random().withEnabled(true).build();

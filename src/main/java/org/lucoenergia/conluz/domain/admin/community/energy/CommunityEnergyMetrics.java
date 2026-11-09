@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * The energy figures of a community over one period: its plants' production, the self-consumption
  * and surplus of every supply in scope, summed, the shares derived from them, the estimated income of
- * that surplus, the installed power and how many supplies have data.
+ * that surplus, the CO₂ the production avoided, the installed power and how many supplies have data.
  *
  * <p>Every figure is kept unrounded; the shares are computed here once, from the unrounded sums, and
  * rounding is left to the response. A figure nothing was stored for is null rather than zero.
@@ -30,9 +30,11 @@ public class CommunityEnergyMetrics {
     private final List<CommunityPlantEnergy> plants;
     private final double installedPowerKWp;
     private final SurplusIncome surplusIncome;
+    private final AvoidedEmissions avoidedEmissions;
 
     private CommunityEnergyMetrics(OffsetDateTime startDate, OffsetDateTime endDate, Double selfConsumptionKWh,
-                                   Double surplusKWh, SurplusIncome surplusIncome, int supplyCount,
+                                   Double surplusKWh, SurplusIncome surplusIncome,
+                                   AvoidedEmissions avoidedEmissions, int supplyCount,
                                    int suppliesWithData, List<Plant> plants,
                                    Map<String, Double> productionBySupplyCode) {
         this.startDate = startDate;
@@ -40,6 +42,7 @@ public class CommunityEnergyMetrics {
         this.selfConsumptionKWh = selfConsumptionKWh;
         this.surplusKWh = surplusKWh;
         this.surplusIncome = surplusIncome;
+        this.avoidedEmissions = avoidedEmissions;
         this.supplyCount = supplyCount;
         this.suppliesWithData = suppliesWithData;
         this.productionKWh = plants.stream()
@@ -66,6 +69,9 @@ public class CommunityEnergyMetrics {
      *                               them stored a record in the period
      * @param surplusIncome          the estimated income of that same surplus, or null exactly when
      *                               {@code surplusKWh} is null
+     * @param avoidedEmissions       the CO₂ the plants' production avoided, or null when no plant stored
+     *                               a production record in the period, or when a year with production is
+     *                               earlier than every configured emission factor
      * @param supplyCount            the number of supplies in scope
      * @param suppliesWithData       how many of them have data for the period
      * @param plants                 every plant of the community
@@ -73,11 +79,13 @@ public class CommunityEnergyMetrics {
      *                               of the plant's supply; a plant without any record is absent
      */
     public static CommunityEnergyMetrics of(EnergyMetricsPeriod period, Double selfConsumptionKWh,
-                                            Double surplusKWh, SurplusIncome surplusIncome, int supplyCount,
+                                            Double surplusKWh, SurplusIncome surplusIncome,
+                                            AvoidedEmissions avoidedEmissions, int supplyCount,
                                             int suppliesWithData, List<Plant> plants,
                                             Map<String, Double> productionBySupplyCode) {
         return new CommunityEnergyMetrics(period.getStartDate(), period.getEndDate(), selfConsumptionKWh,
-                surplusKWh, surplusIncome, supplyCount, suppliesWithData, plants, productionBySupplyCode);
+                surplusKWh, surplusIncome, avoidedEmissions, supplyCount, suppliesWithData, plants,
+                productionBySupplyCode);
     }
 
     /**
@@ -85,7 +93,7 @@ public class CommunityEnergyMetrics {
      * every plant listed with its installed power alone.
      */
     public static CommunityEnergyMetrics withoutPeriod(int supplyCount, List<Plant> plants) {
-        return new CommunityEnergyMetrics(null, null, null, null, null, supplyCount, 0, plants, Map.of());
+        return new CommunityEnergyMetrics(null, null, null, null, null, null, supplyCount, 0, plants, Map.of());
     }
 
     /**
@@ -158,6 +166,22 @@ public class CommunityEnergyMetrics {
      */
     public Double getUnpricedSurplusKWh() {
         return surplusIncome == null ? null : surplusIncome.getUnpricedSurplusKWh();
+    }
+
+    /**
+     * The CO₂ the plants' production avoided, in kg CO₂e, unrounded; null when the production is null, or
+     * when a year with production is earlier than every configured emission factor.
+     */
+    public BigDecimal getCo2AvoidedKg() {
+        return avoidedEmissions == null ? null : avoidedEmissions.getAmountKg();
+    }
+
+    /**
+     * The distinct years whose emission factors were applied, in ascending order; null exactly when
+     * {@link #getCo2AvoidedKg()} is.
+     */
+    public List<Integer> getCo2AvoidedFactorYears() {
+        return avoidedEmissions == null ? null : avoidedEmissions.getFactorYears();
     }
 
     private Double assignedProductionKWh() {

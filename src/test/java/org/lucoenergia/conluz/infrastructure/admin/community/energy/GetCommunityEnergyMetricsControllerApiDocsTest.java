@@ -30,6 +30,7 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     private static final String COVERAGE = "CommunityEnergyMetricsCoverageResponse";
     private static final String PLANT = "CommunityPlantEnergyResponse";
     private static final String SURPLUS_INCOME = "CommunityEnergyMetricsSurplusIncomeResponse";
+    private static final String CO2_AVOIDED = "CommunityEnergyMetricsCo2AvoidedResponse";
     private static final String MEMBERSHIP_ENERGY = "MembershipEnergyMetricsEnergyResponse";
     private static final String MEMBERSHIP_COVERAGE = "MembershipEnergyMetricsCoverageResponse";
 
@@ -37,11 +38,12 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     void documentsEveryFieldOfEverySchemaAsRequired() throws Exception {
         Map<String, List<String>> expected = Map.of(
                 RESPONSE, List.of("period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-                        "coverage", "plants", "surplusIncome"),
+                        "coverage", "plants", "surplusIncome", "co2Avoided"),
                 ENERGY, List.of("productionKWh", "selfConsumptionKWh", "surplusKWh"),
                 COVERAGE, List.of("supplyCount", "suppliesWithData"),
                 PLANT, List.of("plant", "installedPowerKWp", "productionKWh", "productionShare"),
-                SURPLUS_INCOME, List.of("amountEur", "unpricedSurplusKWh"));
+                SURPLUS_INCOME, List.of("amountEur", "unpricedSurplusKWh"),
+                CO2_AVOIDED, List.of("amountKg", "factorYears"));
 
         for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
             JsonNode schema = schema(entry.getKey());
