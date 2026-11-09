@@ -2,23 +2,19 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
-import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
-import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,29 +26,31 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Transactional
+/**
+ * Not transactional: Datadis is called with no transaction open, and each supply is written in a transaction of its
+ * own ({@link DatadisSupplyUpdateStep}).
+ */
 @Service
 public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisSuppliesSyncServiceImpl.class);
 
     private final GetSupplyRepository getSupplyRepository;
-    private final UpdateSupplyRepository updateSupplyRepository;
+    private final DatadisSupplyUpdateStep datadisSupplyUpdateStep;
     private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis;
     private final GetDatadisConfigRepository getDatadisConfigRepository;
     private final DatadisAuthorizer datadisAuthorizer;
-    private final DateConverter dateConverter;
 
-    public DatadisSuppliesSyncServiceImpl(GetSupplyRepository getSupplyRepository, UpdateSupplyRepository updateSupplyRepository,
+    public DatadisSuppliesSyncServiceImpl(GetSupplyRepository getSupplyRepository,
+                                          DatadisSupplyUpdateStep datadisSupplyUpdateStep,
                                           GetSupplyRepositoryDatadis getSupplyRepositoryDatadis,
                                           GetDatadisConfigRepository getDatadisConfigRepository,
-                                          DatadisAuthorizer datadisAuthorizer, DateConverter dateConverter) {
+                                          DatadisAuthorizer datadisAuthorizer) {
         this.getSupplyRepository = getSupplyRepository;
-        this.updateSupplyRepository = updateSupplyRepository;
+        this.datadisSupplyUpdateStep = datadisSupplyUpdateStep;
         this.getSupplyRepositoryDatadis = getSupplyRepositoryDatadis;
         this.getDatadisConfigRepository = getDatadisConfigRepository;
         this.datadisAuthorizer = datadisAuthorizer;
-        this.dateConverter = dateConverter;
     }
 
     @Override
@@ -98,7 +96,7 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
                 LOGGER.error("Datadis supply matches several registered supplies in community {}: {}", communityId,
                         matches.stream().map(Supply::getId).toList());
             } else {
-                update(matches.get(0), entry);
+                update(communityId, matches.get(0), entry);
             }
         }
         LOGGER.debug("{} Datadis supplies not registered in community {}", notRegistered, communityId);
@@ -123,24 +121,15 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
         return SupplyCode.toFullLength(upperCased).orElse(upperCased);
     }
 
-    private void update(Supply supply, DatadisSupply datadisSupply) {
-        supply.setAddress(datadisSupply.getAddress());
-
-        SupplyDistributor distributor = new SupplyDistributor.Builder()
-                .withCode(datadisSupply.getDistributorCode())
-                .withName(datadisSupply.getDistributor())
-                .withPointType(datadisSupply.getPointType())
-                .build();
-        supply.setDistributor(distributor);
-
-        SupplyContract contract = new SupplyContract.Builder()
-                .withValidDateFrom(datadisSupply.getValidDateFrom() != null ?
-                        dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
-                        null)
-                .build();
-        supply.setContract(contract);
-
-        updateSupplyRepository.update(supply);
-        LOGGER.info("Supply with ID {} synchronized with datadis.", supply.getId());
+    /**
+     * A supply that cannot be written is logged, and does not stop the others.
+     */
+    private void update(UUID communityId, Supply supply, DatadisSupply datadisSupply) {
+        try {
+            datadisSupplyUpdateStep.update(SupplyId.of(supply.getId()), datadisSupply);
+            LOGGER.info("Supply with ID {} synchronized with datadis.", supply.getId());
+        } catch (Exception e) {
+            LOGGER.error("Failed to update supply from Datadis in community {}: {}", communityId, supply.getId(), e);
+        }
     }
 }

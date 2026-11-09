@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
+import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -30,6 +31,7 @@ import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBui
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -42,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -61,6 +65,8 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
 
     @MockitoBean
     private ConluzRestClientBuilder conluzRestClientBuilder;
+    @MockitoSpyBean
+    private UpdateSupplyRepository updateSupplyRepository;
 
     @Autowired
     private DatadisSuppliesSyncService datadisSuppliesSyncService;
@@ -388,6 +394,63 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
         assertThat(distributorCode(longForm)).isNull();
         assertThat(distributorCode(shortForm)).isNull();
         assertThat(distributorCode(other)).isEqualTo("2");
+    }
+
+    @Test
+    @DisplayName("DSS-008 no database transaction is active while Datadis is called, for the login or any supplies "
+            + "request")
+    void datadisIsCalledOutsideAnyTransaction() {
+        UUID communityA = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        UUID communityB = communityWithDatadis(BASE_URL_B, UserMother.randomPersonalId(), TOKEN_B, true);
+        User ownerA = owner();
+        User otherOwnerA = owner();
+        User ownerB = owner();
+        Supply a1 = supply(ownerA, communityA);
+        Supply a2 = supply(otherOwnerA, communityA);
+        Supply b1 = supply(ownerB, communityB);
+        Supply b2 = supply(ownerB, communityB);
+        datadis.supplies(BASE_URL_A, ownerA.getPersonalId(), List.of(entry(a1.getCode(), "1")));
+        datadis.supplies(BASE_URL_A, otherOwnerA.getPersonalId(), List.of(entry(a2.getCode(), "1")));
+        datadis.supplies(BASE_URL_B, ownerB.getPersonalId(), List.of(entry(b1.getCode(), "2"), entry(b2.getCode(), "2")));
+
+        datadisSuppliesSyncDailyJob.run();
+
+        List<DatadisStub.Call> calls = new ArrayList<>(datadis.calls(BASE_URL_A, DatadisStub.LOGIN_PATH));
+        calls.addAll(datadis.calls(BASE_URL_A, DatadisStub.SUPPLIES_PATH));
+        calls.addAll(datadis.calls(BASE_URL_B, DatadisStub.LOGIN_PATH));
+        calls.addAll(datadis.calls(BASE_URL_B, DatadisStub.SUPPLIES_PATH));
+        assertThat(calls).hasSize(5).noneSatisfy(call -> assertThat(call.transactionActive()).isTrue());
+        assertThat(List.of(a1, a2)).allSatisfy(supply -> assertThat(distributorCode(supply)).isEqualTo("1"));
+        assertThat(List.of(b1, b2)).allSatisfy(supply -> assertThat(distributorCode(supply)).isEqualTo("2"));
+    }
+
+    @Test
+    @DisplayName("DSS-008 when the second of three supplies cannot be written, the first and the third are kept, and "
+            + "the failure is logged at ERROR with the community and the supply")
+    void eachSupplyIsWrittenOnItsOwn() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        Supply first = supply(owner, communityId);
+        Supply second = supply(owner, communityId);
+        Supply third = supply(owner, communityId);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(),
+                List.of(entry(first.getCode(), "1"), entry(second.getCode(), "1"), entry(third.getCode(), "1")));
+        doThrow(new IllegalStateException("write refused"))
+                .when(updateSupplyRepository).update(argThat(supply -> second.getId().equals(supply.getId())));
+
+        try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncServiceImpl.class)) {
+            datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+            assertThat(logs.warningsAndAbove()).singleElement().satisfies(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+                assertThat(event.getMessage()).isEqualTo("Failed to update supply from Datadis in community {}: {}");
+                assertThat(event.getArgumentArray()).startsWith(communityId, second.getId());
+                assertThat(event.getThrowableProxy().getMessage()).isEqualTo("write refused");
+            });
+        }
+        assertThat(distributorCode(first)).isEqualTo("1");
+        assertThat(distributorCode(second)).isNull();
+        assertThat(distributorCode(third)).isEqualTo("1");
     }
 
     private static Object argument(ILoggingEvent event, int index) {
