@@ -96,6 +96,34 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     }
 
     @Test
+    @DisplayName("CEM-013 CEM-014 co2Avoided is always present, with a nullable amount and nullable factor years")
+    void documentsTheCo2AvoidedAsAlwaysPresentWithNullableFields() throws Exception {
+        assertTrue(schema(RESPONSE).path("properties").path("co2Avoided").path("$ref").asText()
+                .endsWith("/" + CO2_AVOIDED));
+        assertNullableWithBaseType(CO2_AVOIDED, "amountKg", "number");
+        assertNullableWithBaseType(CO2_AVOIDED, "factorYears", "array");
+        assertEquals("integer", schema(CO2_AVOIDED).path("properties").path("factorYears").path("items")
+                .path("type").asText());
+    }
+
+    @Test
+    @DisplayName("CEM-011 CEM-012 CEM-014 CEM-015 CO₂ avoided is described with its MITECO factors, not the grid mix")
+    void describesTheCo2AvoidedWithItsFactors() throws Exception {
+        String amount = description(CO2_AVOIDED, "amountKg");
+        for (String statement : List.of("kg CO₂e", "MITECO \"Mix sin GdO\"",
+                "retailer without guarantees of origin", "not the average grid mix", "latest earlier year's factor",
+                "rounded to 3 decimals",
+                "Null when energy.productionKWh is null")) {
+            assertTrue(amount.contains(statement), () -> "does not state \"" + statement + "\": " + amount);
+        }
+        assertTrue(description(CO2_AVOIDED, "factorYears").contains("ascending order"));
+        String operation = operation().path("description").asText().replaceAll("\\s+", " ");
+        for (String statement : List.of("Mix sin GdO", "retailer without guarantees of origin", "average grid mix")) {
+            assertTrue(operation.contains(statement), () -> "the operation does not state \"" + statement + "\"");
+        }
+    }
+
+    @Test
     void referencesThePlantWithTheSharedPlantReference() throws Exception {
         assertTrue(schema(PLANT).path("properties").path("plant").path("$ref").asText()
                 .endsWith("/PlantReferenceResponse"));

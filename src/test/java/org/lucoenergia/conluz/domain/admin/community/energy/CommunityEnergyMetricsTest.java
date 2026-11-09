@@ -6,7 +6,9 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.shared.emission.EmissionFactors;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -122,6 +124,28 @@ class CommunityEnergyMetricsTest {
         assertEquals(150.5, metrics.getInstalledPowerKWp(), TOLERANCE);
         assertEquals(2, metrics.getPlants().size());
         assertNull(metrics.getPlants().get(0).getProductionKWh());
+    }
+
+    @Test
+    @DisplayName("CEM-014 AC5 without a period CO₂ avoided and its factor years are null")
+    void withoutAPeriodCo2AvoidedIsNull() {
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.withoutPeriod(3, List.of(north, south));
+
+        assertNull(metrics.getCo2AvoidedKg());
+        assertNull(metrics.getCo2AvoidedFactorYears());
+    }
+
+    @Test
+    @DisplayName("CEM-011 CEM-013 the CO₂ avoided is reported unrounded, with its factor years")
+    void theCo2AvoidedIsReportedUnroundedWithItsFactorYears() {
+        AvoidedEmissions avoided = AvoidedEmissions.estimate(Map.of(2024, 0.0001, 2025, 0.0002),
+                EmissionFactors.of(Map.of(2024, new BigDecimal("0.2"), 2025, new BigDecimal("0.1"))));
+
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, avoided, 1, 1,
+                List.of(north, south), Map.of(code(north), 0.0001, code(south), 0.0002));
+
+        assertEquals(0, new BigDecimal("0.00004").compareTo(metrics.getCo2AvoidedKg()));
+        assertEquals(List.of(2024, 2025), metrics.getCo2AvoidedFactorYears());
     }
 
     private static Plant plant(String code, double totalPower) {
