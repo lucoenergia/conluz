@@ -59,6 +59,14 @@ public class GetCommunityEnergyMetricsController {
                       **once** from the summed self-consumption and surplus, so they add up to 1. Both
                       are `null` when both figures are zero or unknown, never `0`.
                     - `installedPowerKWp`: the installed power of every plant of the community.
+                    - `surplusIncome.amountEur`: an **estimate** of what `energy.surplusKWh` earned at
+                      OMIE day-ahead prices, the Spanish system's marginal price. Each hour's surplus is
+                      priced at the mean of the prices stored for that hour (four quarter-hour prices, or a
+                      single hourly one), summed unrounded and rounded once to cents. Market prices may be
+                      zero or **negative** and are applied as they are, so the amount may be negative. No
+                      taxes, fees, deviation costs or retailer margins are included.
+                    - `surplusIncome.unpricedSurplusKWh`: the surplus of the hours without a stored price,
+                      which add nothing to the amount. Both are `null` exactly when `energy.surplusKWh` is.
                     - `plants`: every plant of the community with its installed power, its production
                       and its share of the community's production.
 

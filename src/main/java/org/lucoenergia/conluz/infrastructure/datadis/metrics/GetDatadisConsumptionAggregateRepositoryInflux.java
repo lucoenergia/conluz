@@ -241,6 +241,62 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
         }
     }
 
+    @Override
+    public Map<Instant, Double> sumSurplusByHour(Collection<Supply> supplies, Instant from, Instant toExclusive,
+                                                 ZoneId zone) {
+        if (supplies.isEmpty()) {
+            return Map.of();
+        }
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // Summed across the supplies in each hour, not grouped by cups: the caller needs the hour's
+            // total, never a single supply's figure. Only records with surplus are read, since an hour
+            // without any adds nothing to a sum, and fill(none) leaves out the hours they leave empty.
+            // tz() aligns the hours as the community's other queries do.
+            Query query = new Query(String.format(
+                    """
+                            SELECT SUM("surplus_energy_kwh") AS "surplus_energy_kwh"
+                            FROM "%s"
+                            WHERE (%s)
+                                AND "surplus_energy_kwh" > 0
+                                AND time >= '%s'
+                                AND time < '%s'
+                            GROUP BY time(1h) fill(none) tz('%s')
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supplies.stream()
+                            .map(supply -> String.format("cups = '%s'", supply.getCode()))
+                            .collect(Collectors.joining(" OR ")),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive),
+                    zone.getId()));
+
+            // Times in milliseconds come back as a number, whatever the server's precision.
+            QueryResult queryResult = connection.query(query, TimeUnit.MILLISECONDS);
+            Map<Instant, Double> surplusByHour = new HashMap<>();
+            if (queryResult == null || queryResult.getResults() == null) {
+                return surplusByHour;
+            }
+            queryResult.getResults().stream()
+                    .filter(result -> result.getSeries() != null)
+                    .flatMap(result -> result.getSeries().stream())
+                    .filter(series -> series.getValues() != null)
+                    .forEach(series -> {
+                        int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
+                        int surplusIndex = series.getColumns().indexOf(COLUMN_SURPLUS_ENERGY_KWH);
+                        for (List<Object> row : series.getValues()) {
+                            // An hour whose records all lack the field sums to null: no surplus was stored.
+                            if (surplusIndex >= 0 && surplusIndex < row.size()
+                                    && row.get(surplusIndex) instanceof Number surplus) {
+                                surplusByHour.put(dateConverter.convertMillisecondsToInstant(
+                                        ((Number) row.get(timeIndex)).longValue()), surplus.doubleValue());
+                            }
+                        }
+                    });
+            return surplusByHour;
+        }
+    }
+
     private List<DailyPublishedAggregate> toDays(QueryResult.Series series, ZoneId zone) {
         int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
         return series.getValues().stream()

@@ -13,10 +13,12 @@ import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.springframework.core.task.SyncTaskExecutor;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -53,9 +55,10 @@ class GetCommunityEnergyMetricsServiceTest {
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final GetDatadisProductionAggregateRepository productionRepository =
             mock(GetDatadisProductionAggregateRepository.class);
+    private final GetPriceRepository priceRepository = mock(GetPriceRepository.class);
 
     private final GetCommunityEnergyMetricsService service = new GetCommunityEnergyMetricsServiceImpl(scopeResolver,
-            getPlantRepository, consumptionRepository, productionRepository);
+            getPlantRepository, consumptionRepository, productionRepository, priceRepository, new SyncTaskExecutor());
 
     private final Supply first = SupplyMother.random().withEnabled(true).build();
     private final Supply second = SupplyMother.random().withEnabled(true).build();

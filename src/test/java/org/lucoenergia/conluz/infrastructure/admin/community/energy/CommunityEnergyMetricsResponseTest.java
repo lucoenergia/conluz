@@ -26,7 +26,7 @@ class CommunityEnergyMetricsResponseTest {
     @Test
     @DisplayName("EVL-001 every kWh figure is rounded to 3 decimals, and the shares are not rounded")
     void everyKWhFigureIsRoundedAndTheSharesAreNot() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 0.1234 + 0.2222, 1.0005, 3, 2,
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 0.1234 + 0.2222, 1.0005, null, 3, 2,
                 List.of(north, south), Map.of(north.getSupply().getCode(), 2.0004));
 
         CommunityEnergyMetricsResponse response = new CommunityEnergyMetricsResponse(metrics);
@@ -48,7 +48,7 @@ class CommunityEnergyMetricsResponseTest {
     @Test
     @DisplayName("CEM-005 a plant is referenced by its id and name, and a gap stays null")
     void aPlantIsReferencedByItsIdAndNameAndAGapStaysNull() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, 1, 1, List.of(north, south),
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, 1, 1, List.of(north, south),
                 Map.of(north.getSupply().getCode(), 3d));
 
         CommunityPlantEnergyResponse plant = new CommunityEnergyMetricsResponse(metrics).getPlants().get(1);

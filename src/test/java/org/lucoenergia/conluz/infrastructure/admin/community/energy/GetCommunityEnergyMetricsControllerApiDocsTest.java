@@ -36,7 +36,7 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     void documentsEveryFieldOfEverySchemaAsRequired() throws Exception {
         Map<String, List<String>> expected = Map.of(
                 RESPONSE, List.of("period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-                        "coverage", "plants"),
+                        "coverage", "plants", "surplusIncome"),
                 ENERGY, List.of("productionKWh", "selfConsumptionKWh", "surplusKWh"),
                 COVERAGE, List.of("supplyCount", "suppliesWithData"),
                 PLANT, List.of("plant", "installedPowerKWp", "productionKWh", "productionShare"));

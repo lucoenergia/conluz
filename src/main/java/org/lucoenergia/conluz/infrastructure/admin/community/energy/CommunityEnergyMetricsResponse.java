@@ -7,7 +7,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.consumption.SupplyEner
 import java.util.List;
 
 @Schema(requiredProperties = {"period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-        "coverage", "plants"})
+        "surplusIncome", "coverage", "plants"})
 public class CommunityEnergyMetricsResponse {
 
     @Schema(description = "The period the metrics were computed over, the same for every supply and plant.")
@@ -29,6 +29,10 @@ public class CommunityEnergyMetricsResponse {
     private final Double surplusRatio;
     @Schema(description = "Installed power of every plant of the community, summed, in kWp.", example = "200.0")
     private final double installedPowerKWp;
+    @Schema(description = "An estimate of what the community's surplus earned at OMIE day-ahead prices " +
+            "over the period, and the surplus that could not be priced. Computed over exactly the surplus " +
+            "reported in energy.surplusKWh.")
+    private final CommunityEnergyMetricsSurplusIncomeResponse surplusIncome;
     @Schema(description = "How many supplies of the community have data for the period.")
     private final CommunityEnergyMetricsCoverageResponse coverage;
     @Schema(description = "Every plant of the community, ordered by name, with its production over the " +
@@ -41,6 +45,7 @@ public class CommunityEnergyMetricsResponse {
         this.selfConsumptionRatio = metrics.getSelfConsumptionRatio();
         this.surplusRatio = metrics.getSurplusRatio();
         this.installedPowerKWp = metrics.getInstalledPowerKWp();
+        this.surplusIncome = new CommunityEnergyMetricsSurplusIncomeResponse(metrics);
         this.coverage = new CommunityEnergyMetricsCoverageResponse(metrics.getSupplyCount(),
                 metrics.getSuppliesWithData());
         this.plants = metrics.getPlants().stream().map(CommunityPlantEnergyResponse::new).toList();
@@ -64,6 +69,10 @@ public class CommunityEnergyMetricsResponse {
 
     public double getInstalledPowerKWp() {
         return installedPowerKWp;
+    }
+
+    public CommunityEnergyMetricsSurplusIncomeResponse getSurplusIncome() {
+        return surplusIncome;
     }
 
     public CommunityEnergyMetricsCoverageResponse getCoverage() {
