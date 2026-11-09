@@ -14768,7 +14768,7 @@
     },
     "/api/v1/communities/{communityId}/supplies/datadis/sync" : {
       "post" : {
-        "description" : "This endpoint enables users to synchronize the active supplies of the community identified by the\npath `communityId`, retrieving the information from datadis.\n\nProper authentication, through an authentication token, is required for secure access to this\nendpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
+        "description" : "This endpoint enables users to synchronize the active supplies of the community identified by the\npath `communityId`, retrieving the information from datadis.\n\nProper authentication, through an authentication token, is required for secure access to this\nendpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nThe server responds with `409` when the community has no Datadis configuration, or it is\ndisabled; Datadis is not called.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
         "operationId" : "syncDatadisSupplies",
         "parameters" : [
           {
@@ -14863,6 +14863,22 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "Datadis integration is disabled. Enable it via POST /api/v1/communities/{communityId}/config/datadis/enable before triggering this operation.",
+                  "status" : 409,
+                  "timestamp" : "2026-11-09T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The community has no Datadis configuration, or it is disabled."
           },
           "500" : {
             "content" : {

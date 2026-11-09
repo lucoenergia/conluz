@@ -11,9 +11,9 @@ import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncServic
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.DatadisException;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,8 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
     @Override
     public void synchronizeSupplies(UUID communityId) {
         DatadisConfig config = getDatadisConfigRepository.findByCommunityId(communityId)
-                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
+                .filter(found -> Boolean.TRUE.equals(found.getEnabled()))
+                .orElseThrow(DatadisDisabledException::new);
 
         List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
         Map<String, Supply> suppliesByCode = communitySupplies.stream()

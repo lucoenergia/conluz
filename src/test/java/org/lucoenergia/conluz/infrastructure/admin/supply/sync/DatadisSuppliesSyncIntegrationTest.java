@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,10 +23,12 @@ import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisStub;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
@@ -34,9 +38,13 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * The Datadis supplies sync end to end, against two communities whose Datadis accounts live at different base URLs
@@ -55,6 +63,8 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
 
     @Autowired
     private DatadisSuppliesSyncService datadisSuppliesSyncService;
+    @Autowired
+    private DatadisSuppliesSyncDailyJob datadisSuppliesSyncDailyJob;
     @Autowired
     private DatadisSyncService datadisSyncService;
     @Autowired
@@ -104,8 +114,7 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
         datadis.supplies(BASE_URL_B, ownerB.getPersonalId(), List.of(entry(b1.getCode(), "3")));
         datadis.supplies(BASE_URL_B, otherOwnerB.getPersonalId(), List.of(entry(b2.getCode(), "4")));
 
-        datadisSuppliesSyncService.synchronizeSupplies(communityA);
-        datadisSuppliesSyncService.synchronizeSupplies(communityB);
+        datadisSuppliesSyncDailyJob.run();
 
         assertThat(datadis.calls(BASE_URL_A, DatadisStub.LOGIN_PATH)).hasSize(1);
         assertThat(datadis.calls(BASE_URL_B, DatadisStub.LOGIN_PATH)).hasSize(1);
@@ -156,6 +165,96 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
                 .allSatisfy(call -> assertThat(call.authorizedNif()).isEqualTo(owner.getPersonalId()));
         assertThat(distributorCode(a1)).isEqualTo("1");
         assertThat(distributorCode(b2)).isEqualTo("2");
+    }
+
+    @Test
+    @DisplayName("DSS-002 a community whose Datadis login fails is logged at ERROR, and the other community is still "
+            + "synced")
+    void aFailingCommunityDoesNotStopTheOthers() {
+        UUID communityA = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        UUID communityB = communityWithDatadis(BASE_URL_B, UserMother.randomPersonalId(), TOKEN_B, true);
+        User ownerA = owner();
+        User ownerB = owner();
+        Supply a1 = supply(ownerA, communityA);
+        Supply b1 = supply(ownerB, communityB);
+        Supply b2 = supply(ownerB, communityB);
+        datadis.failLogin(BASE_URL_A, 500);
+        datadis.supplies(BASE_URL_A, ownerA.getPersonalId(), List.of(entry(a1.getCode(), "1")));
+        datadis.supplies(BASE_URL_B, ownerB.getPersonalId(), List.of(entry(b1.getCode(), "2"), entry(b2.getCode(), "2")));
+
+        try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncDailyJob.class)) {
+            datadisSuppliesSyncDailyJob.run();
+
+            assertThat(logs.warningsAndAbove())
+                    .filteredOn(event -> communityA.equals(argument(event, 0)))
+                    .singleElement()
+                    .satisfies(event -> {
+                        assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+                        assertThat(event.getMessage()).isEqualTo("Datadis supplies sync failed for community {}");
+                        assertThat(event.getThrowableProxy()).isNotNull();
+                    });
+            assertThat(logs.warningsAndAbove())
+                    .noneSatisfy(event -> assertThat(argument(event, 0)).isEqualTo(communityB));
+        }
+        assertThat(datadis.calls(BASE_URL_A, DatadisStub.SUPPLIES_PATH)).isEmpty();
+        assertThat(distributorCode(a1)).isNull();
+        assertThat(distributorCode(b1)).isEqualTo("2");
+        assertThat(distributorCode(b2)).isEqualTo("2");
+    }
+
+    @Test
+    @DisplayName("DSS-003 the job makes no Datadis request for a community whose configuration is disabled, or that "
+            + "has none")
+    void theJobSkipsCommunitiesWithoutAnEnabledConfiguration() {
+        UUID disabled = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, false);
+        UUID withoutConfiguration = createCommunityRepository.create(CommunityMother.random().build()).getId();
+        User ownerOfDisabled = owner();
+        User ownerWithoutConfiguration = owner();
+        Supply d1 = supply(ownerOfDisabled, disabled);
+        Supply d2 = supply(ownerOfDisabled, disabled);
+        Supply n1 = supply(ownerWithoutConfiguration, withoutConfiguration);
+        Supply n2 = supply(ownerWithoutConfiguration, withoutConfiguration);
+        datadis.supplies(BASE_URL_A, ownerOfDisabled.getPersonalId(),
+                List.of(entry(d1.getCode(), "1"), entry(d2.getCode(), "1")));
+
+        datadisSuppliesSyncDailyJob.run();
+
+        assertThat(datadis.calls(BASE_URL_A, DatadisStub.LOGIN_PATH)).isEmpty();
+        assertThat(datadis.calls(BASE_URL_A, DatadisStub.SUPPLIES_PATH)).isEmpty();
+        assertThat(datadis.calls())
+                .noneSatisfy(call -> assertThat(call.authorizedNif())
+                        .isIn(ownerOfDisabled.getPersonalId(), ownerWithoutConfiguration.getPersonalId()));
+        assertThat(List.of(d1, d2, n1, n2)).allSatisfy(supply -> assertThat(distributorCode(supply)).isNull());
+    }
+
+    @Test
+    @DisplayName("DSS-003 the per-community sync of a community whose configuration is disabled, or that has none, "
+            + "answers 409 as the consumption sync does, and makes no Datadis request")
+    void theEndpointRefusesCommunitiesWithoutAnEnabledConfiguration() throws Exception {
+        UUID disabled = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, false);
+        UUID withoutConfiguration = createCommunityRepository.create(CommunityMother.random().build()).getId();
+        User owner = owner();
+        supply(owner, disabled);
+        supply(owner, withoutConfiguration);
+
+        for (UUID communityId : List.of(disabled, withoutConfiguration)) {
+            String authorization = loginAsCommunityAdmin(communityId);
+            datadis.clear();
+
+            mockMvc.perform(post("/api/v1/communities/{communityId}/supplies/datadis/sync", communityId)
+                            .header(HttpHeaders.AUTHORIZATION, authorization))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409))
+                    .andExpect(jsonPath("$.message").value(
+                            containsString("POST /api/v1/communities/{communityId}/config/datadis/enable")));
+
+            assertThat(datadis.calls()).isEmpty();
+        }
+    }
+
+    private static Object argument(ILoggingEvent event, int index) {
+        Object[] arguments = event.getArgumentArray();
+        return arguments == null || arguments.length <= index ? null : arguments[index];
     }
 
     private UUID communityWithDatadis(String baseUrl, String username, String token, boolean enabled) {
