@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #554 |
+| **Last reviewed against code** | #556 |
 
 ## Purpose
 
@@ -51,7 +51,8 @@ touch it.
   as the membership monthly series; #545 added `getSupplyHourlyConsumption`, which rounds through the
   same mapping as the supply daily and monthly series; #546 added `getMembershipHourlyConsumption`,
   which rounds through the same mapping as the membership daily and monthly series; #554 added the
-  community energy metrics and series, which round through the same `KWhRounding`.
+  community energy metrics and series, which round through the same `KWhRounding`; #556 added the
+  unpriced surplus of the community energy metrics, which rounds through the same `KWhRounding`.
 
 **Scenarios**
 
