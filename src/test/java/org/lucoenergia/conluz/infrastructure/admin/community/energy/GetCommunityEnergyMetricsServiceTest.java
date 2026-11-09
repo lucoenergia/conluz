@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProduction
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.shared.emission.EmissionFactors;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -33,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -60,7 +62,8 @@ class GetCommunityEnergyMetricsServiceTest {
     private final GetPriceRepository priceRepository = mock(GetPriceRepository.class);
 
     private final GetCommunityEnergyMetricsService service = new GetCommunityEnergyMetricsServiceImpl(scopeResolver,
-            getPlantRepository, consumptionRepository, productionRepository, priceRepository);
+            getPlantRepository, consumptionRepository, productionRepository, priceRepository,
+            EmissionFactors.of(Map.of(2024, new BigDecimal("0.200"), 2025, new BigDecimal("0.150"))));
 
     private final Supply first = SupplyMother.random().withEnabled(true).build();
     private final Supply second = SupplyMother.random().withEnabled(true).build();
@@ -193,6 +196,66 @@ class GetCommunityEnergyMetricsServiceTest {
         assertNull(metrics.getUnpricedSurplusKWh());
         verify(consumptionRepository, never()).sumSurplusByHour(any(), any(), any(), any());
         verifyNoInteractions(priceRepository);
+    }
+
+    /**
+     * The service's factors are {2024: 0.200, 2025: 0.150}. The production per year is read once, over the
+     * plants' codes and the bounds the production total is read over, in the community's zone.
+     */
+    @Test
+    @DisplayName("CEM-011 CEM-013 AC2 a period across 1 January sums each local year's production at its factor")
+    void aPeriodAcrossTheNewYearSumsEachYearAtItsFactor() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(OffsetDateTime.parse("2024-11-01T00:00:00+01:00"),
+                OffsetDateTime.parse("2025-03-01T00:00:00+01:00"));
+        Instant from = period.getStartDate().toInstant();
+        Instant to = period.getEndDate().toInstant();
+        Plant south = PlantMother.random(second).withTotalPower(50.0).build();
+        List<String> codes = List.of(first.getCode(), second.getCode());
+        givenScope(period);
+        when(getPlantRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(plant, south));
+        when(productionRepository.sumProductionByCups(codes, from, to))
+                .thenReturn(Map.of(first.getCode(), 700d, second.getCode(), 300d));
+        when(productionRepository.sumProductionByYear(codes, from, to, ZONE))
+                .thenReturn(Map.of(2024, 400d, 2025, 600d));
+
+        CommunityEnergyMetrics metrics = service.getEnergyMetrics(COMMUNITY_ID, period.getStartDate(),
+                period.getEndDate(), null);
+
+        assertEquals(0, new BigDecimal("170").compareTo(metrics.getCo2AvoidedKg()),
+                () -> "was " + metrics.getCo2AvoidedKg());
+        assertEquals(List.of(2024, 2025), metrics.getCo2AvoidedFactorYears());
+        verify(productionRepository, times(1)).sumProductionByYear(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("CEM-014 AC5 without a production record no production is read per year and CO₂ avoided is null")
+    void withoutAProductionRecordNothingIsReadPerYear() {
+        givenScope(SEPTEMBER, first);
+        givenAggregate(first, 1, 0);
+        when(getPlantRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(plant));
+        when(productionRepository.sumProductionByCups(List.of(first.getCode()), FROM, TO)).thenReturn(Map.of());
+
+        CommunityEnergyMetrics metrics = getSeptember();
+
+        assertNull(metrics.getProductionKWh());
+        assertNull(metrics.getCo2AvoidedKg());
+        assertNull(metrics.getCo2AvoidedFactorYears());
+        verify(productionRepository, never()).sumProductionByYear(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("CEM-014 AC5 without a period nothing is read per year and CO₂ avoided is null")
+    void withoutAPeriodNothingIsReadPerYear() {
+        when(scopeResolver.resolve(eq(COMMUNITY_ID), any(), any(), any(), any()))
+                .thenReturn(new CommunityEnergyScope(List.of(first), ZONE, null));
+        when(getPlantRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(plant));
+
+        CommunityEnergyMetrics metrics = service.getEnergyMetrics(COMMUNITY_ID, null, null,
+                EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
+
+        assertNull(metrics.getCo2AvoidedKg());
+        assertNull(metrics.getCo2AvoidedFactorYears());
+        verify(productionRepository, never()).sumProductionByYear(any(), any(), any(), any());
     }
 
     private CommunityEnergyMetrics getSeptember() {

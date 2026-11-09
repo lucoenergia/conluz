@@ -30,6 +30,7 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     private static final String COVERAGE = "CommunityEnergyMetricsCoverageResponse";
     private static final String PLANT = "CommunityPlantEnergyResponse";
     private static final String SURPLUS_INCOME = "CommunityEnergyMetricsSurplusIncomeResponse";
+    private static final String CO2_AVOIDED = "CommunityEnergyMetricsCo2AvoidedResponse";
     private static final String MEMBERSHIP_ENERGY = "MembershipEnergyMetricsEnergyResponse";
     private static final String MEMBERSHIP_COVERAGE = "MembershipEnergyMetricsCoverageResponse";
 
@@ -37,11 +38,12 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     void documentsEveryFieldOfEverySchemaAsRequired() throws Exception {
         Map<String, List<String>> expected = Map.of(
                 RESPONSE, List.of("period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-                        "coverage", "plants", "surplusIncome"),
+                        "coverage", "plants", "surplusIncome", "co2Avoided"),
                 ENERGY, List.of("productionKWh", "selfConsumptionKWh", "surplusKWh"),
                 COVERAGE, List.of("supplyCount", "suppliesWithData"),
                 PLANT, List.of("plant", "installedPowerKWp", "productionKWh", "productionShare"),
-                SURPLUS_INCOME, List.of("amountEur", "unpricedSurplusKWh"));
+                SURPLUS_INCOME, List.of("amountEur", "unpricedSurplusKWh"),
+                CO2_AVOIDED, List.of("amountKg", "factorYears"));
 
         for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
             JsonNode schema = schema(entry.getKey());
@@ -91,6 +93,34 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
         assertTrue(description(SURPLUS_INCOME, "unpricedSurplusKWh").contains("In kWh"));
         String operation = operation().path("description").asText().replaceAll("\\s+", " ");
         assertTrue(operation.contains("OMIE day-ahead"), () -> "the operation does not mention OMIE: " + operation);
+    }
+
+    @Test
+    @DisplayName("CEM-013 CEM-014 co2Avoided is always present, with a nullable amount and nullable factor years")
+    void documentsTheCo2AvoidedAsAlwaysPresentWithNullableFields() throws Exception {
+        assertTrue(schema(RESPONSE).path("properties").path("co2Avoided").path("$ref").asText()
+                .endsWith("/" + CO2_AVOIDED));
+        assertNullableWithBaseType(CO2_AVOIDED, "amountKg", "number");
+        assertNullableWithBaseType(CO2_AVOIDED, "factorYears", "array");
+        assertEquals("integer", schema(CO2_AVOIDED).path("properties").path("factorYears").path("items")
+                .path("type").asText());
+    }
+
+    @Test
+    @DisplayName("CEM-011 CEM-012 CEM-014 CEM-015 CO₂ avoided is described with its MITECO factors, not the grid mix")
+    void describesTheCo2AvoidedWithItsFactors() throws Exception {
+        String amount = description(CO2_AVOIDED, "amountKg");
+        for (String statement : List.of("kg CO₂e", "MITECO \"Mix sin GdO\"",
+                "retailer without guarantees of origin", "not the average grid mix", "latest earlier year's factor",
+                "rounded to 3 decimals",
+                "Null when energy.productionKWh is null")) {
+            assertTrue(amount.contains(statement), () -> "does not state \"" + statement + "\": " + amount);
+        }
+        assertTrue(description(CO2_AVOIDED, "factorYears").contains("ascending order"));
+        String operation = operation().path("description").asText().replaceAll("\\s+", " ");
+        for (String statement : List.of("Mix sin GdO", "retailer without guarantees of origin", "average grid mix")) {
+            assertTrue(operation.contains(statement), () -> "the operation does not state \"" + statement + "\"");
+        }
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.energy;
 
+import org.lucoenergia.conluz.domain.admin.community.energy.AvoidedEmissions;
 import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyMetrics;
 import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyScope;
 import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyScopeResolver;
@@ -16,6 +17,7 @@ import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProduction
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.domain.shared.emission.EmissionFactors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,14 +39,16 @@ import java.util.UUID;
  * month is published by, applied to the period requested.
  *
  * <p>The surplus is also priced hour by hour at the mean OMIE day-ahead price of each hour, over the
- * same supplies and the same period as its total.
+ * same supplies and the same period as its total, and the CO₂ the production avoided is computed from the
+ * same plants' production summed per local calendar year.
  *
  * <h2>Query cost</h2>
  *
  * <p>The cost of resolving the scope (see {@link CommunityEnergyScopeResolverImpl}) and one relational
  * query for the plants, then two Influx queries per supply (its totals and its published hours) and a
  * single one for the production of every plant. When a supply stored a record, two more: the hours with
- * surplus of every supply summed per hour, and the mean price of every hour. Every sum and mean is
+ * surplus of every supply summed per hour, and the mean price of every hour. When a plant stored a
+ * production record, one more: the production of every plant summed per local year. Every sum and mean is
  * pushed down to the store, so the number of queries grows with the number of supplies, not with the
  * length of the period.
  */
@@ -57,18 +61,21 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository;
     private final GetPriceRepository getPriceRepository;
+    private final EmissionFactors emissionFactors;
 
     public GetCommunityEnergyMetricsServiceImpl(
             CommunityEnergyScopeResolver communityEnergyScopeResolver,
             GetPlantRepository getPlantRepository,
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
             GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository,
-            GetPriceRepository getPriceRepository) {
+            GetPriceRepository getPriceRepository,
+            EmissionFactors emissionFactors) {
         this.communityEnergyScopeResolver = communityEnergyScopeResolver;
         this.getPlantRepository = getPlantRepository;
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getDatadisProductionAggregateRepository = getDatadisProductionAggregateRepository;
         this.getPriceRepository = getPriceRepository;
+        this.emissionFactors = emissionFactors;
     }
 
     @Override
@@ -109,8 +116,14 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
             }
         }
 
+        List<String> plantSupplyCodes = plants.stream().map(plant -> plant.getSupply().getCode()).toList();
         Map<String, Double> productionBySupplyCode = getDatadisProductionAggregateRepository.sumProductionByCups(
-                plants.stream().map(plant -> plant.getSupply().getCode()).toList(), from, toExclusive);
+                plantSupplyCodes, from, toExclusive);
+        // No plant stored a production record: no production, so nothing avoided, and no query.
+        AvoidedEmissions avoidedEmissions = productionBySupplyCode.isEmpty()
+                ? null
+                : AvoidedEmissions.estimate(getDatadisProductionAggregateRepository.sumProductionByYear(
+                        plantSupplyCodes, from, toExclusive, scope.getZone()), emissionFactors);
 
         // No supply stored a record: a gap, not a measured zero.
         boolean anyRecord = hoursWithData > 0;
@@ -118,7 +131,7 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
                 anyRecord ? selfConsumptionKWh : null,
                 anyRecord ? surplusKWh : null,
                 anyRecord ? estimateSurplusIncome(supplies, from, toExclusive, scope.getZone()) : null,
-                supplies.size(), suppliesWithData, plants, productionBySupplyCode);
+                avoidedEmissions, supplies.size(), suppliesWithData, plants, productionBySupplyCode);
     }
 
     /**

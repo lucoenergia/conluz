@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
+import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.energy.CommunityEnergyTestFixture.EnergyCommunity;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.KWhJson;
@@ -72,6 +73,10 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
     /** 14:00 on 10 October 2025 in Madrid, at a negative price. */
     private static final Instant NEGATIVE_HOUR = Instant.parse("2025-10-10T12:00:00Z");
 
+    /** From 1 November 2024 to 1 March 2025 in Madrid, across the new year. */
+    private static final Instant NEW_YEAR_FROM = Instant.parse("2024-10-31T23:00:00Z");
+    private static final Instant NEW_YEAR_TO = Instant.parse("2025-02-28T23:00:00Z");
+
     @Autowired
     private CommunityEnergyTestFixture fixture;
     @Autowired
@@ -80,6 +85,8 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
     private GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     @Autowired
     private GetPriceRepository getPriceRepository;
+    @Autowired
+    private GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository;
 
     @BeforeEach
     void givenAFixedClock() {
@@ -553,6 +560,88 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
         assertEquals(List.of("unpricedSurplusKWh"),
                 keys.stream().filter(key -> key.toLowerCase(Locale.ROOT).contains("price")).toList(),
                 () -> "the body carries a price: " + keys);
+        assertNoSupplyOrMember(body, community);
+    }
+
+    // --- CO₂ avoided ---
+
+    /**
+     * The invariant behind CEM-011, checked before any rounding: CO₂ avoided is computed from the production
+     * read per local year, which must cover exactly the plants, bounds and records energy.productionKWh is
+     * summed from. The other community's plant writes inside the period and must count in neither.
+     */
+    @Test
+    @DisplayName("CEM-011 the production read per local year adds up to the production reported")
+    void theProductionReadPerYearAddsUpToTheProductionReported() {
+        EnergyCommunity community = fixture.createCommunity();
+        EnergyCommunity other = fixture.createCommunity();
+        fixture.writeProduction(community.north(), NEW_YEAR_FROM, 12.5f);
+        fixture.writeProduction(community.north(), Instant.parse("2024-12-31T22:30:00Z"), 100.25f);
+        fixture.writeProduction(community.south(), Instant.parse("2024-12-31T23:30:00Z"), 200.125f);
+        fixture.writeProduction(community.south(), NEW_YEAR_TO.minusSeconds(3600), 7.75f);
+        fixture.writeProduction(community.north(), NEW_YEAR_TO, 1000f);
+        fixture.writeProduction(other.north(), Instant.parse("2025-01-10T10:00:00Z"), 1000f);
+        OffsetDateTime start = NEW_YEAR_FROM.atZone(ZONE).toOffsetDateTime();
+        OffsetDateTime end = NEW_YEAR_TO.atZone(ZONE).toOffsetDateTime();
+
+        Map<Integer, Double> productionByYear = getDatadisProductionAggregateRepository.sumProductionByYear(
+                List.of(community.north().getSupply().getCode(), community.south().getSupply().getCode()),
+                NEW_YEAR_FROM, NEW_YEAR_TO, ZONE);
+        CommunityEnergyMetrics metrics = getCommunityEnergyMetricsService.getEnergyMetrics(community.id(), start, end,
+                null);
+
+        assertEquals(List.of(2024, 2025), productionByYear.keySet().stream().sorted().toList(),
+                "both sides of 1 January must be exercised");
+        assertEquals(metrics.getProductionKWh(),
+                productionByYear.values().stream().mapToDouble(Double::doubleValue).sum(), TOLERANCE);
+    }
+
+    @Test
+    @DisplayName("CEM-014 AC5 co2Avoided is present with null fields when no plant stored a production record")
+    void co2AvoidedIsNullWithoutAProductionRecord() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        fixture.writeConsumption(community.supplies().get(0), TEN, 1f, 2f, 3f);
+
+        requestPeriod(community.id(), loginUser(community.memberA()), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.energy.productionKWh").value(nullValue()))
+                .andExpect(jsonPath("$.co2Avoided").exists())
+                .andExpect(jsonPath("$.co2Avoided.amountKg").value(nullValue()))
+                .andExpect(jsonPath("$.co2Avoided.factorYears").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("CEM-014 AC5 co2Avoided is present with null fields when no period resolves")
+    void co2AvoidedIsNullWhenNoPeriodResolves() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+
+        requestLatest(community.id(), loginUser(community.memberA()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.co2Avoided").exists())
+                .andExpect(jsonPath("$.co2Avoided.amountKg").value(nullValue()))
+                .andExpect(jsonPath("$.co2Avoided.factorYears").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("CEM-007 CEM-013 co2Avoided carries the amount and the factor years, and no plant, supply or year figure")
+    void co2AvoidedCarriesTwoFieldsAndNoPerPlantFigure() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        fixture.writeProduction(community.north(), TEN, 30f);
+        fixture.writeProduction(community.south(), TEN.plusSeconds(3600), 12f);
+
+        String body = requestPeriod(community.id(), loginUser(community.memberA()), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.co2Avoided.amountKg").isNumber())
+                .andExpect(jsonPath("$.co2Avoided.factorYears").isNotEmpty())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode co2Avoided = objectMapper.readTree(body).path("co2Avoided");
+        List<String> keys = new ArrayList<>();
+        co2Avoided.fieldNames().forEachRemaining(keys::add);
+        assertEquals(List.of("amountKg", "factorYears"), keys.stream().sorted().toList());
+        // The values depend on the shipped factors, which only the configuration tests read.
+        co2Avoided.path("factorYears").forEach(year -> assertTrue(year.isInt(), () -> "not a year: " + year));
         assertNoSupplyOrMember(body, community);
     }
 

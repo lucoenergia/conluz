@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Communities`; operations `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #556 |
+| **Last reviewed against code** | #559 |
 
 ## Purpose
 
 The energy figures of a whole community, from the distributor's records: what its plants produced,
 how much of the energy assigned to its supplies was used in the community and how much went to the
-grid, an estimate of what that surplus earned at OMIE day-ahead prices, the installed power, and how
-many supplies have data. Only community aggregates are exposed, never a figure of a single supply or
+grid, an estimate of what that surplus earned at OMIE day-ahead prices, an estimate of the CO₂ the
+production avoided, the installed power, and how many supplies have data. Only community aggregates are exposed, never a figure of a single supply or
 member. The period these operations are computed over follows EPR-001 to EPR-005
 (`energy-periods.md`), and the precision and names of their energy figures follow `energy-values.md`.
 The rest of the capability is specified lazily, as issues touch it.
@@ -28,6 +28,8 @@ The rest of the capability is specified lazily, as issues touch it.
 | Possible hours | The hours between the bounds of the period, as clipped under EPR-002, counted on the instant line, so a day with a daylight saving change has 23 or 25. |
 | Gap | A figure nothing was stored for. It is null, never 0. |
 | Measured zero | A figure whose stored records carry no energy. It is 0. |
+| Emission factor | The MITECO "Mix sin GdO" electricity emission factor of a calendar year, in kg CO₂e/kWh (CEM-015). |
+| Applied factor year | The year whose emission factor is applied to a calendar year of the period: that year, or the latest earlier year with a factor (CEM-012). |
 
 ## Rules
 
@@ -193,6 +195,113 @@ And the unpriced surplus is 1.5 kWh
 - **Rationale:** The income must match the energy shown next to it.
 - **Source:** #556
 
+### CEM-011 — CO₂ avoided is each local year's production at that year's factor, rounded once
+
+- **Status:** Active
+- **Rule:** CO₂ avoided on community energy metrics MUST be the sum, over each local calendar year of
+  the resolved period, of that year's plant production multiplied by the emission factor applied to
+  that year, rounded once to 3 decimals.
+- **Rationale:** Factors are published per year, and a period can span years.
+- **Source:** MITECO, Factores de emisión v6 (2026-05-07); #559
+
+**Scenarios**
+
+```gherkin
+Given factors of 0.200 for 2024 and 0.150 for 2025
+And a period from 2024-11-01 to 2025-03-01 in the community's time zone
+And 400 kWh produced in 2024 and 600 kWh in 2025, in that time zone
+When the community energy metrics are read
+Then CO₂ avoided is 400 × 0.200 + 600 × 0.150 = 170 kg
+
+Given a record at 00:30 on 1 January 2025 in the community's time zone, 23:30 on 31 December 2024 in UTC
+When the community energy metrics are read
+Then its production counts in 2025
+
+Given a year inside the period with no production record
+When the community energy metrics are read
+Then that year does not affect CO₂ avoided or the applied factor years
+
+Given a year inside the period whose only production records are zero
+When the community energy metrics are read
+Then that year counts, with its applied factor year
+```
+
+### CEM-012 — A year without a factor uses the latest earlier one, and none earlier makes CO₂ avoided null
+
+- **Status:** Active
+- **Rule:** A year with no configured factor MUST use the latest earlier configured factor. If no
+  earlier factor exists, CO₂ avoided MUST be null.
+- **Rationale:** The current year's factor is published late. A figure must never be computed with a
+  factor from a later year.
+- **Source:** MITECO, Factores de emisión v6 (2026-05-07); #559
+
+**Scenarios**
+
+```gherkin
+Given factors configured up to 2025
+And a period inside 2026 with production
+When the community energy metrics are read
+Then the 2025 factor is applied and the applied factor years are [2025]
+
+Given factors configured from 2021
+And a production record in 2020 inside the period
+When the community energy metrics are read
+Then CO₂ avoided is null
+```
+
+### CEM-013 — The applied factor years are reported in ascending order
+
+- **Status:** Active
+- **Rule:** The response MUST report the factor years applied, in ascending order.
+- **Rationale:** The page names the factor year, and a reader must be able to tell which factor was
+  used.
+- **Source:** MITECO, Factores de emisión v6 (2026-05-07); #559
+
+### CEM-014 — CO₂ avoided is null when the production is
+
+- **Status:** Active
+- **Rule:** CO₂ avoided and the applied factor years MUST be null when the plant production is null.
+- **Rationale:** A gap is not a zero.
+- **Source:** MITECO, Factores de emisión v6 (2026-05-07); #559
+
+### CEM-015 — The factors are the MITECO "Mix sin GdO" factors, validated at startup
+
+- **Status:** Active
+- **Rule:** The emission factors MUST be the MITECO "Mix sin GdO" electricity factors in kg CO₂e/kWh,
+  configured per year from 2021. The application MUST refuse to start without at least one factor, or
+  with a negative one.
+- **Rationale:** MITECO prescribes this factor when the retailer is unknown. No data earlier than 2021
+  exists. A missing or wrong factor must fail at deploy time, not show a wrong figure.
+- **Source:** MITECO, Factores de emisión v6 (2026-05-07); #559
+
+### CEM-016 — The configured factors keep up with the MITECO publication calendar
+
+- **Status:** Active
+- **Rule:** From 1 June of year Y (Europe/Madrid), the configured factors MUST include year Y − 1, and
+  before that date year Y − 2. A scheduled check outside the regular build MUST fail when they do not.
+- **Rationale:** MITECO publishes each year's factors in May of the following year. A date must never
+  break an unrelated build, but an outdated factor must not go unnoticed.
+- **Source:** MITECO, Factores de emisión v6 (2026-05-07); #559
+
+**Scenarios**
+
+```gherkin
+Given factors configured up to 2025
+When the configured factors are checked on 2027-05-31
+Then the check passes
+
+Given factors configured up to 2025
+When the configured factors are checked on 2027-06-01
+Then the check fails, naming 2026
+
+Given factors configured up to 2026
+When the configured factors are checked on 2027-06-01
+Then the check passes
+```
+
+**Operational note:** when the scheduled check fails, take the new MITECO "Factores de emisión"
+version, update every year it revises, and redeploy.
+
 ## Impossible states
 
 - A share above 1, or two shares that do not add up to 1 — prevented by CEM-003: both are computed
@@ -206,6 +315,10 @@ And the unpriced surplus is 1.5 kWh
 - A priced and an unpriced surplus that do not add up to `surplusKWh`, or an income without a
   `surplusKWh` — prevented by CEM-010: both are read over the same supplies and the same interval, and
   computed only when `surplusKWh` is.
+- CO₂ avoided computed from production other than `productionKWh` — prevented by CEM-011: the
+  production per year is read over the same plants' supplies and the same interval as
+  `productionKWh`.
+- An applied factor year later than the year it is applied to — prevented by CEM-012.
 
 ## Accepted exceptions
 

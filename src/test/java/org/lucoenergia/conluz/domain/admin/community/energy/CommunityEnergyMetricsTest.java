@@ -6,7 +6,9 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.shared.emission.EmissionFactors;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +28,8 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-003 AC5 self-consumption 60 and surplus 40 give shares of 0.6 and 0.4")
     void selfConsumptionAndSurplusGiveTheTwoShares() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 60d, 40d, null, 2, 2, List.of(), Map.of());
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 60d, 40d, null, null, 2, 2,
+                List.of(), Map.of());
 
         assertEquals(0.6, metrics.getSelfConsumptionRatio(), TOLERANCE);
         assertEquals(0.4, metrics.getSurplusRatio(), TOLERANCE);
@@ -35,7 +38,8 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-003 AC5 both shares are null when self-consumption and surplus are both zero")
     void bothSharesAreNullWhenBothFiguresAreZero() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 0d, 0d, null, 2, 2, List.of(), Map.of());
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 0d, 0d, null, null, 2, 2,
+                List.of(), Map.of());
 
         assertNull(metrics.getSelfConsumptionRatio());
         assertNull(metrics.getSurplusRatio());
@@ -47,7 +51,7 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-003 EVL-002 the shares are computed from the unrounded figures")
     void theSharesAreComputedFromTheUnroundedFigures() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 0.1234, 0.2222, null, 1, 1, List.of(),
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 0.1234, 0.2222, null, null, 1, 1, List.of(),
                 Map.of());
 
         assertEquals(0.1234 / 0.3456, metrics.getSelfConsumptionRatio(), TOLERANCE);
@@ -57,8 +61,8 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-003 CEM-005 production is the sum of the plants', and each plant has its share of it")
     void productionIsTheSumOfThePlantsAndEachPlantHasItsShare() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, 1, 1, List.of(north, south),
-                Map.of(code(north), 30d, code(south), 10d));
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 1, 1,
+                List.of(north, south), Map.of(code(north), 30d, code(south), 10d));
 
         assertEquals(40d, metrics.getProductionKWh(), TOLERANCE);
         assertEquals(150.5, metrics.getInstalledPowerKWp(), TOLERANCE);
@@ -74,8 +78,8 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-005 AC6 a plant without production records has null production and share, never 0")
     void aPlantWithoutRecordsHasNullProductionAndShare() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, 1, 1, List.of(north, south),
-                Map.of(code(north), 30d));
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 1, 1,
+                List.of(north, south), Map.of(code(north), 30d));
 
         assertEquals(30d, metrics.getProductionKWh(), TOLERANCE);
         assertEquals(1.0, metrics.getPlants().get(0).getProductionShare(), TOLERANCE);
@@ -86,8 +90,8 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-005 a measured zero stays 0, with no share of a production of zero")
     void aMeasuredZeroStaysZero() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, 1, 1, List.of(north, south),
-                Map.of(code(north), 0d, code(south), 0d));
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 1, 1,
+                List.of(north, south), Map.of(code(north), 0d, code(south), 0d));
 
         assertEquals(0d, metrics.getProductionKWh(), 0d);
         assertEquals(0d, metrics.getPlants().get(0).getProductionKWh(), 0d);
@@ -97,8 +101,8 @@ class CommunityEnergyMetricsTest {
     @Test
     @DisplayName("CEM-005 production is null when no plant stored a production record")
     void productionIsNullWhenNoPlantStoredARecord() {
-        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, 1, 1, List.of(north, south),
-                Map.of());
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 1, 1,
+                List.of(north, south), Map.of());
 
         assertNull(metrics.getProductionKWh());
     }
@@ -120,6 +124,28 @@ class CommunityEnergyMetricsTest {
         assertEquals(150.5, metrics.getInstalledPowerKWp(), TOLERANCE);
         assertEquals(2, metrics.getPlants().size());
         assertNull(metrics.getPlants().get(0).getProductionKWh());
+    }
+
+    @Test
+    @DisplayName("CEM-014 AC5 without a period CO₂ avoided and its factor years are null")
+    void withoutAPeriodCo2AvoidedIsNull() {
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.withoutPeriod(3, List.of(north, south));
+
+        assertNull(metrics.getCo2AvoidedKg());
+        assertNull(metrics.getCo2AvoidedFactorYears());
+    }
+
+    @Test
+    @DisplayName("CEM-011 CEM-013 the CO₂ avoided is reported unrounded, with its factor years")
+    void theCo2AvoidedIsReportedUnroundedWithItsFactorYears() {
+        AvoidedEmissions avoided = AvoidedEmissions.estimate(Map.of(2024, 0.0001, 2025, 0.0002),
+                EmissionFactors.of(Map.of(2024, new BigDecimal("0.2"), 2025, new BigDecimal("0.1"))));
+
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, avoided, 1, 1,
+                List.of(north, south), Map.of(code(north), 0.0001, code(south), 0.0002));
+
+        assertEquals(0, new BigDecimal("0.00004").compareTo(metrics.getCo2AvoidedKg()));
+        assertEquals(List.of(2024, 2025), metrics.getCo2AvoidedFactorYears());
     }
 
     private static Plant plant(String code, double totalPower) {

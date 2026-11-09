@@ -69,8 +69,14 @@ dependencies {
     }
 }
 
+// Tests that depend on today's date never run in the regular build, where a date must never break an unrelated
+// change; each has its own task, run on a schedule (#559).
+def emissionFactorFreshnessTag = 'emission-factor-freshness'
+
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags emissionFactorFreshnessTag
+    }
     // Every cached Spring test context stays in memory for the whole run; Gradle's default of 512m runs out
     // a couple of contexts past today's count (see application-test.properties).
     maxHeapSize = '1g'
@@ -115,4 +121,26 @@ jar {
 
 springBoot {
     buildInfo()
+}
+
+// Checks the shipped emission factors against today's date (#559). Run monthly by
+// .github/workflows/emission-factors-freshness.yml; not part of `check`, so `build` never runs it.
+tasks.register('emissionFactorFreshness', Test) {
+    description = 'Checks that the shipped emission factors include the year MITECO has published by today.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags emissionFactorFreshnessTag
+    }
+    // A date-dependent check must be re-run every time, never answered from the build cache.
+    outputs.upToDateWhen { false }
+    testLogging {
+        events "passed", "failed", "skipped"
+        exceptionFormat "full"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams false
+    }
 }

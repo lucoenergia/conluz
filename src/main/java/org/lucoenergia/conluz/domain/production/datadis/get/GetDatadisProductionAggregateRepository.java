@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.production.datadis.get;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Map;
 
@@ -19,4 +20,15 @@ public interface GetDatadisProductionAggregateRepository {
      * collection issues no query.
      */
     Map<String, Double> sumProductionByCups(Collection<String> cups, Instant from, Instant toExclusive);
+
+    /**
+     * The production stored for the given supply codes (CUPS) in the half-open interval
+     * {@code [from, toExclusive)}, summed across the codes per calendar year of {@code zone} and keyed by
+     * the year.
+     *
+     * <p>A year without any production record in the interval is absent from the map; a year whose
+     * records all carry zero maps to {@code 0}. An empty collection issues no query.
+     */
+    Map<Integer, Double> sumProductionByYear(Collection<String> cups, Instant from, Instant toExclusive,
+                                             ZoneId zone);
 }

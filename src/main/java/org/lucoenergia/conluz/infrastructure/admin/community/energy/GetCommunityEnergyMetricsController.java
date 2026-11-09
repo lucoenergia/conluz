@@ -67,6 +67,15 @@ public class GetCommunityEnergyMetricsController {
                       taxes, fees, deviation costs or retailer margins are included.
                     - `surplusIncome.unpricedSurplusKWh`: the surplus of the hours without a stored price,
                       which add nothing to the amount. Both are `null` exactly when `energy.surplusKWh` is.
+                    - `co2Avoided.amountKg`: an **estimate** of the CO₂ that `energy.productionKWh`
+                      avoided, in kg CO₂e: what the same electricity would have emitted had it been bought
+                      from a retailer without guarantees of origin, using the MITECO "Mix sin GdO" factors,
+                      **not** the average grid mix. Each calendar year of the period, in the community's
+                      time zone, uses its own factor, or the latest earlier one when its own is not
+                      published yet; the products are summed unrounded and rounded once to 3 decimals.
+                    - `co2Avoided.factorYears`: the years of the factors applied, in ascending order. Both
+                      are `null` when `energy.productionKWh` is, or when a year with production is earlier
+                      than every available factor.
                     - `plants`: every plant of the community with its installed power, its production
                       and its share of the community's production.
 
