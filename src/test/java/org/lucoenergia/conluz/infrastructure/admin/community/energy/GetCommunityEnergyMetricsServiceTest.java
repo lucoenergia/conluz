@@ -20,6 +20,7 @@ import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.springframework.core.task.SyncTaskExecutor;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -29,9 +30,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -136,7 +140,70 @@ class GetCommunityEnergyMetricsServiceTest {
         assertNull(metrics.getStartDate());
         assertEquals(2, metrics.getSupplyCount());
         assertEquals(1, metrics.getPlants().size());
-        verifyNoInteractions(consumptionRepository, productionRepository);
+        verifyNoInteractions(consumptionRepository, productionRepository, priceRepository);
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-010 the hourly surplus is read over the supplies in scope and the period, and priced")
+    void theHourlySurplusIsReadOverTheSuppliesInScopeAndPriced() {
+        givenScope(SEPTEMBER, first, second, third);
+        givenAggregate(first, 1, 2);
+        givenAggregate(second, 1, 3);
+        givenAggregate(third, 1, 0);
+        when(consumptionRepository.sumSurplusByHour(List.of(first, second, third), FROM, TO, ZONE))
+                .thenReturn(Map.of(FROM, 5d, FROM.plusSeconds(3600), 1.5));
+        when(priceRepository.meanPriceByHour(FROM, TO, ZONE)).thenReturn(Map.of(FROM, 0.07));
+
+        CommunityEnergyMetrics metrics = getSeptember();
+
+        assertEquals(0, new BigDecimal("0.35").compareTo(metrics.getSurplusIncomeEur()),
+                () -> "was " + metrics.getSurplusIncomeEur());
+        assertEquals(1.5, metrics.getUnpricedSurplusKWh(), 1e-12);
+    }
+
+    /**
+     * From 10:30 to 14:30 in Madrid: the prices are read from 10:00 to 15:00, so the hours the bounds
+     * cut through are still priced at the mean of all four of their prices.
+     */
+    @Test
+    @DisplayName("CEM-008 the prices are read over whole hours when the period's bounds cut through one")
+    void thePricesAreReadOverWholeHours() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(OffsetDateTime.parse("2026-09-01T10:30:00+02:00"),
+                OffsetDateTime.parse("2026-09-01T14:30:00+02:00"));
+        givenScope(period, first, second);
+        when(consumptionRepository.aggregateByRangeOfDates(any(), any(), any()))
+                .thenReturn(new DatadisConsumptionAggregate(1d, 1d, 1d, 1L));
+
+        service.getEnergyMetrics(COMMUNITY_ID, period.getStartDate(), period.getEndDate(), null);
+
+        verify(consumptionRepository).sumSurplusByHour(List.of(first, second), period.getStartDate().toInstant(),
+                period.getEndDate().toInstant(), ZONE);
+        verify(priceRepository).meanPriceByHour(Instant.parse("2026-09-01T08:00:00Z"),
+                Instant.parse("2026-09-01T13:00:00Z"), ZONE);
+    }
+
+    @Test
+    @DisplayName("CEM-010 AC6 the income and the unpriced surplus are null when no supply stored a record")
+    void theIncomeIsNullWhenNoSupplyStoredARecord() {
+        givenScope(SEPTEMBER, first, second);
+        when(consumptionRepository.aggregateByRangeOfDates(any(), any(), any()))
+                .thenReturn(DatadisConsumptionAggregate.empty());
+        when(priceRepository.meanPriceByHour(any(), any(), any())).thenReturn(Map.of(FROM, 0.07));
+
+        CommunityEnergyMetrics metrics = getSeptember();
+
+        assertNull(metrics.getSurplusIncomeEur());
+        assertNull(metrics.getUnpricedSurplusKWh());
+    }
+
+    @Test
+    void aFailedPriceReadIsRethrownAsItFailed() {
+        givenScope(SEPTEMBER, first);
+        givenAggregate(first, 1, 1);
+        IllegalStateException failure = new IllegalStateException("InfluxDB is down");
+        when(priceRepository.meanPriceByHour(any(), any(), any())).thenThrow(failure);
+
+        assertSame(failure, assertThrows(IllegalStateException.class, this::getSeptember));
     }
 
     private CommunityEnergyMetrics getSeptember() {
