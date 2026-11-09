@@ -6,13 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → written by `syncDatadisConsumptions` and by the scheduled job `DatadisSyncDailyJob`; read by `getSupplyHourlyConsumption`, `getDatadisHourlyProduction` and `getDatadisConsumptionHourlyCsvReport`, among others |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #322 |
+| **Last reviewed against code** | #562 |
 
 ## Purpose
 
 How the hourly records Datadis returns for a supply become points of the hourly consumption series and,
-for plant supplies, of the hourly production series derived from them. This spec covers only the instant
-each record is stored at; the rest of the capability is specified lazily, as issues touch it.
+for plant supplies, of the hourly production series derived from them. This spec covers which supplies are
+synced and the instant each record is stored at; the rest of the capability is specified lazily, as issues
+touch it.
 
 ## Glossary
 
@@ -67,6 +68,16 @@ And the first 03:00 record is stored at 00:00Z and the second at 01:00Z
 - **Rationale:** For a plant supply both series come from the same records and are compared hour by
   hour, so they are placed by a single resolution of the records' instants.
 - **Source:** #322
+
+### DHI-004 — A supply without distributor code or point type is skipped once per run
+
+- **Status:** Active
+- **Rule:** The consumption sync MUST skip a supply that lacks a distributor code or a point type, and MUST log it
+  once per run, at WARN, with the supply id and the community id, never the CUPS. Datadis MUST NOT be called for it.
+- **Rationale:** Missing configuration is not a per-month error: both values are filled by the Datadis supply sync
+  ([`datadis-supply-sync.md`](datadis-supply-sync.md)), and a supply waiting for it logged one ERROR per month of
+  the window every night, which drowned real alerts.
+- **Source:** #562
 
 ## Accepted exceptions
 
