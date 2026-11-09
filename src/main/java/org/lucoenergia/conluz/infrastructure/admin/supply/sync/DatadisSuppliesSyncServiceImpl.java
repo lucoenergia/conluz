@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
@@ -19,9 +20,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -56,12 +61,15 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
                 .filter(found -> Boolean.TRUE.equals(found.getEnabled()))
                 .orElseThrow(DatadisDisabledException::new);
 
-        List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
-        Map<String, Supply> suppliesByCode = communitySupplies.stream()
-                .collect(Collectors.toMap(Supply::getCode, supply -> supply));
+        // A disabled supply is not synced: it is neither matched, nor updated, nor reported as missing
+        List<Supply> registered = getSupplyRepository.findAllByCommunityId(communityId).stream()
+                .filter(supply -> Boolean.TRUE.equals(supply.getEnabled()))
+                .toList();
+        Map<String, List<Supply>> registeredByCups = registered.stream()
+                .collect(Collectors.groupingBy(supply -> cupsKey(supply.getCode())));
         // Only the owners of this community's supplies are processed, and only this community's
         // supplies can be updated, so the job never writes another community's supplies.
-        List<User> users = communitySupplies.stream()
+        List<User> owners = registered.stream()
                 .map(Supply::getUser)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(User::getId, user -> user, (a, b) -> a))
@@ -71,41 +79,68 @@ public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncServic
         // One login per community and run: every owner is requested with the same token
         String bearerToken = "Bearer " + datadisAuthorizer.getAuthToken(config);
 
-        processUsers(config, bearerToken, users, suppliesByCode);
-    }
+        List<DatadisSupply> entries = new ArrayList<>();
+        for (User owner : owners) {
+            LOGGER.info("Processing users with ID {}", owner.getId());
+            entries.addAll(getSupplyRepositoryDatadis.getSuppliesByUser(config, bearerToken, owner));
+        }
 
-    private void processUsers(DatadisConfig config, String bearerToken, List<User> users,
-                              Map<String, Supply> suppliesByCode) {
-        for (User user : users) {
-
-            LOGGER.info("Processing users with ID {}", user.getId());
-
-            List<DatadisSupply> datadisSupplies = getSupplyRepositoryDatadis.getSuppliesByUser(config, bearerToken, user);
-            for (DatadisSupply datadisSupply : datadisSupplies) {
-                Supply supply = suppliesByCode.get(datadisSupply.getCups());
-                if (supply != null) {
-                    supply.setAddress(datadisSupply.getAddress());
-
-                    SupplyDistributor distributor = new SupplyDistributor.Builder()
-                            .withCode(datadisSupply.getDistributorCode())
-                            .withName(datadisSupply.getDistributor())
-                            .withPointType(datadisSupply.getPointType())
-                            .build();
-                    supply.setDistributor(distributor);
-
-                    SupplyContract contract = new SupplyContract.Builder()
-                            .withValidDateFrom(datadisSupply.getValidDateFrom() != null ?
-                                    dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
-                                    null)
-                            .build();
-                    supply.setContract(contract);
-
-                    updateSupplyRepository.update(supply);
-                    LOGGER.info("Supply with code {} synchronized with datadis.", datadisSupply.getCups());
-                } else {
-                    LOGGER.warn("Datadis supply with CUPS {} not found as registered supply.", datadisSupply.getCups());
-                }
+        Set<String> returned = new HashSet<>();
+        int notRegistered = 0;
+        for (DatadisSupply entry : entries) {
+            String key = cupsKey(entry.getCups());
+            returned.add(key);
+            List<Supply> matches = registeredByCups.getOrDefault(key, List.of());
+            if (matches.isEmpty()) {
+                // Datadis returns every supply authorised for an owner, also those of other communities
+                notRegistered++;
+            } else if (matches.size() > 1) {
+                LOGGER.error("Datadis supply matches several registered supplies in community {}: {}", communityId,
+                        matches.stream().map(Supply::getId).toList());
+            } else {
+                update(matches.get(0), entry);
             }
         }
+        LOGGER.debug("{} Datadis supplies not registered in community {}", notRegistered, communityId);
+        registeredByCups.forEach((key, supplies) -> {
+            if (!returned.contains(key)) {
+                supplies.forEach(supply -> LOGGER.warn("Registered supply {} not returned by Datadis in community {}",
+                        supply.getId(), communityId));
+            }
+        });
+    }
+
+    /**
+     * The key under which a code and a Datadis CUPS are the same supply: upper-cased, and in its 22-character form when
+     * it has one, so that the two forms of a CUPS meet (SUP-007). A code that is not a CUPS, stored before #532, is
+     * only upper-cased; nothing here throws.
+     */
+    private static String cupsKey(String code) {
+        if (code == null) {
+            return "";
+        }
+        String upperCased = code.toUpperCase(Locale.ROOT);
+        return SupplyCode.toFullLength(upperCased).orElse(upperCased);
+    }
+
+    private void update(Supply supply, DatadisSupply datadisSupply) {
+        supply.setAddress(datadisSupply.getAddress());
+
+        SupplyDistributor distributor = new SupplyDistributor.Builder()
+                .withCode(datadisSupply.getDistributorCode())
+                .withName(datadisSupply.getDistributor())
+                .withPointType(datadisSupply.getPointType())
+                .build();
+        supply.setDistributor(distributor);
+
+        SupplyContract contract = new SupplyContract.Builder()
+                .withValidDateFrom(datadisSupply.getValidDateFrom() != null ?
+                        dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
+                        null)
+                .build();
+        supply.setContract(contract);
+
+        updateSupplyRepository.update(supply);
+        LOGGER.info("Supply with ID {} synchronized with datadis.", supply.getId());
     }
 }

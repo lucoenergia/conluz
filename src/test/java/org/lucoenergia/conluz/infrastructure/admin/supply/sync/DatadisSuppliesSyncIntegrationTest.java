@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -252,6 +253,143 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
         }
     }
 
+    @Test
+    @DisplayName("DSS-005 a supply stored in the 20-character form, or in lower case, is matched by the 22-character "
+            + "upper-case CUPS Datadis returns")
+    void suppliesAreMatchedAcrossCupsFormsAndCase() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        String shortForm = SupplyMother.randomCups();
+        String lowerCase = SupplyMother.randomCups();
+        // Stored through the repository, which keeps a code as given: codes like these were written before #532
+        Supply stored20 = supply(owner, communityId, shortForm.substring(0, 20), true);
+        Supply storedLower = supply(owner, communityId, lowerCase.toLowerCase(Locale.ROOT), true);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(), List.of(entry(shortForm, "1"), entry(lowerCase, "2")));
+
+        datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+        assertThat(distributorCode(stored20)).isEqualTo("1");
+        assertThat(distributorCode(storedLower)).isEqualTo("2");
+        assertThat(getSupplyRepository.findById(SupplyId.of(stored20.getId())).orElseThrow().getContract()
+                .getValidDateFrom()).isEqualTo(LocalDate.of(2024, 6, 1));
+    }
+
+    @Test
+    @DisplayName("DSS-006 a registered supply Datadis does not return is logged at WARN with its id and left "
+            + "unchanged; a Datadis supply that is not registered is neither logged nor written")
+    void aRegisteredSupplyDatadisDoesNotReturnIsReported() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        Supply s1 = supply(owner, communityId);
+        Supply s2 = supply(owner, communityId);
+        Supply missing = supply(owner, communityId);
+        String unregistered = SupplyMother.randomCups();
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(),
+                List.of(entry(s1.getCode(), "1"), entry(unregistered, "9"), entry(s2.getCode(), "1")));
+        Supply missingBefore = stored(missing);
+
+        try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncServiceImpl.class)) {
+            datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+            assertThat(logs.warningsAndAbove()).singleElement().satisfies(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.WARN);
+                assertThat(event.getMessage()).isEqualTo("Registered supply {} not returned by Datadis in community {}");
+                assertThat(event.getArgumentArray()).containsExactly(missing.getId(), communityId);
+            });
+            assertThat(logs.all()).noneSatisfy(event -> assertThat(event.getFormattedMessage()).contains(unregistered));
+        }
+        assertThat(distributorCode(s1)).isEqualTo("1");
+        assertThat(distributorCode(s2)).isEqualTo("1");
+        assertThat(getSupplyRepository.findById(SupplyId.of(missing.getId())).orElseThrow())
+                .usingRecursiveComparison().isEqualTo(missingBefore);
+        assertThat(getSupplyRepository.findAllByCommunityId(communityId))
+                .extracting(Supply::getCode)
+                .containsExactlyInAnyOrder(s1.getCode(), s2.getCode(), missing.getCode());
+    }
+
+    @Test
+    @DisplayName("DSS-006 when Datadis refuses an owner's supplies request, each registered supply of that owner is "
+            + "logged at WARN")
+    void anOwnerWhoseRequestFailsHasEachSupplyReported() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User answered = owner();
+        User refused = owner();
+        Supply a1 = supply(answered, communityId);
+        Supply r1 = supply(refused, communityId);
+        Supply r2 = supply(refused, communityId);
+        datadis.supplies(BASE_URL_A, answered.getPersonalId(), List.of(entry(a1.getCode(), "1")));
+        datadis.failSupplies(BASE_URL_A, refused.getPersonalId(), 500);
+
+        try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncServiceImpl.class)) {
+            datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+            assertThat(logs.warningsAndAbove())
+                    .allSatisfy(event -> {
+                        assertThat(event.getLevel()).isEqualTo(Level.WARN);
+                        assertThat(event.getMessage())
+                                .isEqualTo("Registered supply {} not returned by Datadis in community {}");
+                    })
+                    .extracting(event -> event.getArgumentArray()[0])
+                    .containsExactlyInAnyOrder(r1.getId(), r2.getId());
+        }
+        assertThat(distributorCode(a1)).isEqualTo("1");
+        assertThat(distributorCode(r1)).isNull();
+        assertThat(distributorCode(r2)).isNull();
+    }
+
+    @Test
+    @DisplayName("DSS-006 a disabled supply is neither reported when Datadis does not return it nor updated when it "
+            + "does")
+    void disabledSuppliesAreNotSynced() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        Supply enabled = supply(owner, communityId);
+        Supply disabledReturned = supply(owner, communityId, SupplyMother.randomCups(), false);
+        Supply disabledMissing = supply(owner, communityId, SupplyMother.randomCups(), false);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(),
+                List.of(entry(enabled.getCode(), "1"), entry(disabledReturned.getCode(), "1")));
+
+        try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncServiceImpl.class)) {
+            datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+            assertThat(logs.warningsAndAbove()).isEmpty();
+        }
+        assertThat(distributorCode(enabled)).isEqualTo("1");
+        assertThat(distributorCode(disabledReturned)).isNull();
+        assertThat(distributorCode(disabledMissing)).isNull();
+    }
+
+    @Test
+    @DisplayName("DSS-007 a Datadis supply that matches two registered supplies, by the 20- and 22-character forms "
+            + "of its CUPS, is skipped with an ERROR naming both, and the rest of the community is synced")
+    @SuppressWarnings("unchecked")
+    void anAmbiguousMatchIsSkipped() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        String cups = SupplyMother.randomCups();
+        Supply longForm = supply(owner, communityId, cups, true);
+        Supply shortForm = supply(owner, communityId, cups.substring(0, 20), true);
+        Supply other = supply(owner, communityId);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(), List.of(entry(cups, "1"), entry(other.getCode(), "2")));
+
+        try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncServiceImpl.class)) {
+            datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+            assertThat(logs.warningsAndAbove()).singleElement().satisfies(event -> {
+                assertThat(event.getLevel()).isEqualTo(Level.ERROR);
+                assertThat(event.getMessage())
+                        .isEqualTo("Datadis supply matches several registered supplies in community {}: {}");
+                assertThat(event.getArgumentArray()[0]).isEqualTo(communityId);
+                assertThat((List<Object>) event.getArgumentArray()[1])
+                        .containsExactlyInAnyOrder(longForm.getId(), shortForm.getId());
+                assertThat(event.getFormattedMessage()).doesNotContain(cups.substring(0, 20));
+            });
+        }
+        assertThat(distributorCode(longForm)).isNull();
+        assertThat(distributorCode(shortForm)).isNull();
+        assertThat(distributorCode(other)).isEqualTo("2");
+    }
+
     private static Object argument(ILoggingEvent event, int index) {
         Object[] arguments = event.getArgumentArray();
         return arguments == null || arguments.length <= index ? null : arguments[index];
@@ -280,11 +418,20 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
      * An enabled supply with no distributor yet, as a supply is before its first sync.
      */
     private Supply supply(User owner, UUID communityId) {
+        return supply(owner, communityId, SupplyMother.randomCups(), true);
+    }
+
+    private Supply supply(User owner, UUID communityId, String code, boolean enabled) {
         return createSupplyRepository.create(SupplyMother.random(owner)
-                .withEnabled(true)
+                .withCode(code)
+                .withEnabled(enabled)
                 .withDistributor(null)
                 .withContract(null)
                 .build(), UserId.of(owner.getId()), communityId);
+    }
+
+    private Supply stored(Supply supply) {
+        return getSupplyRepository.findById(SupplyId.of(supply.getId())).orElseThrow();
     }
 
     private static DatadisSupply entry(String cups, String distributorCode) {
