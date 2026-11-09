@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantRefe
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -11,8 +12,8 @@ import java.util.Objects;
 
 /**
  * The energy figures of a community over one period: its plants' production, the self-consumption
- * and surplus of every supply in scope, summed, the shares derived from them, the installed power and
- * how many supplies have data.
+ * and surplus of every supply in scope, summed, the shares derived from them, the estimated income of
+ * that surplus, the installed power and how many supplies have data.
  *
  * <p>Every figure is kept unrounded; the shares are computed here once, from the unrounded sums, and
  * rounding is left to the response. A figure nothing was stored for is null rather than zero.
@@ -28,14 +29,17 @@ public class CommunityEnergyMetrics {
     private final int suppliesWithData;
     private final List<CommunityPlantEnergy> plants;
     private final double installedPowerKWp;
+    private final SurplusIncome surplusIncome;
 
     private CommunityEnergyMetrics(OffsetDateTime startDate, OffsetDateTime endDate, Double selfConsumptionKWh,
-                                   Double surplusKWh, int supplyCount, int suppliesWithData,
-                                   List<Plant> plants, Map<String, Double> productionBySupplyCode) {
+                                   Double surplusKWh, SurplusIncome surplusIncome, int supplyCount,
+                                   int suppliesWithData, List<Plant> plants,
+                                   Map<String, Double> productionBySupplyCode) {
         this.startDate = startDate;
         this.endDate = endDate;
         this.selfConsumptionKWh = selfConsumptionKWh;
         this.surplusKWh = surplusKWh;
+        this.surplusIncome = surplusIncome;
         this.supplyCount = supplyCount;
         this.suppliesWithData = suppliesWithData;
         this.productionKWh = plants.stream()
@@ -60,6 +64,8 @@ public class CommunityEnergyMetrics {
      *                               none of them stored a record in the period
      * @param surplusKWh             the surplus of every supply in scope, summed, or null when none of
      *                               them stored a record in the period
+     * @param surplusIncome          the estimated income of that same surplus, or null exactly when
+     *                               {@code surplusKWh} is null
      * @param supplyCount            the number of supplies in scope
      * @param suppliesWithData       how many of them have data for the period
      * @param plants                 every plant of the community
@@ -67,10 +73,11 @@ public class CommunityEnergyMetrics {
      *                               of the plant's supply; a plant without any record is absent
      */
     public static CommunityEnergyMetrics of(EnergyMetricsPeriod period, Double selfConsumptionKWh,
-                                            Double surplusKWh, int supplyCount, int suppliesWithData,
-                                            List<Plant> plants, Map<String, Double> productionBySupplyCode) {
+                                            Double surplusKWh, SurplusIncome surplusIncome, int supplyCount,
+                                            int suppliesWithData, List<Plant> plants,
+                                            Map<String, Double> productionBySupplyCode) {
         return new CommunityEnergyMetrics(period.getStartDate(), period.getEndDate(), selfConsumptionKWh,
-                surplusKWh, supplyCount, suppliesWithData, plants, productionBySupplyCode);
+                surplusKWh, surplusIncome, supplyCount, suppliesWithData, plants, productionBySupplyCode);
     }
 
     /**
@@ -78,7 +85,7 @@ public class CommunityEnergyMetrics {
      * every plant listed with its installed power alone.
      */
     public static CommunityEnergyMetrics withoutPeriod(int supplyCount, List<Plant> plants) {
-        return new CommunityEnergyMetrics(null, null, null, null, supplyCount, 0, plants, Map.of());
+        return new CommunityEnergyMetrics(null, null, null, null, null, supplyCount, 0, plants, Map.of());
     }
 
     /**
@@ -135,6 +142,22 @@ public class CommunityEnergyMetrics {
      */
     public Double getSurplusRatio() {
         return share(surplusKWh, assignedProductionKWh());
+    }
+
+    /**
+     * The estimated income of the surplus at OMIE day-ahead prices, in euros, unrounded; null when the
+     * surplus is.
+     */
+    public BigDecimal getSurplusIncomeEur() {
+        return surplusIncome == null ? null : surplusIncome.getAmountEur();
+    }
+
+    /**
+     * The part of the surplus in hours without a stored OMIE price, in kWh, unrounded; null when the
+     * surplus is.
+     */
+    public Double getUnpricedSurplusKWh() {
+        return surplusIncome == null ? null : surplusIncome.getUnpricedSurplusKWh();
     }
 
     private Double assignedProductionKWh() {

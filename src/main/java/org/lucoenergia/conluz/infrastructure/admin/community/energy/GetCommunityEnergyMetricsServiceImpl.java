@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyMetri
 import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyScope;
 import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyScopeResolver;
 import org.lucoenergia.conluz.domain.admin.community.energy.GetCommunityEnergyMetricsService;
+import org.lucoenergia.conluz.domain.admin.community.energy.SurplusIncome;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
@@ -13,12 +14,15 @@ import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumpt
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,12 +36,17 @@ import java.util.UUID;
  * {@link PublicationThreshold publication threshold} of the hours the period spans: the criterion a
  * month is published by, applied to the period requested.
  *
+ * <p>The surplus is also priced hour by hour at the mean OMIE day-ahead price of each hour, over the
+ * same supplies and the same period as its total.
+ *
  * <h2>Query cost</h2>
  *
  * <p>The cost of resolving the scope (see {@link CommunityEnergyScopeResolverImpl}) and one relational
  * query for the plants, then two Influx queries per supply (its totals and its published hours) and a
- * single one for the production of every plant. Every sum is pushed down to the store, so the cost
- * grows with the number of supplies, not with the length of the period.
+ * single one for the production of every plant. When a supply stored a record, two more: the hours with
+ * surplus of every supply summed per hour, and the mean price of every hour. Every sum and mean is
+ * pushed down to the store, so the number of queries grows with the number of supplies, not with the
+ * length of the period.
  */
 @Service
 @Transactional(readOnly = true)
@@ -47,16 +56,19 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
     private final GetPlantRepository getPlantRepository;
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository;
+    private final GetPriceRepository getPriceRepository;
 
     public GetCommunityEnergyMetricsServiceImpl(
             CommunityEnergyScopeResolver communityEnergyScopeResolver,
             GetPlantRepository getPlantRepository,
             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
-            GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository) {
+            GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository,
+            GetPriceRepository getPriceRepository) {
         this.communityEnergyScopeResolver = communityEnergyScopeResolver;
         this.getPlantRepository = getPlantRepository;
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getDatadisProductionAggregateRepository = getDatadisProductionAggregateRepository;
+        this.getPriceRepository = getPriceRepository;
     }
 
     @Override
@@ -105,6 +117,31 @@ public class GetCommunityEnergyMetricsServiceImpl implements GetCommunityEnergyM
         return CommunityEnergyMetrics.of(period,
                 anyRecord ? selfConsumptionKWh : null,
                 anyRecord ? surplusKWh : null,
+                anyRecord ? estimateSurplusIncome(supplies, from, toExclusive, scope.getZone()) : null,
                 supplies.size(), suppliesWithData, plants, productionBySupplyCode);
+    }
+
+    /**
+     * The surplus is read over the same supplies and interval as its total, and the prices over whole
+     * hours, so an hour the interval's bounds cut through is still priced at the mean of all its prices.
+     */
+    private SurplusIncome estimateSurplusIncome(List<Supply> supplies, Instant from, Instant toExclusive,
+                                                ZoneId zone) {
+        Map<Instant, Double> surplusByHour = getDatadisConsumptionAggregateRepository.sumSurplusByHour(supplies,
+                from, toExclusive, zone);
+        Map<Instant, Double> meanPriceByHour = getPriceRepository.meanPriceByHour(startOfHour(from, zone),
+                endOfLastHour(toExclusive, zone), zone);
+        return SurplusIncome.estimate(surplusByHour, meanPriceByHour);
+    }
+
+    private static Instant startOfHour(Instant instant, ZoneId zone) {
+        return instant.atZone(zone).truncatedTo(ChronoUnit.HOURS).toInstant();
+    }
+
+    /**
+     * The end of the hour that holds the last instant before {@code toExclusive}.
+     */
+    private static Instant endOfLastHour(Instant toExclusive, ZoneId zone) {
+        return startOfHour(toExclusive.minusNanos(1), zone).plus(1, ChronoUnit.HOURS);
     }
 }

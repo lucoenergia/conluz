@@ -6,16 +6,17 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Communities`; operations `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #554 |
+| **Last reviewed against code** | #556 |
 
 ## Purpose
 
 The energy figures of a whole community, from the distributor's records: what its plants produced,
 how much of the energy assigned to its supplies was used in the community and how much went to the
-grid, the installed power, and how many supplies have data. Only community aggregates are exposed,
-never a figure of a single supply or member. The period these operations are computed over follows
-EPR-001 to EPR-005 (`energy-periods.md`), and the precision and names of their energy figures follow
-`energy-values.md`. The rest of the capability is specified lazily, as issues touch it.
+grid, an estimate of what that surplus earned at OMIE day-ahead prices, the installed power, and how
+many supplies have data. Only community aggregates are exposed, never a figure of a single supply or
+member. The period these operations are computed over follows EPR-001 to EPR-005
+(`energy-periods.md`), and the precision and names of their energy figures follow `energy-values.md`.
+The rest of the capability is specified lazily, as issues touch it.
 
 ## Glossary
 
@@ -142,6 +143,56 @@ Then the day reports two supplies with data and the sum of their energy
 - **Rationale:** Members see community aggregates only. Per-supply data stays behind `canReadSupply`.
 - **Source:** #554
 
+### CEM-008 — The surplus income is each hour's surplus priced at that hour's mean OMIE price
+
+- **Status:** Active
+- **Rule:** The estimated surplus income on community energy metrics MUST be the sum, over every hour
+  of the resolved period, of that hour's surplus multiplied by the mean of the OMIE prices stored for
+  that hour, with negative and zero prices applied as they are. It MUST be summed unrounded and
+  rounded once, with the rule used for `savings.amountEur`.
+- **Rationale:** A market-price estimate of what the exported energy earned. Hourly pricing follows
+  the hourly Datadis surplus. Since October 2025, the mean of the four quarter-hour prices is the
+  hourly equivalent.
+- **Source:** #556
+
+**Scenarios**
+
+```gherkin
+Given supplies in scope with 2 kWh and 3 kWh of surplus in the same hour
+And four quarter-hour prices of 0.04, 0.06, 0.08 and 0.10 €/kWh stored for that hour
+When the community energy metrics are read
+Then that hour adds 5 kWh × 0.07 €/kWh = 0.35 € to the surplus income
+
+Given 4 kWh of surplus in an hour whose stored price is -0.01 €/kWh
+When the community energy metrics are read
+Then that hour adds -0.04 € to the surplus income
+```
+
+### CEM-009 — The surplus of an hour without a price is reported as unpriced
+
+- **Status:** Active
+- **Rule:** An hour with surplus and no stored OMIE price MUST add nothing to the income, and its
+  surplus MUST be reported as unpriced energy in the same response.
+- **Rationale:** A missing price must be visible, not hidden as a lower income.
+- **Source:** #556
+
+**Scenarios**
+
+```gherkin
+Given 1.5 kWh of surplus in an hour without any stored OMIE price
+When the community energy metrics are read
+Then that hour adds nothing to the surplus income
+And the unpriced surplus is 1.5 kWh
+```
+
+### CEM-010 — The income covers exactly the surplus reported next to it
+
+- **Status:** Active
+- **Rule:** The income and the unpriced energy MUST be computed over exactly the surplus that makes up
+  the same response's `surplusKWh`, and MUST be null when that figure is null.
+- **Rationale:** The income must match the energy shown next to it.
+- **Source:** #556
+
 ## Impossible states
 
 - A share above 1, or two shares that do not add up to 1 — prevented by CEM-003: both are computed
@@ -152,6 +203,9 @@ Then the day reports two supplies with data and the sum of their energy
   current hour, so the clipped period always overlaps at least one day.
 - Two hours of the hourly series sharing a `startsAt` — prevented by CEM-006 together with EPR-001:
   the hours are counted on the instant line, one hour apart.
+- A priced and an unpriced surplus that do not add up to `surplusKWh`, or an income without a
+  `surplusKWh` — prevented by CEM-010: both are read over the same supplies and the same interval, and
+  computed only when `surplusKWh` is.
 
 ## Accepted exceptions
 
@@ -160,3 +214,4 @@ Then the day reports two supplies with data and the sum of their energy
 | A period of the hourly series that holds no whole hour start (for example `[10:30, 10:45)`) returns no bucket, and a monthly series whose period holds no local midnight of a day 1 returns none either. | EPR-001 only requires the start to be before the end; every bucket that starts inside such a period is emitted, and there is none. | A minimum length or aligned bounds are required. | #554 |
 | `supplyCount` is the number of supplies in scope today, the same for every bucket and period, including buckets before a supply joined. | The model records no date a supply joined or left its community or was disabled. | Supply membership in a community gets a validity interval. | #554 |
 | With neither dates nor `period`, the metrics period spans the stored records of the supplies in scope, as the membership metrics do. | Mirrors the period parameters of `getMembershipEnergyMetrics`; the recorded-period fallback is the one EPR already lists as an accepted exception. | The recorded-period fallback is capped or removed. | #409, #554 |
+| Hours stored before #322 and never re-synced sit at the end of their hour (see the accepted exception of [`datadis-hourly-ingestion.md`](datadis-hourly-ingestion.md)), so CEM-008 prices them one hour late. The daily Datadis sync re-reads only its 13-month window, so months older than that keep the late placement unless they are re-synced manually. | The fix of #322 applies to records as they are synced, and the prices are matched to the hour a record is stored at. | No month inside the 24-month maximum period was stored before #322 without a later re-sync. | #322, #556 |

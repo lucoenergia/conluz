@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -607,6 +608,84 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     @Test
     void aggregateByLocalDayOfNoSupplyReadsNothing() {
         assertTrue(repository.aggregateByLocalDay(List.of(), Instant.parse("2026-05-09T22:00:00Z"),
+                Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-010 the surplus of several supplies is summed hour by hour, keyed by the start of the hour")
+    void sumSurplusByHourSumsTheSuppliesHourByHour() {
+        Supply first = supply();
+        Supply second = supply();
+        Supply outOfScope = supply();
+        Instant ten = Instant.parse("2026-05-10T08:00:00Z");
+        Instant eleven = ten.plusSeconds(3600);
+        fixture.writeAt(first.getCode(), List.of(ten, eleven), 1f, 0f, 2f);
+        fixture.writeAt(second.getCode(), ten, 1f, 0f, 3f);
+        fixture.writeAt(outOfScope.getCode(), List.of(ten, eleven), 1f, 0f, 100f);
+
+        Map<Instant, Double> surplus = repository.sumSurplusByHour(List.of(first, second), ten,
+                ten.plusSeconds(3 * 3600), ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Map.of(ten, 5.0, eleven, 2.0), surplus);
+    }
+
+    @Test
+    @DisplayName("EPR-001 CEM-008 the hourly surplus includes the record on the start bound and excludes the one on the end bound")
+    void sumSurplusByHourIsHalfOpen() {
+        Supply supply = supply();
+        Instant from = Instant.parse("2026-05-10T10:00:00Z");
+        Instant to = Instant.parse("2026-05-10T12:00:00Z");
+        fixture.writeAt(supply.getCode(), List.of(from.minusSeconds(3600), from, from.plusSeconds(3600), to),
+                1f, 0f, 1f);
+
+        Map<Instant, Double> surplus = repository.sumSurplusByHour(List.of(supply), from, to,
+                ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Map.of(from, 1.0, from.plusSeconds(3600), 1.0), surplus);
+    }
+
+    @Test
+    @DisplayName("CEM-009 an hour whose records carry no surplus, or a surplus of zero, is absent")
+    void sumSurplusByHourLeavesOutTheHoursWithoutSurplus() {
+        Supply first = supply();
+        Supply second = supply();
+        Instant ten = Instant.parse("2026-05-10T08:00:00Z");
+        fixture.writeAt(first.getCode(), ten, 1f, 1f, 0f);
+        fixture.writeAt(second.getCode(), ten, 1f, 1f, 0f);
+        fixture.writeAt(first.getCode(), ten.plusSeconds(3600), 1f, 1f, null);
+        fixture.writeAt(second.getCode(), ten.plusSeconds(2 * 3600), 1f, 1f, 0.25f);
+
+        Map<Instant, Double> surplus = repository.sumSurplusByHour(List.of(first, second), ten,
+                ten.plusSeconds(3 * 3600), ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Map.of(ten.plusSeconds(2 * 3600), 0.25), surplus);
+    }
+
+    /**
+     * 25 October 2026 lasts 25 hours in Madrid: each keeps its own key, the repeated 02:00 included.
+     */
+    @Test
+    @DisplayName("CEM-008 the hourly surplus keeps every hour of the day the clocks go back")
+    void sumSurplusByHourKeepsEveryHourAcrossTheDaylightSavingChange() {
+        Supply supply = supply();
+        Instant dayStart = Instant.parse("2026-10-24T22:00:00Z");
+        List<Instant> hours = new ArrayList<>();
+        for (int hour = 0; hour < 25; hour++) {
+            hours.add(dayStart.plusSeconds(3600L * hour));
+        }
+        fixture.writeAt(supply.getCode(), hours, 1f, 0.5f, 0.25f);
+
+        Map<Instant, Double> surplus = repository.sumSurplusByHour(List.of(supply), dayStart,
+                dayStart.plusSeconds(25 * 3600), ZoneId.of("Europe/Madrid"));
+
+        assertEquals(25, surplus.size());
+        assertEquals(Set.copyOf(hours), surplus.keySet());
+        assertTrue(surplus.values().stream().allMatch(kWh -> kWh == 0.25), () -> "was " + surplus);
+    }
+
+    @Test
+    void sumSurplusByHourOfNoSupplyReadsNothing() {
+        assertTrue(repository.sumSurplusByHour(List.of(), Instant.parse("2026-05-09T22:00:00Z"),
                 Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
     }
 

@@ -1,30 +1,43 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.energy;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.energy.CommunityEnergyMetrics;
+import org.lucoenergia.conluz.domain.admin.community.energy.GetCommunityEnergyMetricsService;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.energy.CommunityEnergyTestFixture.EnergyCommunity;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.KWhJson;
+import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -47,8 +60,26 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
     /** 10:00 on 10 May 2026 in Madrid. */
     private static final Instant TEN = Instant.parse("2026-05-10T08:00:00Z");
 
+    /** The fixture's price window, from 10 September to 20 October 2025, as Madrid times. */
+    private static final String INCOME_START = "2025-09-10T02:00:00+02:00";
+    private static final String INCOME_END = "2025-10-20T02:00:00+02:00";
+    /** 12:00 on 10 October 2025 in Madrid, priced by four quarter-hour prices. */
+    private static final Instant QUARTERS_HOUR = Instant.parse("2025-10-10T10:00:00Z");
+    /** 12:00 on 20 September 2025 in Madrid, priced by a single hourly price. */
+    private static final Instant HOURLY_HOUR = Instant.parse("2025-09-20T10:00:00Z");
+    /** 13:00 on 10 October 2025 in Madrid, without a price. */
+    private static final Instant UNPRICED_HOUR = Instant.parse("2025-10-10T11:00:00Z");
+    /** 14:00 on 10 October 2025 in Madrid, at a negative price. */
+    private static final Instant NEGATIVE_HOUR = Instant.parse("2025-10-10T12:00:00Z");
+
     @Autowired
     private CommunityEnergyTestFixture fixture;
+    @Autowired
+    private GetCommunityEnergyMetricsService getCommunityEnergyMetricsService;
+    @Autowired
+    private GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
+    @Autowired
+    private GetPriceRepository getPriceRepository;
 
     @BeforeEach
     void givenAFixedClock() {
@@ -381,6 +412,150 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
         assertNoSupplyOrMember(body, community);
     }
 
+    // --- Surplus income ---
+
+    @Test
+    @DisplayName("CEM-008 CEM-009 AC1 AC2 AC3 AC4 AC7 each hour's surplus is priced at its mean OMIE price; an unpriced hour is reported apart")
+    void eachHoursSurplusIsPricedAtItsMeanPrice() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        writeIncomeHours(community);
+        EnergyCommunity other = fixture.createCommunity();
+        fixture.writeConsumption(other.supplies().get(0), List.of(QUARTERS_HOUR, HOURLY_HOUR, UNPRICED_HOUR,
+                NEGATIVE_HOUR), 1f, 0f, 1000f);
+        writeIncomePrices();
+
+        String body = requestPeriod(community.id(), loginUser(community.memberA()), INCOME_START, INCOME_END)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        // 5 × 0.07 + 2 × 0.05 + 4 × −0.01 = 0.35 + 0.10 − 0.04; the other community adds nothing.
+        assertAmount(body, "0.41");
+        KWhJson.assertKWh(body, "/surplusIncome/unpricedSurplusKWh", "1.5");
+        KWhJson.assertKWh(body, "/energy/surplusKWh", "12.5");
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-010 AC8 the surplus of a supply whose owner's membership is disabled is priced")
+    void theSurplusOfADisabledMembersSupplyIsPriced() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        fixture.writeConsumption(community.supplies().get(2), QUARTERS_HOUR, 1f, 0f, 1f);
+        fixture.writeConsumption(community.disabledSupply(), QUARTERS_HOUR, 1f, 0f, 500f);
+        writeIncomePrices();
+
+        String body = requestPeriod(community.id(), loginUser(community.memberA()), INCOME_START, INCOME_END)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertAmount(body, "0.07");
+        KWhJson.assertKWh(body, "/surplusIncome/unpricedSurplusKWh", "0");
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-009 AC5 a surplus of zero in every hour earns 0.00 with no unpriced surplus")
+    void aSurplusOfZeroInEveryHourEarnsNothing() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        fixture.writeConsumption(community.supplies().get(0), List.of(QUARTERS_HOUR, UNPRICED_HOUR), 1f, 1f, 0f);
+        fixture.writeConsumption(community.supplies().get(1), NEGATIVE_HOUR, 1f, 1f, 0f);
+        writeIncomePrices();
+
+        String body = requestPeriod(community.id(), loginUser(community.memberA()), INCOME_START, INCOME_END)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertAmount(body, "0.00");
+        KWhJson.assertKWh(body, "/surplusIncome/unpricedSurplusKWh", "0");
+    }
+
+    @Test
+    @DisplayName("CEM-010 AC6 both figures are null when no supply stored a record in the period")
+    void bothFiguresAreNullWhenNoSupplyStoredARecord() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        fixture.writeProduction(community.north(), QUARTERS_HOUR, 5f);
+        writeIncomePrices();
+
+        requestPeriod(community.id(), loginUser(community.memberA()), INCOME_START, INCOME_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.energy.surplusKWh").value(nullValue()))
+                .andExpect(jsonPath("$.surplusIncome.amountEur").value(nullValue()))
+                .andExpect(jsonPath("$.surplusIncome.unpricedSurplusKWh").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("CEM-010 AC6 both figures are null when no period resolves")
+    void bothFiguresAreNullWhenNoPeriodResolves() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        writeIncomePrices();
+
+        requestLatest(community.id(), loginUser(community.memberA()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value(nullValue()))
+                .andExpect(jsonPath("$.surplusIncome.amountEur").value(nullValue()))
+                .andExpect(jsonPath("$.surplusIncome.unpricedSurplusKWh").value(nullValue()));
+    }
+
+    /**
+     * The invariant behind CEM-010, checked before any rounding: the hours the income prices and the
+     * hours it reports unpriced add up to the surplus of the same supplies over the same period.
+     */
+    @Test
+    @DisplayName("CEM-010 the priced and the unpriced surplus add up to the surplus of the supplies in scope")
+    void thePricedAndTheUnpricedSurplusAddUpToTheSurplus() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        writeIncomeHours(community);
+        fixture.writeConsumption(community.disabledSupply(), QUARTERS_HOUR, 1f, 0f, 500f);
+        writeIncomePrices();
+        OffsetDateTime start = OffsetDateTime.parse(INCOME_START);
+        OffsetDateTime end = OffsetDateTime.parse(INCOME_END);
+        List<Supply> inScope = new ArrayList<>(community.supplies());
+        inScope.add(community.north().getSupply());
+        inScope.add(community.south().getSupply());
+
+        Map<Instant, Double> surplusByHour = getDatadisConsumptionAggregateRepository.sumSurplusByHour(inScope,
+                start.toInstant(), end.toInstant(), ZONE);
+        Map<Instant, Double> priceByHour = getPriceRepository.meanPriceByHour(start.toInstant(), end.toInstant(),
+                ZONE);
+        double surplus = surplusByHour.values().stream().mapToDouble(Double::doubleValue).sum();
+        double priced = surplusByHour.entrySet().stream().filter(hour -> priceByHour.containsKey(hour.getKey()))
+                .mapToDouble(Map.Entry::getValue).sum();
+        BigDecimal amount = surplusByHour.entrySet().stream().filter(hour -> priceByHour.containsKey(hour.getKey()))
+                .map(hour -> BigDecimal.valueOf(hour.getValue())
+                        .multiply(BigDecimal.valueOf(priceByHour.get(hour.getKey()))))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        CommunityEnergyMetrics metrics = getCommunityEnergyMetricsService.getEnergyMetrics(community.id(), start, end,
+                null);
+
+        assertTrue(priced > 0 && metrics.getUnpricedSurplusKWh() > 0, "both parts must be exercised");
+        assertEquals(surplus, priced + metrics.getUnpricedSurplusKWh(), TOLERANCE);
+        assertEquals(0, amount.compareTo(metrics.getSurplusIncomeEur()),
+                () -> "expected " + amount + ", was " + metrics.getSurplusIncomeEur());
+        assertEquals(KWhRounding.round(metrics.getSurplusKWh()), KWhRounding.round(surplus));
+    }
+
+    @Test
+    @DisplayName("CEM-007 AC10 the surplus income carries two figures and no supply, member or price")
+    void theSurplusIncomeCarriesTwoFiguresAndNoSupplyMemberOrPrice() throws Exception {
+        EnergyCommunity community = fixture.createCommunity();
+        writeIncomeHours(community);
+        writeIncomePrices();
+
+        String body = requestPeriod(community.id(), loginUser(community.memberA()), INCOME_START, INCOME_END)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode json = objectMapper.readTree(body);
+        List<String> incomeKeys = new ArrayList<>();
+        json.path("surplusIncome").fieldNames().forEachRemaining(incomeKeys::add);
+        assertEquals(List.of("amountEur", "unpricedSurplusKWh"), incomeKeys.stream().sorted().toList());
+        List<String> keys = new ArrayList<>();
+        collectKeys(json, keys);
+        // "unpriced" names the surplus without a price, not a price.
+        assertEquals(List.of("unpricedSurplusKWh"),
+                keys.stream().filter(key -> key.toLowerCase(Locale.ROOT).contains("price")).toList(),
+                () -> "the body carries a price: " + keys);
+        assertNoSupplyOrMember(body, community);
+    }
+
     // --- helpers ---
 
     /**
@@ -396,6 +571,49 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
         fixture.writeConsumption(community.disabledSupply(), TEN, 1f, 500f, 500f);
         fixture.writeProduction(community.north(), TEN, 40.25f);
         fixture.writeProduction(community.south(), TEN.plusSeconds(3600), 9.75f);
+    }
+
+    /**
+     * Surplus of supply A in the four kinds of hour, and of supply B in two of them: 5 kWh in the
+     * quarter-hour priced hour, 2 in the hourly priced one, 1.5 unpriced and 4 at a negative price.
+     */
+    private void writeIncomeHours(EnergyCommunity community) {
+        fixture.writeConsumption(community.supplies().get(0), QUARTERS_HOUR, 1f, 0f, 2f);
+        fixture.writeConsumption(community.supplies().get(0), HOURLY_HOUR, 1f, 0f, 2f);
+        fixture.writeConsumption(community.supplies().get(0), UNPRICED_HOUR, 1f, 0f, 1.5f);
+        fixture.writeConsumption(community.supplies().get(1), QUARTERS_HOUR, 1f, 0f, 3f);
+        fixture.writeConsumption(community.supplies().get(1), NEGATIVE_HOUR, 1f, 0f, 4f);
+    }
+
+    /**
+     * Four quarter-hour prices averaging 0.07 €/kWh, a single hourly price of 0.05 and a negative price
+     * of −0.01; none in the unpriced hour. A price in the hour before the quarter-hour one, outside every
+     * hour with surplus, must never be averaged in.
+     */
+    private void writeIncomePrices() {
+        fixture.writePrice(QUARTERS_HOUR, 0.04);
+        fixture.writePrice(QUARTERS_HOUR.plus(Duration.ofMinutes(15)), 0.06);
+        fixture.writePrice(QUARTERS_HOUR.plus(Duration.ofMinutes(30)), 0.08);
+        fixture.writePrice(QUARTERS_HOUR.plus(Duration.ofMinutes(45)), 0.10);
+        fixture.writePrice(QUARTERS_HOUR.minus(Duration.ofMinutes(15)), 9.99);
+        fixture.writePrice(HOURLY_HOUR, 0.05);
+        fixture.writePrice(NEGATIVE_HOUR, -0.01);
+    }
+
+    /**
+     * Asserts the amount as the response wrote it, in the body's own text: a JSON reader would turn
+     * {@code 0.00} into {@code 0} and hide the 2 decimals.
+     */
+    private static void assertAmount(String body, String expected) throws Exception {
+        assertEquals(0, new BigDecimal(expected).compareTo(KWhJson.kWhAt(body, "/surplusIncome/amountEur")),
+                () -> "amountEur is not " + expected + " in " + body);
+        assertTrue(body.contains("\"amountEur\":" + expected + ","),
+                () -> "amountEur is not written as " + expected + " in " + body);
+    }
+
+    private static void collectKeys(JsonNode node, List<String> keys) {
+        node.fieldNames().forEachRemaining(keys::add);
+        node.forEach(child -> collectKeys(child, keys));
     }
 
     static void assertNoSupplyOrMember(String body, EnergyCommunity community) {

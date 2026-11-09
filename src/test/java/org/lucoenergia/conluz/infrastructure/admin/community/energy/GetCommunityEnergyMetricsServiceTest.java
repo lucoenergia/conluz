@@ -13,11 +13,13 @@ import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumptionAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
+import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -30,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -53,9 +57,10 @@ class GetCommunityEnergyMetricsServiceTest {
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final GetDatadisProductionAggregateRepository productionRepository =
             mock(GetDatadisProductionAggregateRepository.class);
+    private final GetPriceRepository priceRepository = mock(GetPriceRepository.class);
 
     private final GetCommunityEnergyMetricsService service = new GetCommunityEnergyMetricsServiceImpl(scopeResolver,
-            getPlantRepository, consumptionRepository, productionRepository);
+            getPlantRepository, consumptionRepository, productionRepository, priceRepository);
 
     private final Supply first = SupplyMother.random().withEnabled(true).build();
     private final Supply second = SupplyMother.random().withEnabled(true).build();
@@ -133,7 +138,61 @@ class GetCommunityEnergyMetricsServiceTest {
         assertNull(metrics.getStartDate());
         assertEquals(2, metrics.getSupplyCount());
         assertEquals(1, metrics.getPlants().size());
-        verifyNoInteractions(consumptionRepository, productionRepository);
+        verifyNoInteractions(consumptionRepository, productionRepository, priceRepository);
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-010 the hourly surplus is read over the supplies in scope and the period, and priced")
+    void theHourlySurplusIsReadOverTheSuppliesInScopeAndPriced() {
+        givenScope(SEPTEMBER, first, second, third);
+        givenAggregate(first, 1, 2);
+        givenAggregate(second, 1, 3);
+        givenAggregate(third, 1, 0);
+        when(consumptionRepository.sumSurplusByHour(List.of(first, second, third), FROM, TO, ZONE))
+                .thenReturn(Map.of(FROM, 5d, FROM.plusSeconds(3600), 1.5));
+        when(priceRepository.meanPriceByHour(FROM, TO, ZONE)).thenReturn(Map.of(FROM, 0.07));
+
+        CommunityEnergyMetrics metrics = getSeptember();
+
+        assertEquals(0, new BigDecimal("0.35").compareTo(metrics.getSurplusIncomeEur()),
+                () -> "was " + metrics.getSurplusIncomeEur());
+        assertEquals(1.5, metrics.getUnpricedSurplusKWh(), 1e-12);
+    }
+
+    /**
+     * From 10:30 to 14:30 in Madrid: the prices are read from 10:00 to 15:00, so the hours the bounds
+     * cut through are still priced at the mean of all four of their prices.
+     */
+    @Test
+    @DisplayName("CEM-008 the prices are read over whole hours when the period's bounds cut through one")
+    void thePricesAreReadOverWholeHours() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(OffsetDateTime.parse("2026-09-01T10:30:00+02:00"),
+                OffsetDateTime.parse("2026-09-01T14:30:00+02:00"));
+        givenScope(period, first, second);
+        when(consumptionRepository.aggregateByRangeOfDates(any(), any(), any()))
+                .thenReturn(new DatadisConsumptionAggregate(1d, 1d, 1d, 1L));
+
+        service.getEnergyMetrics(COMMUNITY_ID, period.getStartDate(), period.getEndDate(), null);
+
+        verify(consumptionRepository).sumSurplusByHour(List.of(first, second), period.getStartDate().toInstant(),
+                period.getEndDate().toInstant(), ZONE);
+        verify(priceRepository).meanPriceByHour(Instant.parse("2026-09-01T08:00:00Z"),
+                Instant.parse("2026-09-01T13:00:00Z"), ZONE);
+    }
+
+    @Test
+    @DisplayName("CEM-010 AC6 no record means no surplus or price query and a null income")
+    void noRecordMeansNoSurplusOrPriceQueryAndANullIncome() {
+        givenScope(SEPTEMBER, first, second);
+        when(consumptionRepository.aggregateByRangeOfDates(any(), any(), any()))
+                .thenReturn(DatadisConsumptionAggregate.empty());
+
+        CommunityEnergyMetrics metrics = getSeptember();
+
+        assertNull(metrics.getSurplusIncomeEur());
+        assertNull(metrics.getUnpricedSurplusKWh());
+        verify(consumptionRepository, never()).sumSurplusByHour(any(), any(), any(), any());
+        verifyNoInteractions(priceRepository);
     }
 
     private CommunityEnergyMetrics getSeptember() {

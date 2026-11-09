@@ -81,4 +81,13 @@ public interface GetDatadisConsumptionAggregateRepository {
      */
     Map<String, List<DailyPublishedAggregate>> aggregateByLocalDay(Collection<Supply> supplies, Instant from,
                                                                    Instant toExclusive, ZoneId zone);
+
+    /**
+     * The surplus of every given supply in the half-open interval {@code [from, toExclusive)}, summed
+     * across the supplies hour by hour, keyed by the instant each hour of {@code zone} starts at. Only
+     * hours with surplus are present: an hour whose records carry none, or zero, is absent. An empty
+     * collection issues no read.
+     */
+    Map<Instant, Double> sumSurplusByHour(Collection<Supply> supplies, Instant from, Instant toExclusive,
+                                          ZoneId zone);
 }

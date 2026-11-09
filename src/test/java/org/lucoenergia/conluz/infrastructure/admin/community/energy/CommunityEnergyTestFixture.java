@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.energy;
 
+import org.influxdb.InfluxDB;
+import org.influxdb.dto.Query;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -13,17 +15,22 @@ import org.lucoenergia.conluz.domain.admin.supply.disable.DisableSupplyRepositor
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.price.PriceByHour;
+import org.lucoenergia.conluz.domain.price.persist.PersistOmiePricesRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
+import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionInfluxFixture;
+import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -35,10 +42,17 @@ import java.util.UUID;
  * <p>{@link #createCommunity()} builds a community with two plants, "North" and "South", whose own
  * supplies member A owns, and three consumer supplies owned by three different members, the third of
  * whom has a disabled membership. A fourth consumer supply is disabled, so it is out of scope.
+ *
+ * <p>OMIE prices are written only inside {@link #PRICES_FROM} and {@link #PRICES_TO}, a window no other
+ * test writes prices to, since prices are not kept per community and {@link #clear()} deletes the whole
+ * window.
  */
 @Profile("test")
 @Component
 public class CommunityEnergyTestFixture {
+
+    public static final Instant PRICES_FROM = Instant.parse("2025-09-10T00:00:00Z");
+    public static final Instant PRICES_TO = Instant.parse("2025-10-20T00:00:00Z");
 
     private final CreateCommunityRepository createCommunityRepository;
     private final CreateUserRepository createUserRepository;
@@ -49,8 +63,11 @@ public class CommunityEnergyTestFixture {
     private final CreatePlantRepository createPlantRepository;
     private final DatadisConsumptionInfluxFixture consumptionFixture;
     private final DatadisProductionInfluxFixture productionFixture;
+    private final PersistOmiePricesRepository persistOmiePricesRepository;
+    private final InfluxDbConnectionManager influxDbConnectionManager;
 
     private final List<String> writtenCups = new ArrayList<>();
+    private boolean pricesWritten;
 
     public CommunityEnergyTestFixture(CreateCommunityRepository createCommunityRepository,
                                       CreateUserRepository createUserRepository,
@@ -60,7 +77,9 @@ public class CommunityEnergyTestFixture {
                                       DisableSupplyRepository disableSupplyRepository,
                                       CreatePlantRepository createPlantRepository,
                                       DatadisConsumptionInfluxFixture consumptionFixture,
-                                      DatadisProductionInfluxFixture productionFixture) {
+                                      DatadisProductionInfluxFixture productionFixture,
+                                      PersistOmiePricesRepository persistOmiePricesRepository,
+                                      InfluxDbConnectionManager influxDbConnectionManager) {
         this.createCommunityRepository = createCommunityRepository;
         this.createUserRepository = createUserRepository;
         this.createMembershipRepository = createMembershipRepository;
@@ -70,6 +89,8 @@ public class CommunityEnergyTestFixture {
         this.createPlantRepository = createPlantRepository;
         this.consumptionFixture = consumptionFixture;
         this.productionFixture = productionFixture;
+        this.persistOmiePricesRepository = persistOmiePricesRepository;
+        this.influxDbConnectionManager = influxDbConnectionManager;
     }
 
     /**
@@ -163,7 +184,19 @@ public class CommunityEnergyTestFixture {
     }
 
     /**
-     * Removes every record written since the last call.
+     * One OMIE price, in €/kWh, at the given instant, which must fall inside {@link #PRICES_FROM} and
+     * {@link #PRICES_TO}.
+     */
+    public void writePrice(Instant time, double priceKWh) {
+        if (time.isBefore(PRICES_FROM) || !time.isBefore(PRICES_TO)) {
+            throw new IllegalArgumentException("A price outside the fixture's window: " + time);
+        }
+        persistOmiePricesRepository.persistPrices(List.of(new PriceByHour(priceKWh, time.atOffset(ZoneOffset.UTC))));
+        pricesWritten = true;
+    }
+
+    /**
+     * Removes every record written since the last call, and every price in the fixture's window.
      */
     public void clear() {
         writtenCups.forEach(cups -> {
@@ -172,6 +205,14 @@ public class CommunityEnergyTestFixture {
             productionFixture.clear(cups);
         });
         writtenCups.clear();
+        if (pricesWritten) {
+            // No port deletes prices: production never does. The price sync tests delete theirs the same way.
+            try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+                connection.query(new Query(String.format("DELETE FROM \"%s\" WHERE time >= '%s' AND time < '%s'",
+                        OmieConfig.PRICES_KWH_MEASUREMENT, PRICES_FROM, PRICES_TO)));
+            }
+            pricesWritten = false;
+        }
     }
 
     private Supply createSupply(User owner, UUID communityId) {

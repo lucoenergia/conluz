@@ -29,6 +29,7 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     private static final String ENERGY = "CommunityEnergyMetricsEnergyResponse";
     private static final String COVERAGE = "CommunityEnergyMetricsCoverageResponse";
     private static final String PLANT = "CommunityPlantEnergyResponse";
+    private static final String SURPLUS_INCOME = "CommunityEnergyMetricsSurplusIncomeResponse";
     private static final String MEMBERSHIP_ENERGY = "MembershipEnergyMetricsEnergyResponse";
     private static final String MEMBERSHIP_COVERAGE = "MembershipEnergyMetricsCoverageResponse";
 
@@ -36,10 +37,11 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     void documentsEveryFieldOfEverySchemaAsRequired() throws Exception {
         Map<String, List<String>> expected = Map.of(
                 RESPONSE, List.of("period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-                        "coverage", "plants"),
+                        "coverage", "plants", "surplusIncome"),
                 ENERGY, List.of("productionKWh", "selfConsumptionKWh", "surplusKWh"),
                 COVERAGE, List.of("supplyCount", "suppliesWithData"),
-                PLANT, List.of("plant", "installedPowerKWp", "productionKWh", "productionShare"));
+                PLANT, List.of("plant", "installedPowerKWp", "productionKWh", "productionShare"),
+                SURPLUS_INCOME, List.of("amountEur", "unpricedSurplusKWh"));
 
         for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
             JsonNode schema = schema(entry.getKey());
@@ -67,6 +69,28 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
         assertNotNullable(PLANT, "installedPowerKWp");
         assertNotNullable(COVERAGE, "supplyCount");
         assertNotNullable(COVERAGE, "suppliesWithData");
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-009 CEM-010 the surplus income is always present, and its figures are numbers or null")
+    void documentsTheSurplusIncomeAsAlwaysPresentWithNullableFigures() throws Exception {
+        assertTrue(schema(RESPONSE).path("properties").path("surplusIncome").path("$ref").asText()
+                .endsWith("/" + SURPLUS_INCOME));
+        assertNullableWithBaseType(SURPLUS_INCOME, "amountEur", "number");
+        assertNullableWithBaseType(SURPLUS_INCOME, "unpricedSurplusKWh", "number");
+    }
+
+    @Test
+    @DisplayName("CEM-008 CEM-009 the surplus income is described as an OMIE day-ahead estimate that may be negative")
+    void describesTheSurplusIncomeAsAnOmieDayAheadEstimate() throws Exception {
+        String amount = description(SURPLUS_INCOME, "amountEur");
+        for (String statement : List.of("Estimated income", "OMIE day-ahead", "negative", "unpricedSurplusKWh",
+                "Null when energy.surplusKWh is null")) {
+            assertTrue(amount.contains(statement), () -> "does not state \"" + statement + "\": " + amount);
+        }
+        assertTrue(description(SURPLUS_INCOME, "unpricedSurplusKWh").contains("In kWh"));
+        String operation = operation().path("description").asText().replaceAll("\\s+", " ");
+        assertTrue(operation.contains("OMIE day-ahead"), () -> "the operation does not mention OMIE: " + operation);
     }
 
     @Test
