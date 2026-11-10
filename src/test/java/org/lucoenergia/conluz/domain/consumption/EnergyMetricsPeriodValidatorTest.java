@@ -222,6 +222,31 @@ class EnergyMetricsPeriodValidatorTest {
         EnergyMetricsPeriodValidator.validate(startDate, endDate, referencePeriod, CURRENT_HOUR, MADRID);
     }
 
+    @Test
+    void aRequestedReferencePeriodTogetherWithADateIsConflicting() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> EnergyMetricsPeriodValidator.validate(START, null, true, CURRENT_HOUR, MADRID,
+                        EnergyMetricsPeriodValidator.MAX_LENGTH));
+
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.CONFLICTING_PERIOD, exception.getReason());
+    }
+
+    @Test
+    void aRequestedReferencePeriodAloneIsAccepted() {
+        assertDoesNotThrow(() -> EnergyMetricsPeriodValidator.validate(null, null, true, CURRENT_HOUR, MADRID,
+                EnergyMetricsPeriodValidator.MAX_LENGTH));
+    }
+
+    @Test
+    @DisplayName("EPR-005 without a reference period, the dates are checked against the given length")
+    void withoutAReferencePeriodTheDatesAreCheckedAgainstTheGivenLength() {
+        InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,
+                () -> EnergyMetricsPeriodValidator.validate(START, START.plusDays(32), false, CURRENT_HOUR, MADRID,
+                        EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH));
+
+        assertEquals(InvalidEnergyMetricsPeriodException.Reason.TOO_LONG, exception.getReason());
+    }
+
     private static void assertReason(InvalidEnergyMetricsPeriodException.Reason reason, OffsetDateTime startDate,
                                      OffsetDateTime endDate, EnergyMetricsReferencePeriod referencePeriod) {
         InvalidEnergyMetricsPeriodException exception = assertThrows(InvalidEnergyMetricsPeriodException.class,

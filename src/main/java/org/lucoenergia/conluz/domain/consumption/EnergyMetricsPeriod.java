@@ -37,6 +37,16 @@ public class EnergyMetricsPeriod {
     }
 
     /**
+     * A local day read in {@code zone}: from its midnight to the following midnight, each bound
+     * carrying the offset in force at that instant, so a daylight saving day spans 23 or 25 hours.
+     */
+    public static EnergyMetricsPeriod ofDay(LocalDate day, ZoneId zone) {
+        return new EnergyMetricsPeriod(
+                day.atStartOfDay(zone).toOffsetDateTime(),
+                day.plusDays(1).atStartOfDay(zone).toOffsetDateTime());
+    }
+
+    /**
      * The period the stored hourly records span: from the first record to the end of the hour of
      * the last one, so the last record is still inside the half-open period.
      */
@@ -142,5 +152,22 @@ public class EnergyMetricsPeriod {
      */
     public long getExpectedHours() {
         return ChronoUnit.HOURS.between(startDate, endDate);
+    }
+
+    /**
+     * The number of hours of {@code bucket} -- a day or a month of a series -- that lie inside this
+     * period, counted on the instant line, so a bucket with a daylight saving change has one hour less
+     * or more. A bucket the period starts or ends inside counts only its hours inside the period.
+     *
+     * @param bucket a period overlapping this one
+     */
+    public long hoursOverlapping(EnergyMetricsPeriod bucket) {
+        Instant from = startDate.toInstant();
+        Instant toExclusive = endDate.toInstant();
+        Instant bucketStart = bucket.startDate.toInstant();
+        Instant bucketEnd = bucket.endDate.toInstant();
+        Instant start = bucketStart.isAfter(from) ? bucketStart : from;
+        Instant end = bucketEnd.isBefore(toExclusive) ? bucketEnd : toExclusive;
+        return ChronoUnit.HOURS.between(start, end);
     }
 }

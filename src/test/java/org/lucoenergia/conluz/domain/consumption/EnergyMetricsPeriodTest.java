@@ -155,4 +155,39 @@ class EnergyMetricsPeriodTest {
 
         assertEquals(List.of(YearMonth.of(2026, 3)), period.monthsStartingIn(MADRID));
     }
+    @Test
+    @DisplayName("EPR-001 a local day runs from its midnight to the next, with the offset in force at each")
+    void aLocalDayRunsFromItsMidnightToTheNext() {
+        EnergyMetricsPeriod day = EnergyMetricsPeriod.ofDay(LocalDate.of(2026, 10, 25), MADRID);
+
+        assertEquals(OffsetDateTime.parse("2026-10-25T00:00:00+02:00"), day.getStartDate());
+        assertEquals(OffsetDateTime.parse("2026-10-26T00:00:00+01:00"), day.getEndDate());
+        assertEquals(25, day.getExpectedHours());
+    }
+
+    @Test
+    @DisplayName("EPR-001 the March daylight saving day read in its zone spans 23 hours")
+    void theMarchDaylightSavingDayReadInItsZoneSpansTwentyThreeHours() {
+        assertEquals(23, EnergyMetricsPeriod.ofDay(LocalDate.of(2026, 3, 29), MADRID).getExpectedHours());
+    }
+
+    @Test
+    @DisplayName("EPR-002 a bucket the period ends inside counts only its hours inside the period")
+    void aBucketThePeriodEndsInsideCountsOnlyItsHoursInsideThePeriod() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(
+                OffsetDateTime.parse("2026-11-08T00:00:00+01:00"), OffsetDateTime.parse("2026-11-10T10:00:00+01:00"));
+
+        assertEquals(24, period.hoursOverlapping(EnergyMetricsPeriod.ofDay(LocalDate.of(2026, 11, 9), MADRID)));
+        assertEquals(10, period.hoursOverlapping(EnergyMetricsPeriod.ofDay(LocalDate.of(2026, 11, 10), MADRID)));
+    }
+
+    @Test
+    @DisplayName("EPR-001 a bucket the period starts inside counts only its hours inside the period")
+    void aBucketThePeriodStartsInsideCountsOnlyItsHoursInsideThePeriod() {
+        EnergyMetricsPeriod period = new EnergyMetricsPeriod(
+                OffsetDateTime.parse("2026-10-15T00:00:00+02:00"), OffsetDateTime.parse("2026-12-01T00:00:00+01:00"));
+
+        assertEquals(17 * 24 + 1, period.hoursOverlapping(EnergyMetricsPeriod.ofMonth(YearMonth.of(2026, 10), MADRID)));
+        assertEquals(30 * 24, period.hoursOverlapping(EnergyMetricsPeriod.ofMonth(YearMonth.of(2026, 11), MADRID)));
+    }
 }
