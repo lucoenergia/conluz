@@ -29,7 +29,6 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -56,8 +55,6 @@ class InactiveMembershipAccessIntegrationTest extends BaseControllerTest {
 
     @Autowired
     private CommunityAccessGuard guard;
-    @Autowired
-    private UserDetailsService userDetailsService;
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired

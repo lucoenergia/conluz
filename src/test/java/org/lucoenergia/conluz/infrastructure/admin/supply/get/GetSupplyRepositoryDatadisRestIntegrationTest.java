@@ -4,8 +4,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigRepository;
-import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +20,6 @@ class GetSupplyRepositoryDatadisRestIntegrationTest extends BaseIntegrationTest 
 
     @Autowired
     private GetSupplyRepositoryDatadisRest getSupplyRepositoryDatadisRest;
-    @Autowired
-    private DatadisConfigRepository datadisConfigRepository;
 
     @Test
     void testGetSuppliesByUser() {
@@ -31,12 +28,11 @@ class GetSupplyRepositoryDatadisRestIntegrationTest extends BaseIntegrationTest 
         final String username = "username";
         final String password = "password";
 
-        // Save Datadis config on the DB
-        final DatadisConfigEntity config = new DatadisConfigEntity();
-        config.setId(UUID.randomUUID());
-        config.setUsername(username);
-        config.setPassword(password);
-        datadisConfigRepository.save(config);
+        final DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername(username)
+                .setPassword(password)
+                .setBaseUrl("https://datadis.es")
+                .build();
 
         User user = new User.Builder()
                 .id(UUID.randomUUID())
@@ -47,7 +43,8 @@ class GetSupplyRepositoryDatadisRestIntegrationTest extends BaseIntegrationTest 
                 .enabled(true)
                 .build();
 
-        List<DatadisSupply> suppliesByUser = getSupplyRepositoryDatadisRest.getSuppliesByUser(user);
+        List<DatadisSupply> suppliesByUser = getSupplyRepositoryDatadisRest.getSuppliesByUser(config,
+                "Bearer " + datadisAuthorizer.getAuthToken(config), user);
 
         assertEquals(1, suppliesByUser.size());
     }

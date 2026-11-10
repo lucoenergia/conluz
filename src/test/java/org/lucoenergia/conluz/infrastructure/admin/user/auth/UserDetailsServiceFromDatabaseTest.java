@@ -8,15 +8,12 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 class UserDetailsServiceFromDatabaseTest extends BaseIntegrationTest {
 
-    @Autowired
-    private UserDetailsService userDetailsService;
     @Autowired
     private CreateUserRepository createUserRepository;
 

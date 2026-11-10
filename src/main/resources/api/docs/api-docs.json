@@ -8064,7 +8064,7 @@
     },
     "/api/v1/communities/{communityId}/consumption/datadis/sync" : {
       "post" : {
-        "description" : "This endpoint enables users to synchronize consumption data from datadis for a specific year.\n\nThe request body must contain:\n- **year** (required, integer): The year for which to synchronize consumption data\n- **supplyCode** (optional, string): The supply code (CUPS) to synchronize. If not provided, all active supplies will be synchronized.\n\nThe synchronization will retrieve data from January 1st to December 31st of the specified year.\n\n**Behavior:**\n- If supplyCode is provided: Synchronizes only that specific supply\n- If supplyCode is not provided or is empty: Synchronizes all active supplies\n\nThe community is taken from the path; the configured Datadis credentials of that\ncommunity are used and only that community's supplies are synchronized.\n\nProper authentication, through an authentication token, is required for secure access to this endpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
+        "description" : "This endpoint enables users to synchronize consumption data from datadis for a specific year.\n\nThe request body must contain:\n- **year** (required, integer): The year for which to synchronize consumption data\n- **supplyCode** (optional, string): The supply code (CUPS) to synchronize. If not provided, all active supplies will be synchronized.\n\nThe synchronization will retrieve data from January 1st to December 31st of the specified year.\n\n**Behavior:**\n- If supplyCode is provided: Synchronizes only that specific supply\n- If supplyCode is not provided or is empty: Synchronizes all active supplies\n\nThe community is taken from the path; the configured Datadis credentials of that\ncommunity are used and only that community's supplies are synchronized.\n\nProper authentication, through an authentication token, is required for secure access to this endpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nThe server responds with `409` when the community has no Datadis configuration, or it is\ndisabled; Datadis is not called.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
         "operationId" : "syncDatadisConsumptions",
         "parameters" : [
           {
@@ -8169,6 +8169,22 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "Datadis integration is disabled. Enable it via POST /api/v1/communities/{communityId}/config/datadis/enable before triggering this operation.",
+                  "status" : 409,
+                  "timestamp" : "2026-11-09T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The community has no Datadis configuration, or it is disabled."
           },
           "500" : {
             "content" : {
@@ -14964,7 +14980,7 @@
     },
     "/api/v1/communities/{communityId}/supplies/datadis/sync" : {
       "post" : {
-        "description" : "This endpoint enables users to synchronize the active supplies of the community identified by the\npath `communityId`, retrieving the information from datadis.\n\nProper authentication, through an authentication token, is required for secure access to this\nendpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
+        "description" : "This endpoint enables users to synchronize the active supplies of the community identified by the\npath `communityId`, retrieving the information from datadis.\n\nProper authentication, through an authentication token, is required for secure access to this\nendpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nThe server responds with `409` when the community has no Datadis configuration, or it is\ndisabled; Datadis is not called.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
         "operationId" : "syncDatadisSupplies",
         "parameters" : [
           {
@@ -15059,6 +15075,22 @@
               }
             },
             "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "Datadis integration is disabled. Enable it via POST /api/v1/communities/{communityId}/config/datadis/enable before triggering this operation.",
+                  "status" : 409,
+                  "timestamp" : "2026-11-09T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The community has no Datadis configuration, or it is disabled."
           },
           "500" : {
             "content" : {

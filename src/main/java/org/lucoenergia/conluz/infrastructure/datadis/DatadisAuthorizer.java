@@ -3,9 +3,7 @@ package org.lucoenergia.conluz.infrastructure.datadis;
 import okhttp3.*;
 import org.lucoenergia.conluz.domain.datadis.DatadisException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
-import org.lucoenergia.conluz.infrastructure.shared.security.auth.Authorizer;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
@@ -13,25 +11,16 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 @Component
-public class DatadisAuthorizer implements Authorizer {
+public class DatadisAuthorizer {
 
     private static final String AUTH_PATH = "/nikola-auth/tokens/login";
     private static final String BODY_PARAM_USERNAME = "username";
     private static final String BODY_PARAM_PASSWORD = "password";
 
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
 
-    public DatadisAuthorizer(GetDatadisConfigRepository getDatadisConfigRepository, ConluzRestClientBuilder conluzRestClientBuilder) {
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
+    public DatadisAuthorizer(ConluzRestClientBuilder conluzRestClientBuilder) {
         this.conluzRestClientBuilder = conluzRestClientBuilder;
-    }
-
-    @Override
-    public String getAuthToken() {
-        DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
-                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
-        return getAuthToken(config);
     }
 
     public String getAuthToken(DatadisConfig config) {
@@ -67,9 +56,7 @@ public class DatadisAuthorizer implements Authorizer {
         }
     }
 
-    private boolean isOwner(UserPersonalId id) {
-        DatadisConfig config = getDatadisConfigRepository.getDatadisConfig()
-                .orElseThrow(() -> new DatadisException("Datadis configuration not found"));
+    private boolean isOwner(DatadisConfig config, UserPersonalId id) {
         return normalize(config.getUsername()).equals(normalize(id.getPersonalId()));
     }
 
@@ -77,7 +64,12 @@ public class DatadisAuthorizer implements Authorizer {
         return value == null ? "" : value.trim().toUpperCase();
     }
 
-    public boolean requiresAuthorizedNif(UserPersonalId id) {
-        return !isOwner(id);
+    /**
+     * Whether a request made with the given configuration must name the supply's owner in {@code authorizedNif}: it
+     * must, unless the owner is the holder of that configuration's Datadis account. The configuration is always the
+     * one of the supply's community (#562).
+     */
+    public boolean requiresAuthorizedNif(DatadisConfig config, UserPersonalId id) {
+        return !isOwner(config, id);
     }
 }

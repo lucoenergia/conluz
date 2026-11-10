@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.accept.AcceptInv
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
 import org.lucoenergia.conluz.domain.admin.operator.GetOperatorContactService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportSuppliesService;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
 import org.lucoenergia.conluz.domain.admin.community.access.CommunityAccessGuard;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
@@ -99,6 +100,9 @@ public class ServiceTransactionalArchTest extends BaseArchTest {
         // PlatformAdminInvitationAcceptance), so that a wrong confirmation code is counted and committed before the
         // refusal is thrown
         addException(AcceptInvitationService.class.getSimpleName());
+        // Calls Datadis with no transaction open, and writes each supply in a transaction of its own
+        // (DatadisSupplyUpdateStep), so that a supply that fails keeps the supplies written before and after it
+        addException(DatadisSuppliesSyncService.class.getSimpleName());
         // Returns configuration validated at startup and never touches the database
         addException(GetOperatorContactService.class.getSimpleName());
         // Add more exceptions as needed

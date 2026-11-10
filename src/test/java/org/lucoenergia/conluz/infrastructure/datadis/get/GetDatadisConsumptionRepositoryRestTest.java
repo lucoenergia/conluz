@@ -4,13 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisTokenRejectedException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDateTimeConverter;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisParams;
@@ -22,39 +24,38 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Month;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
 
 class GetDatadisConsumptionRepositoryRestTest {
 
     private static final String ACCOUNT_NIF = "accountNif";
+    private static final UUID COMMUNITY_ID = UUID.randomUUID();
 
-    private DatadisAuthorizer datadisAuthorizer;
+    private static final DatadisConfig CONFIG = new DatadisConfig.Builder()
+            .setUsername(ACCOUNT_NIF)
+            .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+            .setCommunityId(COMMUNITY_ID)
+            .build();
+    private static final String BEARER_TOKEN = "Bearer testToken";
+
     private ConluzRestClientBuilder conluzRestClientBuilder;
-    private GetDatadisConsumptionRepositoryRest repository;
+    private GetConsumptionFromDatadisRepositoryRest repository;
 
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
         conluzRestClientBuilder = Mockito.mock(ConluzRestClientBuilder.class);
         DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
-        GetDatadisConfigRepository getDatadisConfigRepository = Mockito.mock(GetDatadisConfigRepository.class);
-        DatadisConfig config = new DatadisConfig.Builder()
-                .setUsername(ACCOUNT_NIF)
-                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
-                .build();
-        Mockito.when(getDatadisConfigRepository.getDatadisConfig()).thenReturn(Optional.of(config));
-        // Spy on a real authorizer so requiresAuthorizedNif uses the real NIF comparison,
-        // while getAuthToken is stubbed to avoid any HTTP call.
-        datadisAuthorizer = Mockito.spy(new DatadisAuthorizer(getDatadisConfigRepository,
-                Mockito.mock(ConluzRestClientBuilder.class)));
-        Mockito.doReturn("testToken").when(datadisAuthorizer).getAuthToken(Mockito.any(DatadisConfig.class));
-        repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
-                datadisDateTimeConverter, getDatadisConfigRepository);
+        // A real authorizer, so requiresAuthorizedNif uses the real NIF comparison; the client never logs in
+        DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(Mockito.mock(ConluzRestClientBuilder.class));
+        repository = new GetConsumptionFromDatadisRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
+                datadisDateTimeConverter);
     }
 
     private Supply supplyOwnedBy(String personalId) {
         return new Supply.Builder()
                 .withCode("ES0031300329693002BQ0F")
+                .withCommunity(new Community.Builder().withId(COMMUNITY_ID).build())
                 .withUser(new User.Builder().personalId(personalId).build())
                 .withDistributor(new SupplyDistributor.Builder()
                         .withCode("distributorCode")
@@ -80,11 +81,28 @@ class GetDatadisConsumptionRepositoryRestTest {
         Mockito.when(response.body()).thenReturn(body);
         Mockito.when(body.string()).thenReturn("[]");
 
-        repository.getHourlyConsumptionsByMonth(supply, Month.APRIL, 2023);
+        repository.getHourlyConsumptionsByMonth(CONFIG, BEARER_TOKEN, supply, Month.APRIL, 2023);
 
         ArgumentCaptor<Request> requestCaptor = ArgumentCaptor.forClass(Request.class);
         Mockito.verify(client).newCall(requestCaptor.capture());
+        Assertions.assertEquals(BEARER_TOKEN, requestCaptor.getValue().header("Authorization"));
         return requestCaptor.getValue().url().toString();
+    }
+
+    @Test
+    @DisplayName("DHI-005 a 401 from Datadis is thrown as a rejected token, for the caller to log in again")
+    void aRejectedTokenIsThrown() throws IOException {
+        OkHttpClient client = Mockito.mock(OkHttpClient.class);
+        Call call = Mockito.mock(Call.class);
+        Response response = Mockito.mock(Response.class);
+        Mockito.when(conluzRestClientBuilder.build(false, Duration.ofSeconds(60))).thenReturn(client);
+        Mockito.when(client.newCall(Mockito.any(Request.class))).thenReturn(call);
+        Mockito.when(call.execute()).thenReturn(response);
+        Mockito.when(response.code()).thenReturn(401);
+        Mockito.when(response.isSuccessful()).thenReturn(false);
+
+        Assertions.assertThrows(DatadisTokenRejectedException.class, () -> repository.getHourlyConsumptionsByMonth(
+                CONFIG, BEARER_TOKEN, supplyOwnedBy(ACCOUNT_NIF), Month.APRIL, 2023));
     }
 
     @Test
@@ -127,7 +145,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         Mockito.when(body.string()).thenReturn("Consulta ya realizada en las últimas 24 horas.");
 
         // Act & Assert
-        Assertions.assertDoesNotThrow(() -> repository.getHourlyConsumptionsByMonth(supply, month, year));
+        Assertions.assertDoesNotThrow(() -> repository.getHourlyConsumptionsByMonth(CONFIG, BEARER_TOKEN, supply, month, year));
     }
 
     @Test
@@ -181,7 +199,7 @@ class GetDatadisConsumptionRepositoryRestTest {
                 """);
 
         // Act & Assert
-        List<DatadisConsumption> result = repository.getHourlyConsumptionsByMonth(supply, month, year);
+        List<DatadisConsumption> result = repository.getHourlyConsumptionsByMonth(CONFIG, BEARER_TOKEN, supply, month, year);
 
         Assertions.assertFalse(result.isEmpty());
         Assertions.assertEquals(3, result.size());
@@ -224,7 +242,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         Mockito.when(response.isSuccessful()).thenReturn(false);
 
         // Act
-        List<DatadisConsumption> result = repository.getHourlyConsumptionsByMonth(supply, month, year);
+        List<DatadisConsumption> result = repository.getHourlyConsumptionsByMonth(CONFIG, BEARER_TOKEN, supply, month, year);
 
         // Assert
         Assertions.assertTrue(result.isEmpty());

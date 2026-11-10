@@ -80,8 +80,6 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
     @Autowired
     private CommunityAccessGuard guard;
     @Autowired
-    private UserDetailsService userDetailsService;
-    @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;

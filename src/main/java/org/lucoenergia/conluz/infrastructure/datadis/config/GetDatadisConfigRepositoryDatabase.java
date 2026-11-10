@@ -21,11 +21,6 @@ public class GetDatadisConfigRepositoryDatabase implements GetDatadisConfigRepos
     }
 
     @Override
-    public Optional<DatadisConfig> getDatadisConfig() {
-        return datadisConfigRepository.findFirstBy().map(this::toDomain);
-    }
-
-    @Override
     public Optional<DatadisConfig> findByCommunityId(UUID communityId) {
         Optional<DatadisConfigEntity> entity = datadisConfigRepository.findByCommunityId(communityId);
         return entity.map(this::toDomain);
