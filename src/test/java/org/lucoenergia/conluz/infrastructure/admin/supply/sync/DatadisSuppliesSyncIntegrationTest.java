@@ -7,7 +7,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -33,8 +35,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,9 +76,12 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreateMembershipRepository createMembershipRepository;
 
     private final DatadisStub datadis = new DatadisStub();
     private final List<UUID> communitiesWithDatadis = new ArrayList<>();
+    private final Set<String> memberships = new HashSet<>();
 
     @BeforeEach
     void beforeEach() {
@@ -488,6 +495,7 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
     void anUnreadableStartDateKeepsTheStoredOne() {
         UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
         User owner = owner();
+        memberOf(owner, communityId);
         Supply supply = createSupplyRepository.create(SupplyMother.random(owner)
                 .withCode(SupplyMother.randomCups())
                 .withEnabled(true)
@@ -511,6 +519,7 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
         UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
         User owner = owner();
         // Built with a blank address, which a creation refuses: rows stored before that validation may have one
+        memberOf(owner, communityId);
         Supply blank = createSupplyRepository.create(SupplyMother.random(owner)
                 .withCode(SupplyMother.randomCups())
                 .withEnabled(true)
@@ -547,6 +556,16 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
         return communityId;
     }
 
+    /**
+     * Makes {@code owner} a member of the community before a supply is created for them there, as production requires
+     * (#341). Committed supplies whose owner is not a member would break tests that check that no such supply exists.
+     */
+    private void memberOf(User owner, UUID communityId) {
+        if (memberships.add(owner.getId() + "|" + communityId)) {
+            createMembershipRepository.create(communityId, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        }
+    }
+
     private User owner() {
         User owner = UserMother.randomUser();
         owner.enable();
@@ -561,6 +580,7 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
     }
 
     private Supply supply(User owner, UUID communityId, String code, boolean enabled) {
+        memberOf(owner, communityId);
         return createSupplyRepository.create(SupplyMother.random(owner)
                 .withCode(code)
                 .withEnabled(enabled)

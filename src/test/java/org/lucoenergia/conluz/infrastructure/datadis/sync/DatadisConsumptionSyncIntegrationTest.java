@@ -6,7 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
@@ -27,7 +29,9 @@ import org.springframework.http.MediaType;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,9 +64,12 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreateMembershipRepository createMembershipRepository;
 
     private final DatadisStub datadis = new DatadisStub();
     private final List<UUID> communitiesWithDatadis = new ArrayList<>();
+    private final Set<String> memberships = new HashSet<>();
 
     @BeforeEach
     void beforeEach() {
@@ -241,6 +248,16 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
         return communityId;
     }
 
+    /**
+     * Makes {@code owner} a member of the community before a supply is created for them there, as production requires
+     * (#341). Committed supplies whose owner is not a member would break tests that check that no such supply exists.
+     */
+    private void memberOf(User owner, UUID communityId) {
+        if (memberships.add(owner.getId() + "|" + communityId)) {
+            createMembershipRepository.create(communityId, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        }
+    }
+
     private User owner() {
         User owner = UserMother.randomUser();
         owner.enable();
@@ -251,6 +268,7 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
      * An enabled supply with the distributor code and point type the consumption requests need.
      */
     private Supply supply(User owner, UUID communityId) {
+        memberOf(owner, communityId);
         return createSupplyRepository.create(SupplyMother.random(owner)
                 .withEnabled(true)
                 .withDistributor(new SupplyDistributor.Builder()
