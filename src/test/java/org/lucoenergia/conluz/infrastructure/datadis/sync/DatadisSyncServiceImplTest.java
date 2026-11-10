@@ -447,6 +447,8 @@ class DatadisSyncServiceImplTest {
     // ---------------------------------------------------------------------
 
     @Test
+    @DisplayName("DHI-006 a community with no Datadis configuration is refused before any supply is read or Datadis "
+            + "is called")
     void synchronizeManual_throwsWhenDatadisConfigIsMissing() {
         UUID communityId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2024, 1, 10);
@@ -455,11 +457,13 @@ class DatadisSyncServiceImplTest {
         assertThrows(DatadisDisabledException.class,
                 () -> service.synchronize(communityId, date, date, (String) null));
 
-        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository,
+        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository, datadisAuthorizer,
                 persistDatadisConsumptionRepository, persistDatadisProductionRepository);
     }
 
     @Test
+    @DisplayName("DHI-006 a community whose Datadis configuration is disabled is refused before any supply is read "
+            + "or Datadis is called")
     void synchronizeManual_throwsWhenDatadisConfigIsDisabled() {
         UUID communityId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2024, 1, 10);
@@ -468,7 +472,7 @@ class DatadisSyncServiceImplTest {
         assertThrows(DatadisDisabledException.class,
                 () -> service.synchronize(communityId, date, date, "ES001"));
 
-        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository,
+        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository, datadisAuthorizer,
                 persistDatadisConsumptionRepository, persistDatadisProductionRepository);
     }
 

@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
@@ -126,6 +127,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("DHI-006 the endpoint answers 409 when the service refuses a disabled configuration")
     void testWithDatadisDisabledReturnsConflict() throws Exception {
 
         doThrow(new DatadisDisabledException())
@@ -145,6 +147,7 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("DHI-006 the 409 message names the operation that enables the configuration")
     void testWithDatadisDisabledMessageNamesTheEnableAction() throws Exception {
 
         doThrow(new DatadisDisabledException())

@@ -210,8 +210,8 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("The consumption sync of a community whose configuration is disabled, or that has none, answers 409 "
-            + "and makes no Datadis request")
+    @DisplayName("DHI-006 the consumption sync of a community whose configuration is disabled, or that has none, "
+            + "answers 409 and makes no Datadis request")
     void theEndpointRefusesCommunitiesWithoutAnEnabledConfiguration() throws Exception {
         UUID disabled = communityWithDatadis(BASE_URL_A, "token-a");
         setDatadisConfigurationRepository.setEnabled(disabled, false);
