@@ -58,4 +58,11 @@ public interface GetDatadisProductionAggregateRepository {
      * empty when it has none.
      */
     Optional<RecordedProductionPeriod> findRecordedPeriod(String cups);
+    /**
+     * The production stored for one supply code (CUPS) in the half-open interval
+     * {@code [from, toExclusive)}, record by record, keyed by the instant each record is stamped at.
+     *
+     * <p>An hour without a record is absent from the map; a record carrying zero maps to {@code 0}.
+     */
+    Map<Instant, Double> findHourlyProduction(String cups, Instant from, Instant toExclusive);
 }

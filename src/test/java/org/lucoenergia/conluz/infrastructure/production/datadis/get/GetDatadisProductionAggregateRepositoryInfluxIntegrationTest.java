@@ -254,6 +254,20 @@ class GetDatadisProductionAggregateRepositoryInfluxIntegrationTest extends BaseI
         assertEquals(Optional.empty(), repository.findRecordedPeriod(cups()));
     }
 
+    @Test
+    @DisplayName("PEM-003 AC7 the records of one code are read hour by hour, stored zeros kept and gaps absent")
+    void theRecordsAreReadHourByHour() {
+        String plant = cups();
+        String other = cups();
+        fixture.writeAt(plant, FROM, 0f);
+        fixture.writeAt(plant, FROM.plusSeconds(7200), 3.5f);
+        fixture.writeAt(plant, TO, 1000f);
+        fixture.writeAt(other, FROM.plusSeconds(3600), 1000f);
+
+        assertEquals(Map.of(FROM, 0d, FROM.plusSeconds(7200), 3.5d),
+                repository.findHourlyProduction(plant, FROM, TO));
+    }
+
     private String cups() {
         String code = SupplyMother.randomCups();
         writtenCups.add(code);

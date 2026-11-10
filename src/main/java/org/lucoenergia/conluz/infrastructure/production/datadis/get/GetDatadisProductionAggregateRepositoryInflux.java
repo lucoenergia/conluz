@@ -191,6 +191,41 @@ public class GetDatadisProductionAggregateRepositoryInflux implements GetDatadis
         }
     }
 
+    @Override
+    public Map<Instant, Double> findHourlyProduction(String cups, Instant from, Instant toExclusive) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // The records themselves, at most 31 days of them on the hourly series. The bounds are those of
+            // aggregate.
+            Query query = new Query(String.format(
+                    """
+                            SELECT "production_kwh"
+                            FROM "%s"
+                            WHERE cups = '%s'
+                                AND time >= '%s'
+                                AND time < '%s'
+                            """,
+                    DatadisProductionMeasurements.PRODUCTION_KWH_MEASUREMENT,
+                    cups,
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive)));
+
+            Map<Instant, Double> production = new HashMap<>();
+            // Times in milliseconds come back as a number, whatever the server's precision.
+            firstSeries(connection.query(query, TimeUnit.MILLISECONDS)).ifPresent(series -> {
+                int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
+                int productionIndex = series.getColumns().indexOf(COLUMN_PRODUCTION_KWH);
+                for (List<Object> row : series.getValues()) {
+                    if (row.get(productionIndex) instanceof Number value) {
+                        production.put(dateConverter.convertMillisecondsToInstant(
+                                ((Number) row.get(timeIndex)).longValue()), value.doubleValue());
+                    }
+                }
+            });
+            return production;
+        }
+    }
+
     private Optional<Instant> recordTime(QueryResult.Result result) {
         if (result.getSeries() == null || result.getSeries().isEmpty()) {
             return Optional.empty();
