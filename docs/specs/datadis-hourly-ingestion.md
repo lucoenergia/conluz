@@ -6,13 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → written by `syncDatadisConsumptions` and by the scheduled job `DatadisSyncDailyJob`; read by `getSupplyHourlyConsumption`, `getDatadisHourlyProduction` and `getDatadisConsumptionHourlyCsvReport`, among others |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #322 |
+| **Last reviewed against code** | #562 |
 
 ## Purpose
 
 How the hourly records Datadis returns for a supply become points of the hourly consumption series and,
-for plant supplies, of the hourly production series derived from them. This spec covers only the instant
-each record is stored at; the rest of the capability is specified lazily, as issues touch it.
+for plant supplies, of the hourly production series derived from them. This spec covers which supplies are
+synced, how the sync logs in to Datadis, and the instant each record is stored at; the rest of the capability is specified lazily, as issues
+touch it.
 
 ## Glossary
 
@@ -67,6 +68,44 @@ And the first 03:00 record is stored at 00:00Z and the second at 01:00Z
 - **Rationale:** For a plant supply both series come from the same records and are compared hour by
   hour, so they are placed by a single resolution of the records' instants.
 - **Source:** #322
+
+### DHI-004 — A supply without distributor code or point type is skipped once per run
+
+- **Status:** Active
+- **Rule:** The consumption sync MUST skip a supply that lacks a distributor code or a point type, and MUST log it
+  once per run, at WARN, with the supply id and the community id, never the CUPS. Datadis MUST NOT be called for it.
+- **Rationale:** Missing configuration is not a per-month error: both values are filled by the Datadis supply sync
+  ([`datadis-supply-sync.md`](datadis-supply-sync.md)), and a supply waiting for it logged one ERROR per month of
+  the window every night, which drowned real alerts.
+- **Source:** #562
+
+### DHI-005 — One Datadis login per community and run
+
+- **Status:** Active
+- **Rule:** A consumption sync of a community MUST log in to Datadis at most once with that community's
+  configuration, and MUST send that token on every consumption request of the run, across supplies and months; the
+  sync of a single supply follows the same rule, one login per call. When Datadis rejects a consumption request
+  with 401, the sync MUST log in once more for that community, retry that request once with the new token, and use
+  the new token for the rest of the run. A second 401 for the same request MUST fail that month of that supply,
+  logged at ERROR with the supply id, and the run MUST continue.
+- **Rationale:** The sync logged in once per supply and month: hundreds of logins per community every night, each
+  one a request Datadis counts. A token can still expire during a long run, and one renewal recovers it without
+  returning to a login per request; a token rejected again right after a new login is not an expiry, so it is
+  not retried further.
+- **Source:** #562
+
+### DHI-006 — A community without an enabled Datadis configuration is refused
+
+- **Status:** Active
+- **Rule:** The consumption sync of a community that has no Datadis configuration, or whose configuration is
+  disabled, MUST be refused with 409 and the `error.datadis.disabled` message, which names the operation that
+  enables the configuration. The refusal MUST come before any supply is read and before any request to Datadis.
+  It applies to the sync of the whole community and of a single supply.
+- **Rationale:** Without an enabled configuration there is no Datadis account to call with, and the community admin
+  has turned the integration off or never set it up. A 409 names the state to change, where an empty success would
+  hide that nothing was synced. The supplies sync answers the same case the same way (DSS-003).
+- **Source:** #142 added the enable flag and the refusal; #414 made the message name the enable operation; #562
+  declared the 409 in the contract.
 
 ## Accepted exceptions
 

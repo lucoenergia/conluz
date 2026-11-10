@@ -17,8 +17,6 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,8 +53,6 @@ class PublicEndpointTokenTest extends BaseControllerTest {
     private UserRepository userRepository;
     @Autowired
     private JwtConfiguration jwtConfiguration;
-    @MockitoSpyBean
-    private UserDetailsService userDetailsService;
 
     private CraftedTokens tokens;
     private LogCapture logs;

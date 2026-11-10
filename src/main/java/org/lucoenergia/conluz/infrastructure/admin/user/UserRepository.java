@@ -49,9 +49,6 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     List<UserEntity> findAllByIsPlatformAdminTrueOrderByFullNameAscIdAsc();
 
-    @Query("SELECT u FROM users u WHERE EXISTS(SELECT s FROM supplies s WHERE s.user = u)")
-    List<UserEntity> findAllUsersWithAtLeastOneSupply();
-
     /**
      * The given user plus every user with an active membership in any of the given communities, in
      * one statement however many communities there are. A filter rather than a join, so each user

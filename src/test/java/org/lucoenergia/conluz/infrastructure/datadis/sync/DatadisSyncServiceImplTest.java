@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -8,9 +10,10 @@ import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
+import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetConsumptionFromDatadisRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
@@ -22,6 +25,7 @@ import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisHourlyInstantResolver;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMapper;
@@ -41,12 +45,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -62,8 +68,8 @@ import static org.mockito.Mockito.when;
  */
 class DatadisSyncServiceImplTest {
 
-    private final GetDatadisConsumptionRepository getDatadisConsumptionRepository =
-            Mockito.mock(GetDatadisConsumptionRepository.class);
+    private final GetConsumptionFromDatadisRepository getDatadisConsumptionRepository =
+            Mockito.mock(GetConsumptionFromDatadisRepository.class);
     private final GetSupplyRepository getSupplyRepository = Mockito.mock(GetSupplyRepository.class);
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository =
             Mockito.mock(PersistDatadisConsumptionRepository.class);
@@ -76,11 +82,21 @@ class DatadisSyncServiceImplTest {
 
     private final DatadisHourlyInstantResolver datadisHourlyInstantResolver =
             new DatadisHourlyInstantResolver(madridTimeConfiguration());
+    private final DatadisAuthorizer datadisAuthorizer = Mockito.mock(DatadisAuthorizer.class);
 
     private final DatadisSyncService service = new DatadisSyncServiceImpl(
             getDatadisConsumptionRepository, getSupplyRepository, persistDatadisConsumptionRepository,
             getPlantRepository, datadisProductionMapper, persistDatadisProductionRepository,
-            getDatadisConfigRepository, datadisHourlyInstantResolver);
+            getDatadisConfigRepository, datadisHourlyInstantResolver, datadisAuthorizer);
+
+    /**
+     * Every community has an enabled configuration unless a test says otherwise, and every login succeeds.
+     */
+    @BeforeEach
+    void enabledConfigurationAndLogin() {
+        when(getDatadisConfigRepository.findByCommunityId(any(UUID.class))).thenReturn(Optional.of(config(true)));
+        when(datadisAuthorizer.getAuthToken(any(DatadisConfig.class))).thenReturn("token");
+    }
 
     private static TimeConfiguration madridTimeConfiguration() {
         TimeConfiguration timeConfiguration = Mockito.mock(TimeConfiguration.class);
@@ -111,13 +127,13 @@ class DatadisSyncServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supplyOne, supplyTwo));
 
         List<DatadisConsumption> consumptions = List.of(consumption("ES001", 1.0f));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), any(Month.class), anyInt()))
                 .thenReturn(consumptions);
 
         service.synchronize(communityId, date, date);
 
-        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyOne, Month.JANUARY, 2024);
-        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supplyTwo, Month.JANUARY, 2024);
+        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supplyOne), eq(Month.JANUARY), eq(2024));
+        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supplyTwo), eq(Month.JANUARY), eq(2024));
         verify(persistDatadisConsumptionRepository, times(2))
                 .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions).records());
         verifyNoInteractions(persistDatadisProductionRepository);
@@ -131,14 +147,14 @@ class DatadisSyncServiceImplTest {
 
         Supply supply = SupplyMother.random().build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), any(Month.class), anyInt()))
                 .thenReturn(Collections.emptyList());
 
         service.synchronize(communityId, startDate, endDate);
 
-        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024);
-        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.FEBRUARY, 2024);
-        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.MARCH, 2024);
+        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), eq(Month.JANUARY), eq(2024));
+        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), eq(Month.FEBRUARY), eq(2024));
+        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), eq(Month.MARCH), eq(2024));
     }
 
     @Test
@@ -148,7 +164,7 @@ class DatadisSyncServiceImplTest {
 
         Supply supply = SupplyMother.random().build();
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(Supply.class), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), any(Month.class), anyInt()))
                 .thenReturn(Collections.emptyList());
 
         service.synchronize(communityId, date, date);
@@ -170,6 +186,54 @@ class DatadisSyncServiceImplTest {
         verifyNoInteractions(getDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisConsumptionRepository);
         verifyNoInteractions(persistDatadisProductionRepository);
+    }
+
+    @Test
+    @DisplayName("DHI-004 a supply without a distributor code, or without a point type, is skipped with one warning "
+            + "per run, and the others are synced")
+    void synchronizeByCommunity_skipsSuppliesWithoutDistributorCodeOrPointType() {
+        UUID communityId = UUID.randomUUID();
+        Community community = CommunityMother.random().withId(communityId).build();
+        LocalDate startDate = LocalDate.of(2024, 1, 10);
+        LocalDate endDate = LocalDate.of(2024, 3, 10);
+
+        Supply withoutPointType = SupplyMother.random().withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withCode("2").withName("EDISTRIBUCION").build())
+                .build();
+        Supply withoutCode = SupplyMother.random().withCommunity(community)
+                .withDistributor(new SupplyDistributor.Builder().withName("EDISTRIBUCION").withPointType(5).build())
+                .build();
+        Supply complete = SupplyMother.random().withCommunity(community).build();
+        when(getSupplyRepository.findAllByCommunityId(communityId))
+                .thenReturn(List.of(withoutPointType, withoutCode, complete));
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), any(Month.class), anyInt()))
+                .thenReturn(List.of());
+
+        try (LogCapture logs = LogCapture.of(DatadisSyncServiceImpl.class)) {
+            assertDoesNotThrow(() -> service.synchronize(communityId, startDate, endDate));
+
+            List<ILoggingEvent> skips = logs.warningsAndAbove().stream()
+                    .filter(event -> event.getMessage().startsWith("Skipping Datadis consumption sync"))
+                    .toList();
+            assertEquals(2, skips.size(), () -> "skips: " + skips);
+            for (ILoggingEvent skip : skips) {
+                assertEquals(Level.WARN, skip.getLevel());
+                assertEquals("Skipping Datadis consumption sync for supply {} in community {}: missing distributor "
+                        + "code or point type", skip.getMessage());
+                assertEquals(communityId, skip.getArgumentArray()[1]);
+            }
+            assertEquals(List.of(withoutPointType.getId(), withoutCode.getId()),
+                    skips.stream().map(event -> event.getArgumentArray()[0]).toList());
+            assertFalse(logs.warningsAndAbove().stream()
+                    .anyMatch(event -> event.getLevel() == Level.ERROR), "no error is logged");
+        }
+
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(withoutPointType), any(Month.class), anyInt());
+        verify(getDatadisConsumptionRepository, never())
+                .getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(withoutCode), any(Month.class), anyInt());
+        verify(getDatadisConsumptionRepository, times(3))
+                .getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(complete), any(Month.class), anyInt());
     }
 
     @Test
@@ -196,9 +260,9 @@ class DatadisSyncServiceImplTest {
         when(getSupplyRepository.findAllByCommunityId(communityId)).thenReturn(List.of(supply));
 
         List<DatadisConsumption> consumptions = List.of(consumption("ES001", 1.0f));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), eq(Month.JANUARY), eq(2024)))
                 .thenThrow(new DatadisSupplyConfigurationException("boom"));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(supply, Month.FEBRUARY, 2024))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), eq(Month.FEBRUARY), eq(2024)))
                 .thenReturn(consumptions);
 
         service.synchronize(communityId, startDate, endDate);
@@ -222,7 +286,7 @@ class DatadisSyncServiceImplTest {
         when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of(plantSupply.getCode()));
 
         DatadisConsumption original = consumption(plantSupply.getCode(), 3.5f);
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(plantSupply), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(plantSupply), any(Month.class), anyInt()))
                 .thenReturn(List.of(original));
 
         service.synchronize(communityId, date, date);
@@ -259,7 +323,7 @@ class DatadisSyncServiceImplTest {
         when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of("OTHER_CUPS"));
 
         DatadisConsumption original = consumption(supply.getCode(), 2.0f);
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), any(Month.class), anyInt()))
                 .thenReturn(List.of(original));
 
         service.synchronize(communityId, date, date);
@@ -286,12 +350,12 @@ class DatadisSyncServiceImplTest {
         when(getSupplyRepository.findByCode(supplyCode)).thenReturn(Optional.of(supply));
 
         List<DatadisConsumption> consumptions = List.of(consumption("ES001", 1.0f));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), any(Month.class), anyInt()))
                 .thenReturn(consumptions);
 
         service.synchronize(communityId, date, date, supplyCode);
 
-        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(supply, Month.JANUARY, 2024);
+        verify(getDatadisConsumptionRepository).getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), eq(Month.JANUARY), eq(2024));
         verify(persistDatadisConsumptionRepository)
                 .persistHourlyConsumptions(datadisHourlyInstantResolver.resolve(consumptions).records());
         verifyNoInteractions(persistDatadisProductionRepository);
@@ -309,7 +373,7 @@ class DatadisSyncServiceImplTest {
         when(getPlantRepository.findSupplyCodesByCommunity(communityId)).thenReturn(Set.of(plantSupply.getCode()));
 
         DatadisConsumption original = consumption(plantSupply.getCode(), 4.0f);
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(plantSupply), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(plantSupply), any(Month.class), anyInt()))
                 .thenReturn(List.of(original));
 
         service.synchronize(communityId, date, date, supplyCode);
@@ -383,6 +447,8 @@ class DatadisSyncServiceImplTest {
     // ---------------------------------------------------------------------
 
     @Test
+    @DisplayName("DHI-006 a community with no Datadis configuration is refused before any supply is read or Datadis "
+            + "is called")
     void synchronizeManual_throwsWhenDatadisConfigIsMissing() {
         UUID communityId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2024, 1, 10);
@@ -391,11 +457,13 @@ class DatadisSyncServiceImplTest {
         assertThrows(DatadisDisabledException.class,
                 () -> service.synchronize(communityId, date, date, (String) null));
 
-        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository,
+        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository, datadisAuthorizer,
                 persistDatadisConsumptionRepository, persistDatadisProductionRepository);
     }
 
     @Test
+    @DisplayName("DHI-006 a community whose Datadis configuration is disabled is refused before any supply is read "
+            + "or Datadis is called")
     void synchronizeManual_throwsWhenDatadisConfigIsDisabled() {
         UUID communityId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2024, 1, 10);
@@ -404,7 +472,7 @@ class DatadisSyncServiceImplTest {
         assertThrows(DatadisDisabledException.class,
                 () -> service.synchronize(communityId, date, date, "ES001"));
 
-        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository,
+        verifyNoInteractions(getSupplyRepository, getDatadisConsumptionRepository, datadisAuthorizer,
                 persistDatadisConsumptionRepository, persistDatadisProductionRepository);
     }
 
@@ -429,7 +497,7 @@ class DatadisSyncServiceImplTest {
         Supply supply = SupplyMother.random().withCommunity(community).build();
         when(getDatadisConfigRepository.findByCommunityId(communityId)).thenReturn(Optional.of(config(true)));
         when(getSupplyRepository.findByCode(SupplyCode.of("ES001"))).thenReturn(Optional.of(supply));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), any(Month.class), anyInt()))
                 .thenReturn(Collections.emptyList());
 
         service.synchronize(communityId, date, date, "ES001");
@@ -454,7 +522,7 @@ class DatadisSyncServiceImplTest {
         List<DatadisConsumption> records = new ArrayList<>(day(supply.getCode(), "2025/11/04", hourLabels(), 0f));
         records.addAll(day(supply.getCode(), "2025/11/05", withoutTwoPm, 100f));
         records.addAll(day(supply.getCode(), "2025/11/06", hourLabels(), 200f));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(eq(supply), any(Month.class), anyInt()))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(supply), any(Month.class), anyInt()))
                 .thenReturn(records);
 
         try (LogCapture logs = LogCapture.of(DatadisSyncServiceImpl.class)) {
@@ -490,9 +558,9 @@ class DatadisSyncServiceImplTest {
         october.addAll(day(cups, "2025/10/27", withoutTwoPm, 200f));
         // The day the clocks go forward.
         List<DatadisConsumption> march = new ArrayList<>(day(cups, "2026/03/29", springForwardLabels(), 300f));
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(plantSupply, Month.OCTOBER, 2025))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(plantSupply), eq(Month.OCTOBER), eq(2025)))
                 .thenReturn(october);
-        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(plantSupply, Month.MARCH, 2026))
+        when(getDatadisConsumptionRepository.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), eq(plantSupply), eq(Month.MARCH), eq(2026)))
                 .thenReturn(march);
 
         service.synchronize(communityId, LocalDate.of(2025, 10, 1), LocalDate.of(2026, 3, 1));

@@ -93,9 +93,4 @@ public class GetUserRepositoryDatabase implements GetUserRepository {
 
         return allUsers.getItems();
     }
-
-    @Override
-    public List<User> findAllUsersWithAtLeastOneSupply() {
-        return userEntityMapper.mapList(userRepository.findAllUsersWithAtLeastOneSupply());
-    }
 }

@@ -2,107 +2,134 @@ package org.lucoenergia.conluz.infrastructure.admin.supply.sync;
 
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
-import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
-import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSupplySelection;
 import org.lucoenergia.conluz.domain.admin.user.User;
-import org.lucoenergia.conluz.domain.admin.user.get.GetUserRepository;
-import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyCode;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Transactional
+/**
+ * Not transactional: Datadis is called with no transaction open, and each supply is written in a transaction of its
+ * own ({@link DatadisSupplyUpdateStep}).
+ */
 @Service
 public class DatadisSuppliesSyncServiceImpl implements DatadisSuppliesSyncService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisSuppliesSyncServiceImpl.class);
 
     private final GetSupplyRepository getSupplyRepository;
-    private final UpdateSupplyRepository updateSupplyRepository;
+    private final DatadisSupplyUpdateStep datadisSupplyUpdateStep;
     private final GetSupplyRepositoryDatadis getSupplyRepositoryDatadis;
-    private final GetUserRepository getUserRepository;
-    private final DateConverter dateConverter;
+    private final GetDatadisConfigRepository getDatadisConfigRepository;
+    private final DatadisAuthorizer datadisAuthorizer;
 
-    public DatadisSuppliesSyncServiceImpl(GetSupplyRepository getSupplyRepository, UpdateSupplyRepository updateSupplyRepository,
-                                          GetSupplyRepositoryDatadis getSupplyRepositoryDatadis, GetUserRepository getUserRepository, DateConverter dateConverter) {
+    public DatadisSuppliesSyncServiceImpl(GetSupplyRepository getSupplyRepository,
+                                          DatadisSupplyUpdateStep datadisSupplyUpdateStep,
+                                          GetSupplyRepositoryDatadis getSupplyRepositoryDatadis,
+                                          GetDatadisConfigRepository getDatadisConfigRepository,
+                                          DatadisAuthorizer datadisAuthorizer) {
         this.getSupplyRepository = getSupplyRepository;
-        this.updateSupplyRepository = updateSupplyRepository;
+        this.datadisSupplyUpdateStep = datadisSupplyUpdateStep;
         this.getSupplyRepositoryDatadis = getSupplyRepositoryDatadis;
-        this.getUserRepository = getUserRepository;
-        this.dateConverter = dateConverter;
-    }
-
-    /**
-     * Synchronizes the supplies for all users retrieving data from datadis
-     */
-    public void synchronizeSupplies() {
-        // Get all users with at least one supply
-        List<User> allUsers = getUserRepository.findAllUsersWithAtLeastOneSupply();
-        Map<String, Supply> allSupplies = getSupplyRepository.findAll().stream()
-                .collect(Collectors.toMap(Supply::getCode, supply -> supply));
-
-        processUsers(allUsers, allSupplies);
+        this.getDatadisConfigRepository = getDatadisConfigRepository;
+        this.datadisAuthorizer = datadisAuthorizer;
     }
 
     @Override
     public void synchronizeSupplies(UUID communityId) {
-        List<Supply> communitySupplies = getSupplyRepository.findAllByCommunityId(communityId);
-        Map<String, Supply> suppliesByCode = communitySupplies.stream()
-                .collect(Collectors.toMap(Supply::getCode, supply -> supply));
+        DatadisConfig config = getDatadisConfigRepository.findByCommunityId(communityId)
+                .filter(found -> Boolean.TRUE.equals(found.getEnabled()))
+                .orElseThrow(DatadisDisabledException::new);
+
+        // A disabled supply is not synced: it is neither matched, nor updated, nor reported as missing
+        List<Supply> registered = getSupplyRepository.findAllByCommunityId(communityId).stream()
+                .filter(supply -> Boolean.TRUE.equals(supply.getEnabled()))
+                .toList();
+        Map<String, List<Supply>> registeredByCups = registered.stream()
+                .collect(Collectors.groupingBy(supply -> cupsKey(supply.getCode())));
         // Only the owners of this community's supplies are processed, and only this community's
         // supplies can be updated, so the job never writes another community's supplies.
-        List<User> users = communitySupplies.stream()
+        List<User> owners = registered.stream()
                 .map(Supply::getUser)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(User::getId, user -> user, (a, b) -> a))
                 .values().stream()
                 .toList();
 
-        processUsers(users, suppliesByCode);
+        // One login per community and run: every owner is requested with the same token
+        String bearerToken = "Bearer " + datadisAuthorizer.getAuthToken(config);
+
+        List<DatadisSupply> entries = new ArrayList<>();
+        for (User owner : owners) {
+            LOGGER.info("Processing users with ID {}", owner.getId());
+            entries.addAll(getSupplyRepositoryDatadis.getSuppliesByUser(config, bearerToken, owner));
+        }
+
+        // Datadis returns one entry per contract of a CUPS: the supply is synced from the latest one
+        Map<String, List<DatadisSupply>> entriesByCups = entries.stream()
+                .collect(Collectors.groupingBy(entry -> cupsKey(entry.getCups())));
+        int notRegistered = 0;
+        for (Map.Entry<String, List<DatadisSupply>> cups : entriesByCups.entrySet()) {
+            DatadisSupply entry = DatadisSupplySelection.latest(cups.getValue());
+            List<Supply> matches = registeredByCups.getOrDefault(cups.getKey(), List.of());
+            if (matches.isEmpty()) {
+                // Datadis returns every supply authorised for an owner, also those of other communities
+                notRegistered++;
+            } else if (matches.size() > 1) {
+                LOGGER.error("Datadis supply matches several registered supplies in community {}: {}", communityId,
+                        matches.stream().map(Supply::getId).toList());
+            } else {
+                update(communityId, matches.get(0), entry);
+            }
+        }
+        LOGGER.debug("{} Datadis supplies not registered in community {}", notRegistered, communityId);
+        registeredByCups.forEach((key, supplies) -> {
+            if (!entriesByCups.containsKey(key)) {
+                supplies.forEach(supply -> LOGGER.warn("Registered supply {} not returned by Datadis in community {}",
+                        supply.getId(), communityId));
+            }
+        });
     }
 
-    private void processUsers(List<User> users, Map<String, Supply> suppliesByCode) {
-        for (User user : users) {
+    /**
+     * The key under which a code and a Datadis CUPS are the same supply: upper-cased, and in its 22-character form when
+     * it has one, so that the two forms of a CUPS meet (SUP-007). A code that is not a CUPS, stored before #532, is
+     * only upper-cased; nothing here throws.
+     */
+    private static String cupsKey(String code) {
+        if (code == null) {
+            return "";
+        }
+        String upperCased = code.toUpperCase(Locale.ROOT);
+        return SupplyCode.toFullLength(upperCased).orElse(upperCased);
+    }
 
-            LOGGER.info("Processing users with ID {}", user.getId());
-
-            List<DatadisSupply> datadisSupplies = getSupplyRepositoryDatadis.getSuppliesByUser(user);
-            for (DatadisSupply datadisSupply : datadisSupplies) {
-                Supply supply = suppliesByCode.get(datadisSupply.getCups());
-                if (supply != null) {
-                    supply.setAddress(datadisSupply.getAddress());
-
-                    SupplyDistributor distributor = new SupplyDistributor.Builder()
-                            .withCode(datadisSupply.getDistributorCode())
-                            .withName(datadisSupply.getDistributor())
-                            .withPointType(datadisSupply.getPointType())
-                            .build();
-                    supply.setDistributor(distributor);
-
-                    SupplyContract contract = new SupplyContract.Builder()
-                            .withValidDateFrom(datadisSupply.getValidDateFrom() != null ?
-                                    dateConverter.convertStringToLocalDate(datadisSupply.getValidDateFrom()) :
-                                    null)
-                            .build();
-                    supply.setContract(contract);
-
-                    updateSupplyRepository.update(supply);
-                    LOGGER.info("Supply with code {} synchronized with datadis.", datadisSupply.getCups());
-                } else {
-                    LOGGER.warn("Datadis supply with CUPS {} not found as registered supply.", datadisSupply.getCups());
-                }
-            }
+    /**
+     * A supply that cannot be written is logged, and does not stop the others.
+     */
+    private void update(UUID communityId, Supply supply, DatadisSupply datadisSupply) {
+        try {
+            datadisSupplyUpdateStep.update(SupplyId.of(supply.getId()), datadisSupply);
+            LOGGER.info("Supply with ID {} synchronized with datadis.", supply.getId());
+        } catch (Exception e) {
+            LOGGER.error("Failed to update supply from Datadis in community {}: {}", communityId, supply.getId(), e);
         }
     }
 }

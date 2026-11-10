@@ -3,23 +3,43 @@ package org.lucoenergia.conluz.infrastructure.shared;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
+import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetConsumptionFromDatadisRepository;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
+import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionYearlyAggregationService;
+import org.lucoenergia.conluz.domain.production.sharingagreement.MaterializeSharingAgreementCoefficientsService;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.AuthenticationThrottleCounters;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.MockInfluxDbConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.security.FastPasswordEncoderTestConfiguration;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClockConfiguration;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.InfluxDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+/**
+ * MockMvc is configured here, not only in {@link BaseControllerTest}: a test configuration that differs only by it
+ * would be a second Spring context, started once in every test fork.
+ */
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles({"test"})
 @Import({MutableClockConfiguration.class, FastPasswordEncoderTestConfiguration.class})
 public abstract class BaseIntegrationTest {
@@ -54,6 +74,39 @@ public abstract class BaseIntegrationTest {
             INFLUX_DB_CONTAINER.start();
         }
     }
+
+    /*
+     * The beans a test replaces are declared here, once, as spies, never as mocks in the test class. An unstubbed spy
+     * calls the real bean and is reset after every test, so a test that does not stub it sees the real bean; a test
+     * that needs a mock's behaviour stubs the spy (doNothing, doReturn, doThrow). Every test class then shares one set
+     * of replaced beans and so one Spring context, instead of starting a context of its own in every test fork.
+     */
+    @MockitoSpyBean
+    protected DatadisSyncService datadisSyncService;
+    @MockitoSpyBean
+    protected DatadisMonthlyAggregationService datadisMonthlyAggregationService;
+    @MockitoSpyBean
+    protected DatadisYearlyAggregationService datadisYearlyAggregationService;
+    @MockitoSpyBean
+    protected DatadisProductionMonthlyAggregationService datadisProductionMonthlyAggregationService;
+    @MockitoSpyBean
+    protected DatadisProductionYearlyAggregationService datadisProductionYearlyAggregationService;
+    @MockitoSpyBean
+    protected HuaweiProductionMonthlyAggregationService huaweiProductionMonthlyAggregationService;
+    @MockitoSpyBean
+    protected HuaweiProductionYearlyAggregationService huaweiProductionYearlyAggregationService;
+    @MockitoSpyBean
+    protected MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService;
+    @MockitoSpyBean
+    protected GetConsumptionFromDatadisRepository getDatadisConsumptionRepositoryDatadis;
+    @MockitoSpyBean
+    protected DatadisAuthorizer datadisAuthorizer;
+    @MockitoSpyBean
+    protected ConluzRestClientBuilder conluzRestClientBuilder;
+    @MockitoSpyBean
+    protected PasswordEncoder passwordEncoder;
+    @MockitoSpyBean
+    protected UserDetailsService userDetailsService;
 
     @Autowired
     private MutableClock startClock;

@@ -30,6 +30,4 @@ public interface GetUserRepository {
     PagedResult<User> findAllVisible(PagedRequest pagedRequest, UUID selfId, Set<UUID> communityIds);
 
     List<User> findAll();
-
-    List<User> findAllUsersWithAtLeastOneSupply();
 }

@@ -9,7 +9,6 @@ import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.domain.datadis.get.GetDatadisConfigRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisParams;
@@ -37,35 +36,27 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
     private final ObjectMapper objectMapper;
     private final DatadisAuthorizer datadisAuthorizer;
     private final ConluzRestClientBuilder conluzRestClientBuilder;
-    private final GetDatadisConfigRepository getDatadisConfigRepository;
 
     public GetSupplyRepositoryDatadisRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
-                                          ConluzRestClientBuilder conluzRestClientBuilder,
-                                          GetDatadisConfigRepository getDatadisConfigRepository) {
+                                          ConluzRestClientBuilder conluzRestClientBuilder) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;
-        this.getDatadisConfigRepository = getDatadisConfigRepository;
     }
 
     @Override
-    public List<DatadisSupply> getSuppliesByUser(User user) {
+    public List<DatadisSupply> getSuppliesByUser(DatadisConfig config, String bearerToken, User user) {
 
         final List<DatadisSupply> result = new ArrayList<>();
-
-        final String authToken = datadisAuthorizer.getAuthBearerToken();
 
         final OkHttpClient client = conluzRestClientBuilder.build(false, Duration.ofSeconds(60));
 
         LOGGER.info("Getting all supplies from datadis of user {}", user.getId());
 
-        final String baseUrl = getDatadisConfigRepository.getDatadisConfig()
-                .map(DatadisConfig::getBaseUrl)
-                .orElse(DatadisConfig.DEFAULT_BASE_URL);
-
         // Create the complete URL with the query parameter
-        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(baseUrl + API_PATH + GET_SUPPLIES_PATH);
-        if (datadisAuthorizer.requiresAuthorizedNif(UserPersonalId.of(user.getPersonalId()))) {
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromUriString(
+                config.getBaseUrl() + API_PATH + GET_SUPPLIES_PATH);
+        if (datadisAuthorizer.requiresAuthorizedNif(config, UserPersonalId.of(user.getPersonalId()))) {
             urlBuilder.queryParam(DatadisParams.AUTHORIZED_NIF, user.getPersonalId());
         }
         String url = urlBuilder.build().toUriString();
@@ -73,7 +64,7 @@ public class GetSupplyRepositoryDatadisRest implements GetSupplyRepositoryDatadi
         final Request request = new Request.Builder()
                 .url(url)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .header(HttpHeaders.AUTHORIZATION, authToken)
+                .header(HttpHeaders.AUTHORIZATION, bearerToken)
                 .header(HttpHeaders.ACCEPT_ENCODING, "identity")
                 .header(HttpHeaders.ACCEPT, "*/*")
                 .get()

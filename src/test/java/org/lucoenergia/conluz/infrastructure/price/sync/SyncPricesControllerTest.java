@@ -28,10 +28,8 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.price.OmieConfig;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.io.IOException;
@@ -55,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -86,9 +84,6 @@ class SyncPricesControllerTest extends BaseControllerTest {
      */
     private static final String WRONG_COUNT = "omie_quarter_prices_wrong_count.txt";
 
-    @MockitoBean
-    private ConluzRestClientBuilder conluzRestClientBuilder;
-
     @Autowired
     private CreateUserRepository createUserRepository;
     @Autowired
@@ -111,7 +106,7 @@ class SyncPricesControllerTest extends BaseControllerTest {
         travelTo(NOW);
         clearStoredPrices();
         omie = new OmieStub();
-        when(conluzRestClientBuilder.build(anyBoolean(), any(Duration.class))).thenReturn(omie.client());
+        doReturn(omie.client()).when(conluzRestClientBuilder).build(anyBoolean(), any(Duration.class));
     }
 
     @AfterEach
