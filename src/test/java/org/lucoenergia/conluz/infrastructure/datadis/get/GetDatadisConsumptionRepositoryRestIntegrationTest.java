@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +21,6 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
 
     @Autowired
     private GetDatadisConsumptionRepositoryRest datadisConsumptionRepositoryRest;
-    @Autowired
-    private DatadisAuthorizer datadisAuthorizer;
 
     @Test
     void testGetMonthlyConsumption() {

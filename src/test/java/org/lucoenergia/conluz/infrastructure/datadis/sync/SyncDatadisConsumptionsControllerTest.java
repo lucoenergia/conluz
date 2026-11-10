@@ -1,10 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.datadis.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -32,8 +31,13 @@ class SyncDatadisConsumptionsControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/consumption/datadis/sync";
 
-    @MockitoBean
-    private DatadisSyncService datadisSyncService;
+    /**
+     * The controller only hands the request over: the real service is not run.
+     */
+    @BeforeEach
+    void serviceDoesNothing() {
+        doNothing().when(datadisSyncService).synchronize(any(), any(), any(), (String) any());
+    }
 
     @Autowired
     private ObjectMapper objectMapper;

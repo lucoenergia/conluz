@@ -1,8 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.production.huawei.sync;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.huawei.aggregate.HuaweiProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.infrastructure.production.huawei.HuaweiDisabledException;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.hamcrest.Matchers.containsString;
@@ -27,8 +26,13 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
 
     private static final String URL = "/api/v1/communities/" + DEFAULT_COMMUNITY_ID + "/production/huawei/sync/monthly";
 
-    @MockitoBean
-    private HuaweiProductionMonthlyAggregationService aggregationService;
+    /**
+     * The controller only hands the request over: the real service is not run.
+     */
+    @BeforeEach
+    void serviceDoesNothing() {
+        doNothing().when(huaweiProductionMonthlyAggregationService).syncMonthlyProductions(any(), any(), any(), anyInt());
+    }
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -48,7 +52,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk());
 
         // Controller only forwards the request to the service, which owns all the dispatch logic
-        verify(aggregationService, times(1))
+        verify(huaweiProductionMonthlyAggregationService, times(1))
                 .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), isNull(), isNull(), eq(2024));
     }
 
@@ -66,7 +70,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(aggregationService, times(1))
+        verify(huaweiProductionMonthlyAggregationService, times(1))
                 .syncMonthlyProductions(eq(DEFAULT_COMMUNITY_ID), eq("PLANT001"), eq(6), eq(2024));
     }
 
@@ -74,7 +78,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     void testWhenHuaweiDisabled_thenConflict() throws Exception {
 
         doThrow(new HuaweiDisabledException())
-                .when(aggregationService)
+                .when(huaweiProductionMonthlyAggregationService)
                 .syncMonthlyProductions(any(), any(), any(), anyInt());
 
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
@@ -94,7 +98,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
     void testWhenHuaweiDisabled_thenMessageNamesTheEnableAction() throws Exception {
 
         doThrow(new HuaweiDisabledException())
-                .when(aggregationService)
+                .when(huaweiProductionMonthlyAggregationService)
                 .syncMonthlyProductions(any(), any(), any(), anyInt());
 
         mockMvc.perform(post(URL)
@@ -119,7 +123,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(HttpStatus.UNAUTHORIZED.value()));
 
-        verifyNoInteractions(aggregationService);
+        verifyNoInteractions(huaweiProductionMonthlyAggregationService);
     }
 
     @Test
@@ -137,7 +141,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(HttpStatus.FORBIDDEN.value()));
 
-        verifyNoInteractions(aggregationService);
+        verifyNoInteractions(huaweiProductionMonthlyAggregationService);
     }
 
     @Test
@@ -155,7 +159,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
 
-        verifyNoInteractions(aggregationService);
+        verifyNoInteractions(huaweiProductionMonthlyAggregationService);
     }
 
     @Test
@@ -173,7 +177,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
 
-        verifyNoInteractions(aggregationService);
+        verifyNoInteractions(huaweiProductionMonthlyAggregationService);
     }
 
     @Test
@@ -191,7 +195,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(HttpStatus.BAD_REQUEST.value()));
 
-        verifyNoInteractions(aggregationService);
+        verifyNoInteractions(huaweiProductionMonthlyAggregationService);
     }
 
     @Test
@@ -202,7 +206,7 @@ class SyncMonthlyHuaweiProductionControllerTest extends BaseControllerTest {
         SyncMonthlyHuaweiProductionBody body = new SyncMonthlyHuaweiProductionBody(2024, 1, "INVALID");
 
         doThrow(new PlantNotFoundException("INVALID"))
-                .when(aggregationService)
+                .when(huaweiProductionMonthlyAggregationService)
                 .syncMonthlyProductions(any(), any(), any(), anyInt());
 
         mockMvc.perform(post(URL)

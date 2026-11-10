@@ -21,16 +21,13 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisStub;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -44,7 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,15 +58,10 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
     private static final String TOKEN_A = "token-a";
     private static final String TOKEN_B = "token-b";
 
-    @MockitoBean
-    private ConluzRestClientBuilder conluzRestClientBuilder;
-
     @Autowired
     private DatadisSuppliesSyncService datadisSuppliesSyncService;
     @Autowired
     private DatadisSuppliesSyncDailyJob datadisSuppliesSyncDailyJob;
-    @Autowired
-    private DatadisSyncService datadisSyncService;
     @Autowired
     private GetSupplyRepository getSupplyRepository;
     @Autowired
@@ -86,9 +78,8 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
 
     @BeforeEach
     void beforeEach() {
-        when(conluzRestClientBuilder.build()).thenAnswer(invocation -> datadis.client());
-        when(conluzRestClientBuilder.build(anyBoolean(), any(Duration.class)))
-                .thenAnswer(invocation -> datadis.client());
+        doAnswer(invocation -> datadis.client()).when(conluzRestClientBuilder).build();
+        doAnswer(invocation -> datadis.client()).when(conluzRestClientBuilder).build(anyBoolean(), any(Duration.class));
     }
 
     /**

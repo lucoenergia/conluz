@@ -24,7 +24,6 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.sharing
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -35,13 +34,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 
 /**
- * Isolated from StoreDistributorFileServiceImplIntegrationTest because it needs the whole
- * MaterializeSharingAgreementCoefficientsService bean replaced (to force a failure after the file
- * has already been persisted), which would break that class's other, real-materialisation tests if
- * they shared a test class.
+ * Kept apart from StoreDistributorFileServiceImplIntegrationTest because every test here makes the
+ * {@link MaterializeSharingAgreementCoefficientsService} spy fail, after the file has already been persisted,
+ * while that class's tests need the real materialisation.
  */
 class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegrationTest {
 
@@ -66,8 +64,6 @@ class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegra
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private SharingAgreementFileRepository sharingAgreementFileRepository;
-    @MockitoBean
-    private MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService;
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -118,8 +114,8 @@ class StoreDistributorFileServiceImplTransactionRollbackTest extends BaseIntegra
         agreement.setCreatedBy(null);
         agreement = sharingAgreementRepository.save(agreement);
 
-        when(materializeSharingAgreementCoefficientsService.replaceAllBySupplyId(any(), any(), any()))
-                .thenThrow(new RuntimeException("Injected materialisation failure for test"));
+        doThrow(new RuntimeException("Injected materialisation failure for test"))
+                .when(materializeSharingAgreementCoefficientsService).replaceAllBySupplyId(any(), any(), any());
 
         byte[] file = (CUPS_1 + ";1,000000\n").getBytes(StandardCharsets.UTF_8);
 

@@ -16,7 +16,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -50,8 +49,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 class RegisterMemberControllerTest extends BaseSendingMemberTest {
 
-    @Autowired
-    private UserDetailsService userDetailsService;
     @Autowired
     private CommunityAccessGuard communityAccessGuard;
 

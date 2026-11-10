@@ -19,9 +19,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisStub;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -31,20 +29,15 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 
 /**
- * Only the network is replaced, by {@link DatadisStub}. The test extends {@link BaseControllerTest} and replaces
- * exactly {@link ConluzRestClientBuilder}, like the other Datadis stub tests, so that they all share one Spring
- * context.
+ * Only the network is replaced, by {@link DatadisStub}, which the shared {@code ConluzRestClientBuilder} spy returns.
  */
 @Transactional
 class DatadisSuppliesSyncServiceTest extends BaseControllerTest {
 
     private static final String BASE_URL = "http://datadis.test";
-
-    @MockitoBean
-    private ConluzRestClientBuilder conluzRestClientBuilder;
 
     @Autowired
     private DatadisSuppliesSyncService service;
@@ -63,9 +56,8 @@ class DatadisSuppliesSyncServiceTest extends BaseControllerTest {
 
     @BeforeEach
     void beforeEach() {
-        when(conluzRestClientBuilder.build()).thenAnswer(invocation -> datadis.client());
-        when(conluzRestClientBuilder.build(anyBoolean(), any(Duration.class)))
-                .thenAnswer(invocation -> datadis.client());
+        doAnswer(invocation -> datadis.client()).when(conluzRestClientBuilder).build();
+        doAnswer(invocation -> datadis.client()).when(conluzRestClientBuilder).build(anyBoolean(), any(Duration.class));
     }
 
     @Test

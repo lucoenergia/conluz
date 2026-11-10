@@ -17,8 +17,6 @@ import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -61,8 +59,6 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private UserRepository userRepository;
-    @MockitoSpyBean
-    private PasswordEncoder passwordEncoder;
 
     private LogCapture logs;
 

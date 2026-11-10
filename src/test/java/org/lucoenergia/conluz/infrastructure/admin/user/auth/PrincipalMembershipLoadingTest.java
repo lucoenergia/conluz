@@ -15,7 +15,6 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -35,8 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Transactional
 class PrincipalMembershipLoadingTest extends BaseIntegrationTest {
 
-    @Autowired
-    private UserDetailsService userDetailsService;
     @Autowired
     private EntityManager entityManager;
     @Autowired

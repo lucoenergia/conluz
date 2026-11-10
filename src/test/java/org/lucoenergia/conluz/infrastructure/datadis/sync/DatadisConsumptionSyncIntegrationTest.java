@@ -16,16 +16,13 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisStub;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
-import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -38,7 +35,7 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,11 +52,6 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
     private static final LocalDate OCTOBER = LocalDate.of(2025, 10, 1);
     private static final LocalDate NOVEMBER = LocalDate.of(2025, 11, 1);
 
-    @MockitoBean
-    private ConluzRestClientBuilder conluzRestClientBuilder;
-
-    @Autowired
-    private DatadisSyncService datadisSyncService;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
@@ -74,9 +66,8 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
 
     @BeforeEach
     void beforeEach() {
-        when(conluzRestClientBuilder.build()).thenAnswer(invocation -> datadis.client());
-        when(conluzRestClientBuilder.build(anyBoolean(), any(Duration.class)))
-                .thenAnswer(invocation -> datadis.client());
+        doAnswer(invocation -> datadis.client()).when(conluzRestClientBuilder).build();
+        doAnswer(invocation -> datadis.client()).when(conluzRestClientBuilder).build(anyBoolean(), any(Duration.class));
     }
 
     /**

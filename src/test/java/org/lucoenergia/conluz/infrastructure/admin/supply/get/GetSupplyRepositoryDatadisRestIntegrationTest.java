@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +20,6 @@ class GetSupplyRepositoryDatadisRestIntegrationTest extends BaseIntegrationTest 
 
     @Autowired
     private GetSupplyRepositoryDatadisRest getSupplyRepositoryDatadisRest;
-    @Autowired
-    private DatadisAuthorizer datadisAuthorizer;
 
     @Test
     void testGetSuppliesByUser() {

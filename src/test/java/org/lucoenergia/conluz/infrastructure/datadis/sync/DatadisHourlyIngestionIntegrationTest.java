@@ -21,9 +21,7 @@ import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepositoryDatadis;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
@@ -32,14 +30,12 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionMeasurements;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionPoint;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -57,7 +53,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 /**
  * Datadis hourly records stored through the real synchronisation, persistence and InfluxDB, then read back by
@@ -68,13 +64,6 @@ import static org.mockito.Mockito.when;
 @Transactional
 class DatadisHourlyIngestionIntegrationTest extends BaseIntegrationTest {
 
-    @MockitoBean
-    private GetDatadisConsumptionRepositoryDatadis datadisApi;
-    @MockitoBean
-    private DatadisAuthorizer datadisAuthorizer;
-
-    @Autowired
-    private DatadisSyncService datadisSyncService;
     @Autowired
     private GetDatadisConsumptionService getDatadisConsumptionService;
     @Autowired
@@ -116,8 +105,8 @@ class DatadisHourlyIngestionIntegrationTest extends BaseIntegrationTest {
         List<DatadisConsumption> secondDay = day(supply.getCode(), "2025/11/04", hourLabels(), 200f);
         List<DatadisConsumption> records = new ArrayList<>(firstDay);
         records.addAll(secondDay);
-        when(datadisApi.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), eq(Month.NOVEMBER), eq(2025)))
-                .thenReturn(records);
+        doReturn(records).when(getDatadisConsumptionRepositoryDatadis)
+                .getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), eq(Month.NOVEMBER), eq(2025));
 
         sync(community, supply, YearMonth.of(2025, 11));
 
@@ -144,8 +133,8 @@ class DatadisHourlyIngestionIntegrationTest extends BaseIntegrationTest {
                     dayOfMonth * 100f));
         }
         assertEquals(745, october.size());
-        when(datadisApi.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), eq(Month.OCTOBER), eq(2025)))
-                .thenReturn(october);
+        doReturn(october).when(getDatadisConsumptionRepositoryDatadis)
+                .getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), eq(Month.OCTOBER), eq(2025));
 
         sync(community, supply, YearMonth.of(2025, 10));
 
@@ -169,8 +158,8 @@ class DatadisHourlyIngestionIntegrationTest extends BaseIntegrationTest {
         List<DatadisConsumption> records = new ArrayList<>(day(supply.getCode(), "2025/10/25", hourLabels(), 0f));
         records.addAll(day(supply.getCode(), "2025/10/26", fallBackLabels(), 100f));
         records.addAll(day(supply.getCode(), "2025/10/27", withoutTwoPm, 200f));
-        when(datadisApi.getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), eq(Month.OCTOBER), eq(2025)))
-                .thenReturn(records);
+        doReturn(records).when(getDatadisConsumptionRepositoryDatadis)
+                .getHourlyConsumptionsByMonth(any(DatadisConfig.class), anyString(), any(Supply.class), eq(Month.OCTOBER), eq(2025));
 
         sync(community, supply, YearMonth.of(2025, 10));
 
@@ -202,7 +191,7 @@ class DatadisHourlyIngestionIntegrationTest extends BaseIntegrationTest {
     }
 
     /**
-     * A community with an enabled Datadis configuration, whose login the replaced authorizer answers.
+     * A community with an enabled Datadis configuration, whose login the stubbed authorizer answers.
      */
     private Community persistCommunity() {
         Community community = createCommunityRepository.create(CommunityMother.random().build());
@@ -212,7 +201,7 @@ class DatadisHourlyIngestionIntegrationTest extends BaseIntegrationTest {
                 .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
                 .setEnabled(true)
                 .build());
-        when(datadisAuthorizer.getAuthToken(any(DatadisConfig.class))).thenReturn("token");
+        doReturn("token").when(datadisAuthorizer).getAuthToken(any(DatadisConfig.class));
         return community;
     }
 
