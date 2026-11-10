@@ -23,13 +23,6 @@ public class SetDatadisConfigurationRepositoryDatabase implements SetDatadisConf
     }
 
     @Override
-    public DatadisConfig setDatadisConfiguration(DatadisConfig config) {
-        DatadisConfigEntity entity = datadisConfigRepository.findFirstBy()
-                .orElseGet(() -> { DatadisConfigEntity e = new DatadisConfigEntity(); e.setId(UUID.randomUUID()); return e; });
-        return persist(entity, config, null);
-    }
-
-    @Override
     public DatadisConfig setDatadisConfiguration(UUID communityId, DatadisConfig config) {
         DatadisConfigEntity entity = datadisConfigRepository.findByCommunityId(communityId)
                 .orElseGet(() -> { DatadisConfigEntity e = new DatadisConfigEntity(); e.setId(UUID.randomUUID()); return e; });
