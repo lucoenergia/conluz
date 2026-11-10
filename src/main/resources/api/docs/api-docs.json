@@ -3386,6 +3386,88 @@
         ],
         "type" : "object"
       },
+      "PlantInverterPowerPointResponse" : {
+        "properties" : {
+          "endsAt" : {
+            "description" : "Instant of the later of the two consecutive inverter snapshots the point is averaged between, where its interval ends, with the offset in force in the community's time zone at that instant.",
+            "example" : "2026-09-15T08:05:00+02:00",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "powerKW" : {
+            "description" : "Average power of the inverter over the interval between the two snapshots, in kW, rounded to 3 decimals: the energy the inverter counted in the interval divided by the interval's real duration. Never negative. Null when the interval is longer than 15 minutes: a gap in the snapshots, never drawn as production.",
+            "example" : 0.48,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "endsAt",
+          "powerKW"
+        ],
+        "type" : "object"
+      },
+      "PlantInverterProductionTodayResponse" : {
+        "properties" : {
+          "lastUpdatedAt" : {
+            "description" : "Instant of the latest inverter snapshot of today, with the offset in force in the community's time zone at that instant. Null unless the status is AVAILABLE.",
+            "example" : "2026-09-15T13:05:00+02:00",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "powerCurve" : {
+            "description" : "The inverter's average power between each pair of consecutive snapshots of today, in time order. Empty with a single snapshot. Null unless the status is AVAILABLE.",
+            "items" : {
+              "$ref" : "#/components/schemas/PlantInverterPowerPointResponse"
+            },
+            "type" : [
+              "array",
+              "null"
+            ]
+          },
+          "stale" : {
+            "description" : "True when the latest inverter snapshot of today is more than 60 minutes old; one exactly 60 minutes old is not stale. Null unless the status is AVAILABLE.",
+            "example" : false,
+            "type" : [
+              "boolean",
+              "null"
+            ]
+          },
+          "status" : {
+            "description" : "Whether today's inverter production can be shown. AVAILABLE: the plant has an enabled Huawei configuration and at least one inverter snapshot of the current local day. NO_DATA_TODAY: the configuration is enabled, but no snapshot of the current local day is stored. NOT_AVAILABLE: the plant has no Huawei configuration, or it is disabled. Every other field is null unless the status is AVAILABLE.",
+            "enum" : [
+              "AVAILABLE",
+              "NO_DATA_TODAY",
+              "NOT_AVAILABLE"
+            ],
+            "example" : "AVAILABLE",
+            "type" : "string"
+          },
+          "todayEnergyKWh" : {
+            "description" : "Energy the plant's inverter produced today, from local midnight in the community's time zone, in kWh, rounded to 3 decimals: the latest inverter day counter of today, a snapshot still carrying the previous day's total counting as 0. This is gross inverter output, which may differ from the distributor's figures and is never summed with the energy metrics. Null unless the status is AVAILABLE.",
+            "example" : 152.4,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "lastUpdatedAt",
+          "powerCurve",
+          "stale",
+          "status",
+          "todayEnergyKWh"
+        ],
+        "type" : "object"
+      },
       "PlantMonthlyEnergyBucketResponse" : {
         "properties" : {
           "date" : {
@@ -17108,6 +17190,133 @@
           }
         ],
         "summary" : "Retrieves the production of a plant as reported by the distributor, per month.",
+        "tags" : [
+          "Plants"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/inverter-production/today" : {
+      "get" : {
+        "description" : "Derives today's energy and a power curve from the real-time snapshots the plant's Huawei\ninverter reports about every 5 minutes. \"Today\" is the current local day in the community's\ntime zone. No station code, provider code or credential of the integration is reported.\n\nThis is inverter data: the gross output the inverter measures. It may differ from the\ndistributor's figures, which measure the energy exported at the connection point, and it is\nnever summed with the energy metrics or energy series figures.\n\n- `status`: `NOT_AVAILABLE` when the plant has no Huawei configuration or it is disabled,\n  `NO_DATA_TODAY` when it is enabled but no snapshot of today is stored, and `AVAILABLE`\n  otherwise. Every other field is `null` unless the status is `AVAILABLE`.\n- `todayEnergyKWh`: the latest inverter day counter of today. The counter resets at local\n  midnight, but a snapshot taken at the boundary can still carry the previous day's total:\n  the leading run of today's snapshots equal to the previous day's last value, when that is\n  greater than 0, is carry-over and counts as 0 kWh. The run ends at the first different\n  value. When every snapshot of today is carry-over, today's energy is 0.\n- `powerCurve`: one point per pair of consecutive snapshots of today, at the later one: the\n  energy counted between them divided by their real time apart, never negative. An interval\n  longer than 15 minutes is a gap: its point is `null`, and nothing is interpolated across\n  it. A single missing snapshot, about 10 minutes, is averaged.\n- `lastUpdatedAt`: when the latest snapshot of today was taken.\n- `stale`: whether that snapshot is more than 60 minutes old.\n\nEnergy and power are rounded to 3 decimals, after computing.\n\n**Required: the caller can manage the plant** (the plant's `canManage` capability):\nan active community admin of the plant's community. A member of that community who is\nnot an admin is answered 403, and every other caller, a platform admin who is not a\nmember included, 404.\n",
+        "operationId" : "getPlantInverterProductionToday",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlantInverterProductionTodayResponse"
+                }
+              }
+            },
+            "description" : "Today's inverter production retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves today's production of a plant as reported by its inverter.",
         "tags" : [
           "Plants"
         ]

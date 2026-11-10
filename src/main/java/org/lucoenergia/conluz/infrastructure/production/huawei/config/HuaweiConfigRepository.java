@@ -16,6 +16,8 @@ public interface HuaweiConfigRepository extends JpaRepository<HuaweiConfigEntity
 
     java.util.List<HuaweiConfigEntity> findAllByEnabledTrue();
 
+    boolean existsByPlantIdAndEnabledTrue(UUID plantId);
+
     /**
      * Locks the plant's configuration row until the end of the current transaction. {@code FOR NO KEY UPDATE}
      * conflicts with the lock {@link #updateEnabledByPlantId} takes, so a concurrent enable or disable waits for
