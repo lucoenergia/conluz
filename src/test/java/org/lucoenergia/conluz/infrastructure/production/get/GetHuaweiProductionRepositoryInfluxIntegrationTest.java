@@ -10,11 +10,13 @@ import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
 import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiProductionRepository;
 import org.lucoenergia.conluz.domain.production.huawei.persist.PersistHuaweiProductionRepository;
 import org.lucoenergia.conluz.domain.production.plant.inverter.InverterProductionDay;
+import org.lucoenergia.conluz.domain.production.plant.inverter.InverterProductionToday;
 import org.lucoenergia.conluz.domain.production.plant.inverter.InverterSnapshot;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxDbConnectionManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,6 +77,26 @@ class GetHuaweiProductionRepositoryInfluxIntegrationTest extends BaseIntegration
                 new InverterSnapshot(TODAY_START.plusMillis(980), 323.36),
                 new InverterSnapshot(Instant.parse("2026-09-14T22:05:00Z"), 0.0),
                 new InverterSnapshot(Instant.parse("2026-09-15T08:05:00Z"), 0.04)), day.todaySnapshots());
+    }
+
+    @Test
+    @DisplayName("PIP-002 a carry-over snapshot read back through the repository equals the previous day's last value")
+    void aCarryOverSnapshotReadBackEqualsThePreviousDaysLastValue() {
+        String station = station();
+        write(station, TODAY_START.minusSeconds(300), 323.36);
+        write(station, TODAY_START.plusMillis(980), 323.36);
+        write(station, Instant.parse("2026-09-14T22:05:00Z"), 0.02);
+
+        InverterProductionDay day = repository.getProductionDay(station, YESTERDAY_START, TODAY_START, NOW);
+        InverterProductionToday today = InverterProductionToday.of(day.previousDayLastKWh(), day.todaySnapshots())
+                .orElseThrow();
+
+        // The stored value must round-trip exactly, or the carry-over run would never start.
+        assertEquals(day.previousDayLastKWh(), day.todaySnapshots().get(0).dayPowerKWh());
+        // Counted from 0, the 0.02 kWh after the carry-over is production; counted from 323.36 it would be a drop, 0 kW.
+        Duration interval = Duration.between(TODAY_START.plusMillis(980), Instant.parse("2026-09-14T22:05:00Z"));
+        assertEquals(0.02 / (interval.toMillis() / 3_600_000.0), today.getPowerCurve().get(0).powerKW(), 1e-9);
+        assertEquals(0.02, today.getEnergyKWh(), 1e-9);
     }
 
     @Test
