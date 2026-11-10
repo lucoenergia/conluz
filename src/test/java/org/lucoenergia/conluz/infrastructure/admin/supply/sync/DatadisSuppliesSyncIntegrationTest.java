@@ -16,7 +16,6 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.sync.DatadisSuppliesSyncService;
-import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -32,7 +31,6 @@ import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBui
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -46,8 +44,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -67,8 +63,6 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
 
     @MockitoBean
     private ConluzRestClientBuilder conluzRestClientBuilder;
-    @MockitoSpyBean
-    private UpdateSupplyRepository updateSupplyRepository;
 
     @Autowired
     private DatadisSuppliesSyncService datadisSuppliesSyncService;
@@ -427,18 +421,25 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("DSS-008 when the second of three supplies cannot be written, the first and the third are kept, and "
-            + "the failure is logged at ERROR with the community and the supply")
+    @DisplayName("DSS-008 when one of three supplies cannot be written, the other two are kept, and the failure is "
+            + "logged at ERROR with the community and the supply")
     void eachSupplyIsWrittenOnItsOwn() {
         UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
         User owner = owner();
         Supply first = supply(owner, communityId);
         Supply second = supply(owner, communityId);
         Supply third = supply(owner, communityId);
+        // A distributor name longer than its column holds: the database refuses that supply's write
+        DatadisSupply unwritable = new DatadisSupply.Builder()
+                .withCups(second.getCode())
+                .withAddress("Datadis address")
+                .withDistributor("D".repeat(251))
+                .withDistributorCode("1")
+                .withPointType(5)
+                .withValidDateFrom("2024/06/01")
+                .build();
         datadis.supplies(BASE_URL_A, owner.getPersonalId(),
-                List.of(entry(first.getCode(), "1"), entry(second.getCode(), "1"), entry(third.getCode(), "1")));
-        doThrow(new IllegalStateException("write refused"))
-                .when(updateSupplyRepository).update(argThat(supply -> second.getId().equals(supply.getId())));
+                List.of(entry(first.getCode(), "1"), unwritable, entry(third.getCode(), "1")));
 
         try (LogCapture logs = LogCapture.of(DatadisSuppliesSyncServiceImpl.class)) {
             datadisSuppliesSyncService.synchronizeSupplies(communityId);
@@ -447,7 +448,7 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
                 assertThat(event.getLevel()).isEqualTo(Level.ERROR);
                 assertThat(event.getMessage()).isEqualTo("Failed to update supply from Datadis in community {}: {}");
                 assertThat(event.getArgumentArray()).startsWith(communityId, second.getId());
-                assertThat(event.getThrowableProxy().getMessage()).isEqualTo("write refused");
+                assertThat(event.getThrowableProxy()).isNotNull();
             });
         }
         assertThat(distributorCode(first)).isEqualTo("1");

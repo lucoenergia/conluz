@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.domain.admin.supply.sync;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -9,7 +10,6 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepositoryDatadis;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -17,30 +17,34 @@ import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
-import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
-import org.mockito.Mockito;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisStub;
+import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
+/**
+ * Only the network is replaced, by {@link DatadisStub}. The test extends {@link BaseControllerTest} and replaces
+ * exactly {@link ConluzRestClientBuilder}, like the other Datadis stub tests, so that they all share one Spring
+ * context.
+ */
 @Transactional
-class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
+class DatadisSuppliesSyncServiceTest extends BaseControllerTest {
+
+    private static final String BASE_URL = "http://datadis.test";
 
     @MockitoBean
-    private GetSupplyRepositoryDatadis getSupplyRepositoryDatadis;
-    @MockitoBean
-    private DatadisAuthorizer datadisAuthorizer;
+    private ConluzRestClientBuilder conluzRestClientBuilder;
 
     @Autowired
     private DatadisSuppliesSyncService service;
@@ -54,6 +58,15 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
     private CreateUserRepository createUserRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
+
+    private final DatadisStub datadis = new DatadisStub();
+
+    @BeforeEach
+    void beforeEach() {
+        when(conluzRestClientBuilder.build()).thenAnswer(invocation -> datadis.client());
+        when(conluzRestClientBuilder.build(anyBoolean(), any(Duration.class)))
+                .thenAnswer(invocation -> datadis.client());
+    }
 
     @Test
     void synchronizeSuppliesSuccessTest() {
@@ -74,8 +87,7 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
                 .withPointType(5)
                 .withValidDateFrom("2024/06/01")
                 .build();
-        when(getSupplyRepositoryDatadis.getSuppliesByUser(any(DatadisConfig.class), anyString(), any(User.class)))
-                .thenReturn(List.of(datadisSupply));
+        datadis.supplies(BASE_URL, user.getPersonalId(), List.of(datadisSupply));
 
         // Act
         service.synchronizeSupplies(communityId);
@@ -98,19 +110,14 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
         createSupplyRepository.create(SupplyMother.random().withEnabled(true).build(), UserId.of(userTwo.getId()),
                 communityId);
 
-        when(getSupplyRepositoryDatadis.getSuppliesByUser(any(DatadisConfig.class), anyString(), any(User.class)))
-                .thenReturn(List.of());
-
         // Act
         service.synchronizeSupplies(communityId);
 
-        // Assert
-        UUID withoutSupply = userOne.getId();
-        UUID withSupplies = userTwo.getId();
-        Mockito.verify(getSupplyRepositoryDatadis, never())
-                .getSuppliesByUser(any(), any(), argThat(user -> user.getId().equals(withoutSupply)));
-        Mockito.verify(getSupplyRepositoryDatadis, times(1))
-                .getSuppliesByUser(any(), any(), argThat(user -> user.getId().equals(withSupplies)));
+        // Assert: only the owner of the community's supplies is requested, once
+        assertThat(datadis.calls(BASE_URL, DatadisStub.SUPPLIES_PATH))
+                .extracting(DatadisStub.Call::authorizedNif)
+                .containsExactly(userTwo.getPersonalId())
+                .doesNotContain(userOne.getPersonalId());
     }
 
     private UUID communityWithDatadis() {
@@ -118,10 +125,10 @@ class DatadisSuppliesSyncServiceTest extends BaseIntegrationTest {
         setDatadisConfigurationRepository.setDatadisConfiguration(communityId, new DatadisConfig.Builder()
                 .setUsername(UserMother.randomPersonalId())
                 .setPassword("password")
-                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .setBaseUrl(BASE_URL)
                 .setEnabled(true)
                 .build());
-        when(datadisAuthorizer.getAuthToken(any(DatadisConfig.class))).thenReturn("token");
+        datadis.account(BASE_URL, "token");
         return communityId;
     }
 }
