@@ -20,7 +20,7 @@ import java.util.List;
 class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    private GetDatadisConsumptionRepositoryRest datadisConsumptionRepositoryRest;
+    private GetConsumptionFromDatadisRepositoryRest datadisConsumptionRepositoryRest;
 
     @Test
     void testGetMonthlyConsumption() {

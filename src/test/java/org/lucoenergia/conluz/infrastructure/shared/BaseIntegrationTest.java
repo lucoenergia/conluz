@@ -5,7 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.lucoenergia.conluz.domain.admin.user.auth.throttle.AuthenticationThrottleService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearlyAggregationService;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepositoryDatadis;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetConsumptionFromDatadisRepository;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
@@ -98,7 +98,7 @@ public abstract class BaseIntegrationTest {
     @MockitoSpyBean
     protected MaterializeSharingAgreementCoefficientsService materializeSharingAgreementCoefficientsService;
     @MockitoSpyBean
-    protected GetDatadisConsumptionRepositoryDatadis getDatadisConsumptionRepositoryDatadis;
+    protected GetConsumptionFromDatadisRepository getDatadisConsumptionRepositoryDatadis;
     @MockitoSpyBean
     protected DatadisAuthorizer datadisAuthorizer;
     @MockitoSpyBean

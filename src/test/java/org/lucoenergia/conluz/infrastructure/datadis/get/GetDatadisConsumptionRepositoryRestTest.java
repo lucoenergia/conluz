@@ -39,7 +39,7 @@ class GetDatadisConsumptionRepositoryRestTest {
     private static final String BEARER_TOKEN = "Bearer testToken";
 
     private ConluzRestClientBuilder conluzRestClientBuilder;
-    private GetDatadisConsumptionRepositoryRest repository;
+    private GetConsumptionFromDatadisRepositoryRest repository;
 
     @BeforeEach
     void setUp() {
@@ -48,7 +48,7 @@ class GetDatadisConsumptionRepositoryRestTest {
         DatadisDateTimeConverter datadisDateTimeConverter = Mockito.mock(DatadisDateTimeConverter.class);
         // A real authorizer, so requiresAuthorizedNif uses the real NIF comparison; the client never logs in
         DatadisAuthorizer datadisAuthorizer = new DatadisAuthorizer(Mockito.mock(ConluzRestClientBuilder.class));
-        repository = new GetDatadisConsumptionRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
+        repository = new GetConsumptionFromDatadisRepositoryRest(objectMapper, datadisAuthorizer, conluzRestClientBuilder,
                 datadisDateTimeConverter);
     }
 

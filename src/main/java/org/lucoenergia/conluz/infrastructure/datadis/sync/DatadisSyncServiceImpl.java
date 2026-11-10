@@ -5,7 +5,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepositoryDatadis;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetConsumptionFromDatadisRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
@@ -38,7 +38,7 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DatadisSyncServiceImpl.class);
 
-    private final GetDatadisConsumptionRepositoryDatadis getDatadisConsumptionRepository;
+    private final GetConsumptionFromDatadisRepository getDatadisConsumptionRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository;
     private final GetPlantRepository getPlantRepository;
@@ -48,7 +48,7 @@ public class DatadisSyncServiceImpl implements DatadisSyncService {
     private final DatadisHourlyInstantResolver datadisHourlyInstantResolver;
     private final DatadisAuthorizer datadisAuthorizer;
 
-    public DatadisSyncServiceImpl(GetDatadisConsumptionRepositoryDatadis getDatadisConsumptionRepository,
+    public DatadisSyncServiceImpl(GetConsumptionFromDatadisRepository getDatadisConsumptionRepository,
                                   GetSupplyRepository getSupplyRepository,
                                   PersistDatadisConsumptionRepository persistDatadisConsumptionRepository,
                                   GetPlantRepository getPlantRepository,

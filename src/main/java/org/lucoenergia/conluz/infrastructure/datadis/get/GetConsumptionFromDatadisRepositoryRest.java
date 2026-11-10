@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.datadis.MeasurementType;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.DatadisTokenRejectedException;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepositoryDatadis;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetConsumptionFromDatadisRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.supply.DatadisSupplyConfigurationException;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
@@ -33,9 +33,9 @@ import java.util.List;
 
 
 @Repository
-public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptionRepositoryDatadis {
+public class GetConsumptionFromDatadisRepositoryRest implements GetConsumptionFromDatadisRepository {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GetDatadisConsumptionRepositoryRest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GetConsumptionFromDatadisRepositoryRest.class);
 
     private static final String API_PATH = "/api-private/api";
     private static final String GET_CONSUMPTION_DATA_PATH = "/get-consumption-data";
@@ -45,9 +45,9 @@ public class GetDatadisConsumptionRepositoryRest implements GetDatadisConsumptio
     private final ConluzRestClientBuilder conluzRestClientBuilder;
     private final DatadisDateTimeConverter datadisDateTimeConverter;
 
-    public GetDatadisConsumptionRepositoryRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
-                                               ConluzRestClientBuilder conluzRestClientBuilder,
-                                               DatadisDateTimeConverter datadisDateTimeConverter) {
+    public GetConsumptionFromDatadisRepositoryRest(ObjectMapper objectMapper, DatadisAuthorizer datadisAuthorizer,
+                                                   ConluzRestClientBuilder conluzRestClientBuilder,
+                                                   DatadisDateTimeConverter datadisDateTimeConverter) {
         this.objectMapper = objectMapper;
         this.datadisAuthorizer = datadisAuthorizer;
         this.conluzRestClientBuilder = conluzRestClientBuilder;

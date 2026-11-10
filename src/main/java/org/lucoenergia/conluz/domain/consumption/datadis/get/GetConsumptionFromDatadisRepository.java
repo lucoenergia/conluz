@@ -8,7 +8,7 @@ import org.lucoenergia.conluz.domain.datadis.DatadisTokenRejectedException;
 import java.time.Month;
 import java.util.List;
 
-public interface GetDatadisConsumptionRepositoryDatadis {
+public interface GetConsumptionFromDatadisRepository {
 
     /**
      * The hourly consumption Datadis returns for the supply over one month, requested with the configuration of the

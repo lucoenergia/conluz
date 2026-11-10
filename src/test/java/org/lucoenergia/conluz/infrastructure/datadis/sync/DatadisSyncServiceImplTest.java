@@ -13,7 +13,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepositoryDatadis;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.GetConsumptionFromDatadisRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
@@ -68,8 +68,8 @@ import static org.mockito.Mockito.when;
  */
 class DatadisSyncServiceImplTest {
 
-    private final GetDatadisConsumptionRepositoryDatadis getDatadisConsumptionRepository =
-            Mockito.mock(GetDatadisConsumptionRepositoryDatadis.class);
+    private final GetConsumptionFromDatadisRepository getDatadisConsumptionRepository =
+            Mockito.mock(GetConsumptionFromDatadisRepository.class);
     private final GetSupplyRepository getSupplyRepository = Mockito.mock(GetSupplyRepository.class);
     private final PersistDatadisConsumptionRepository persistDatadisConsumptionRepository =
             Mockito.mock(PersistDatadisConsumptionRepository.class);
