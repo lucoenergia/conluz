@@ -3,11 +3,13 @@ package org.lucoenergia.conluz.infrastructure.production.huawei.persist;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.huawei.RealTimeProduction;
-import org.lucoenergia.conluz.infrastructure.production.get.GetHuaweiProductionRepositoryInflux;
+import org.lucoenergia.conluz.domain.production.huawei.get.GetHuaweiProductionRepository;
+import org.lucoenergia.conluz.domain.production.plant.inverter.InverterSnapshot;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -16,7 +18,7 @@ class PersistHuaweiProductionRepositoryInfluxTest extends BaseIntegrationTest {
     @Autowired
     private PersistHuaweiProductionRepositoryInflux persistHuaweiProductionRepositoryInflux;
     @Autowired
-    private GetHuaweiProductionRepositoryInflux getHuaweiProductionRepositoryInflux;
+    private GetHuaweiProductionRepository getHuaweiProductionRepository;
 
     @Test
     void testPersistRealTimeProduction() {
@@ -40,9 +42,11 @@ class PersistHuaweiProductionRepositoryInfluxTest extends BaseIntegrationTest {
         persistHuaweiProductionRepositoryInflux.persistRealTimeProduction(realTimeProductions);
 
         // Then
-        List<RealTimeProduction> result = getHuaweiProductionRepositoryInflux.getRealTimeProductionByRangeOfDates(
-                currentTime.minusHours(2).toInstant(), currentTime.plusHours(2).toInstant());
+        List<InverterSnapshot> result = getHuaweiProductionRepository.getProductionDay("SC",
+                currentTime.minusHours(3).toInstant(), currentTime.minusHours(2).toInstant(),
+                currentTime.plusHours(2).toInstant()).todaySnapshots();
 
-        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals(
+                List.of(new InverterSnapshot(currentTime.toInstant().truncatedTo(ChronoUnit.MILLIS), 2.0)), result);
     }
 }

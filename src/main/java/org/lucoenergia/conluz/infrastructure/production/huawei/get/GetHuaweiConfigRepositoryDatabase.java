@@ -39,6 +39,11 @@ public class GetHuaweiConfigRepositoryDatabase implements GetHuaweiConfigReposit
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public boolean isEnabled(UUID plantId) {
+        return huaweiConfigRepository.existsByPlantIdAndEnabledTrue(plantId);
+    }
+
     private HuaweiConfig toDomain(HuaweiConfigEntity configEntity) {
         return new HuaweiConfig.Builder()
                 .setId(configEntity.getId())

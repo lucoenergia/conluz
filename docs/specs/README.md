@@ -89,3 +89,4 @@ are always called **tests**, never specs.
 | `API` | API contract | [`api-contract.md`](api-contract.md) |
 | `PEM` | Plant energy metrics and series | [`plant-energy-metrics.md`](plant-energy-metrics.md) |
 | `DSS` | Datadis supply sync | [`datadis-supply-sync.md`](datadis-supply-sync.md) |
+| `PIP` | Plant inverter production | [`plant-inverter-production.md`](plant-inverter-production.md) |

@@ -4,9 +4,9 @@
 | --- | --- |
 | **Prefix** | `EVL` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`, `getPlantDailyEnergySeries`, `getPlantMonthlyEnergySeries` |
+| **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`, `getPlantDailyEnergySeries`, `getPlantMonthlyEnergySeries`, `getPlantInverterProductionToday` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #561 |
+| **Last reviewed against code** | #565 |
 
 ## Purpose
 
@@ -41,8 +41,9 @@ touch it.
   `getMembershipDailyConsumption`, `getMembershipHourlyConsumption`, `getMembershipEnergyMetrics`,
   `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`,
   `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`,
-  `getPlantDailyEnergySeries` and `getPlantMonthlyEnergySeries` MUST be rounded to 3 decimals,
-  half-up, at response mapping. Stored values MUST NOT be rounded.
+  `getPlantDailyEnergySeries` and `getPlantMonthlyEnergySeries`, and kWh and kW values in
+  `getPlantInverterProductionToday`, MUST be rounded to 3 decimals, half-up, at response mapping.
+  Stored values MUST NOT be rounded.
 - **Rationale:** Summing floating-point values leaves storage noise behind (`0.1 + 0.2` reads
   `0.30000000000000004`; the membership monthly series returned figures such as `161.308001`). That
   noise leaked into the API, so every client had to round, and equality checks between endpoints
@@ -54,7 +55,8 @@ touch it.
   which rounds through the same mapping as the membership daily and monthly series; #554 added the
   community energy metrics and series, which round through the same `KWhRounding`; #556 added the
   unpriced surplus of the community energy metrics, which rounds through the same `KWhRounding`; #561
-  added the plant energy metrics and series, which round through the same `KWhRounding`.
+  added the plant energy metrics and series, which round through the same `KWhRounding`; #565 added
+  today's inverter production per plant, whose kWh and kW values round through the same `KWhRounding`.
 
 **Scenarios**
 
