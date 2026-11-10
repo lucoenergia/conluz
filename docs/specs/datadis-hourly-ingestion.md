@@ -94,6 +94,19 @@ And the first 03:00 record is stored at 00:00Z and the second at 01:00Z
   not retried further.
 - **Source:** #562
 
+### DHI-006 — A community without an enabled Datadis configuration is refused
+
+- **Status:** Active
+- **Rule:** The consumption sync of a community that has no Datadis configuration, or whose configuration is
+  disabled, MUST be refused with 409 and the `error.datadis.disabled` message, which names the operation that
+  enables the configuration. The refusal MUST come before any supply is read and before any request to Datadis.
+  It applies to the sync of the whole community and of a single supply.
+- **Rationale:** Without an enabled configuration there is no Datadis account to call with, and the community admin
+  has turned the integration off or never set it up. A 409 names the state to change, where an empty success would
+  hide that nothing was synced. The supplies sync answers the same case the same way (DSS-003).
+- **Source:** #142 added the enable flag and the refusal; #414 made the message name the enable operation; #562
+  declared the 409 in the contract.
+
 ## Accepted exceptions
 
 | Exception | Reason | Expires when | Source |
