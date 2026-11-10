@@ -82,6 +82,9 @@ class GetPlantEnergyControllersApiDocsTest extends BaseControllerTest {
     void thePlantsProductionReadsAsTheCommunityPerPlantProduction() throws Exception {
         String perPlant = description(schema("CommunityPlantEnergyResponse"), "productionKWh");
 
+        assertTrue(perPlant.startsWith("Energy the plant exported to the grid at its connection point over the "
+                + "period, as measured by the distributor for the plant's own supply (net of the plant's own "
+                + "consumption). In kWh, rounded to 3 decimals. Null when"), perPlant);
         assertEquals(perPlant, description(schema("PlantEnergyMetricsEnergyResponse"), "productionKWh"));
         Map<String, String> buckets = Map.of(
                 "PlantHourlyEnergyBucketResponse", "hour",
@@ -89,11 +92,21 @@ class GetPlantEnergyControllersApiDocsTest extends BaseControllerTest {
                 "PlantMonthlyEnergyBucketResponse", "month");
         for (Map.Entry<String, String> bucket : buckets.entrySet()) {
             String description = description(schema(bucket.getKey()), "productionKWh");
-            assertTrue(description.startsWith("Energy the plant produced over the " + bucket.getValue()
-                    + ", as reported by the distributor for the plant's own supply. In kWh, rounded to 3 "
-                    + "decimals. Null when the plant stored no production record"),
-                    () -> bucket.getKey() + ": " + description);
+            assertTrue(description.startsWith("Energy the plant exported to the grid at its connection point over "
+                    + "the " + bucket.getValue() + ", as measured by the distributor for the plant's own supply "
+                    + "(net of the plant's own consumption). In kWh, rounded to 3 decimals. Null when the plant "
+                    + "stored no production record"), () -> bucket.getKey() + ": " + description);
         }
+    }
+
+    @Test
+    @DisplayName("EVL-003 the community's production reads as the exported energy of its plants")
+    void theCommunitysProductionReadsAsTheExportedEnergyOfItsPlants() throws Exception {
+        String total = description(schema("CommunityEnergyMetricsEnergyResponse"), "productionKWh");
+
+        assertTrue(total.startsWith("Energy the community's plants exported to the grid at their connection "
+                + "points over the period, as measured by the distributor for each plant's own supply (net of "
+                + "the plants' own consumption). In kWh, rounded to 3 decimals after summing."), total);
     }
 
     @ParameterizedTest

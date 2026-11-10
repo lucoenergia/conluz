@@ -433,7 +433,7 @@
       "CommunityEnergyMetricsEnergyResponse" : {
         "properties" : {
           "productionKWh" : {
-            "description" : "Energy produced by every plant of the community over the period, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals after summing. Null when no plant stored a production record in the period, or when no period could be resolved.",
+            "description" : "Energy the community's plants exported to the grid at their connection points over the period, as measured by the distributor for each plant's own supply (net of the plants' own consumption). In kWh, rounded to 3 decimals after summing. Null when no plant stored a production record in the period, or when no period could be resolved.",
             "example" : 1520,
             "format" : "double",
             "type" : [
@@ -686,7 +686,7 @@
             "description" : "The plant."
           },
           "productionKWh" : {
-            "description" : "Energy the plant produced over the period, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, which is not a measured zero, or when no period could be resolved.",
+            "description" : "Energy the plant exported to the grid at its connection point over the period, as measured by the distributor for the plant's own supply (net of the plant's own consumption). In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, which is not a measured zero, or when no period could be resolved.",
             "example" : 760,
             "format" : "double",
             "type" : [
@@ -3253,7 +3253,7 @@
             "type" : "integer"
           },
           "productionKWh" : {
-            "description" : "Energy the plant produced over the day, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record for the day, which is not a measured zero.",
+            "description" : "Energy the plant exported to the grid at its connection point over the day, as measured by the distributor for the plant's own supply (net of the plant's own consumption). In kWh, rounded to 3 decimals. Null when the plant stored no production record for the day, which is not a measured zero.",
             "example" : 12.5,
             "format" : "double",
             "type" : [
@@ -3300,7 +3300,7 @@
       "PlantEnergyMetricsEnergyResponse" : {
         "properties" : {
           "productionKWh" : {
-            "description" : "Energy the plant produced over the period, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, which is not a measured zero, or when no period could be resolved.",
+            "description" : "Energy the plant exported to the grid at its connection point over the period, as measured by the distributor for the plant's own supply (net of the plant's own consumption). In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, which is not a measured zero, or when no period could be resolved.",
             "example" : 152.4,
             "format" : "double",
             "type" : [
@@ -3356,7 +3356,7 @@
             "type" : "integer"
           },
           "productionKWh" : {
-            "description" : "Energy the plant produced over the hour, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record for the hour, which is not a measured zero.",
+            "description" : "Energy the plant exported to the grid at its connection point over the hour, as measured by the distributor for the plant's own supply (net of the plant's own consumption). In kWh, rounded to 3 decimals. Null when the plant stored no production record for the hour, which is not a measured zero.",
             "example" : 12.5,
             "format" : "double",
             "type" : [
@@ -3406,7 +3406,7 @@
             "type" : "integer"
           },
           "productionKWh" : {
-            "description" : "Energy the plant produced over the month, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record for the month, which is not a measured zero.",
+            "description" : "Energy the plant exported to the grid at its connection point over the month, as measured by the distributor for the plant's own supply (net of the plant's own consumption). In kWh, rounded to 3 decimals. Null when the plant stored no production record for the month, which is not a measured zero.",
             "example" : 12.5,
             "format" : "double",
             "type" : [

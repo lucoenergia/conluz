@@ -28,9 +28,10 @@ public class PlantHourlyEnergyBucketResponse {
             "day the clocks go back, two consecutive hours carry the same date and time.",
             example = "13:00")
     private final String time;
-    @Schema(description = "Energy the plant produced over the hour, as reported by the distributor for the " +
-            "plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production " +
-            "record for the hour, which is not a measured zero.",
+    @Schema(description = "Energy the plant exported to the grid at its connection point over the hour, as " +
+            "measured by the distributor for the plant's own supply (net of the plant's own consumption). In " +
+            "kWh, rounded to 3 decimals. Null when the plant stored no production record for the hour, which " +
+            "is not a measured zero.",
             example = "12.5", types = {"number", "null"})
     private final Double productionKWh;
     @Schema(description = "Number of hourly production records stored for the hour: 1, or 0 when the hour is a gap.",

@@ -22,9 +22,10 @@ public class PlantMonthlyEnergyBucketResponse {
     @Schema(description = "Always 00:00: the bucket covers the local month, as far as it lies inside the period.",
             example = "00:00")
     private final String time;
-    @Schema(description = "Energy the plant produced over the month, as reported by the distributor for the " +
-            "plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production " +
-            "record for the month, which is not a measured zero.",
+    @Schema(description = "Energy the plant exported to the grid at its connection point over the month, as " +
+            "measured by the distributor for the plant's own supply (net of the plant's own consumption). In " +
+            "kWh, rounded to 3 decimals. Null when the plant stored no production record for the month, which " +
+            "is not a measured zero.",
             example = "12.5", types = {"number", "null"})
     private final Double productionKWh;
     @Schema(description = "Number of hourly production records stored for the month inside the period, zeros " +

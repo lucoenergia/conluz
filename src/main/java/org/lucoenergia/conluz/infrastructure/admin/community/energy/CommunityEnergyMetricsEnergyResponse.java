@@ -11,10 +11,10 @@ import org.lucoenergia.conluz.infrastructure.shared.web.KWhRounding;
 @Schema(requiredProperties = {"productionKWh", "selfConsumptionKWh", "surplusKWh"})
 public class CommunityEnergyMetricsEnergyResponse {
 
-    @Schema(description = "Energy produced by every plant of the community over the period, as reported " +
-            "by the distributor for the plant's own supply. In kWh, rounded to 3 decimals after summing. " +
-            "Null when no plant stored a production record in the period, or when no period could be " +
-            "resolved.",
+    @Schema(description = "Energy the community's plants exported to the grid at their connection points " +
+            "over the period, as measured by the distributor for each plant's own supply (net of the plants' " +
+            "own consumption). In kWh, rounded to 3 decimals after summing. Null when no plant stored a " +
+            "production record in the period, or when no period could be resolved.",
             example = "1520.0", types = {"number", "null"})
     private final Double productionKWh;
     @Schema(description = "Energy produced by the community and consumed by every supply of the " +
