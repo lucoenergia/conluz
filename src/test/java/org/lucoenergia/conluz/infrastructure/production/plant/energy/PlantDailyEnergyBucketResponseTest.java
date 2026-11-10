@@ -2,7 +2,6 @@ package org.lucoenergia.conluz.infrastructure.production.plant.energy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.lucoenergia.conluz.domain.production.datadis.get.ProductionAggregate;
 import org.lucoenergia.conluz.domain.production.plant.energy.PlantEnergySeriesBucket;
 
 import java.time.OffsetDateTime;
