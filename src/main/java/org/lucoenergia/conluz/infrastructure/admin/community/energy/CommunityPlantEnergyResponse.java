@@ -14,10 +14,10 @@ public class CommunityPlantEnergyResponse {
     private final PlantReferenceResponse plant;
     @Schema(description = "Installed power of the plant, in kWp.", example = "100.0")
     private final double installedPowerKWp;
-    @Schema(description = "Energy the plant produced over the period, as reported by the distributor for " +
-            "the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no " +
-            "production record in the period, which is not a measured zero, or when no period could be " +
-            "resolved.",
+    @Schema(description = "Energy the plant exported to the grid at its connection point over the period, " +
+            "as measured by the distributor for the plant's own supply (net of the plant's own consumption). " +
+            "In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, " +
+            "which is not a measured zero, or when no period could be resolved.",
             example = "760.0", types = {"number", "null"})
     private final Double productionKWh;
     @Schema(description = "Share of the community's production that came from this plant, on a 0-1 " +

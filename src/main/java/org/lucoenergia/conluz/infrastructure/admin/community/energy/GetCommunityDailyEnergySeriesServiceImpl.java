@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -78,7 +77,7 @@ public class GetCommunityDailyEnergySeriesServiceImpl implements GetCommunityDai
         for (Supply supply : supplies) {
             for (DailyPublishedAggregate day : getDatadisConsumptionAggregateRepository.aggregateByLocalDay(
                     supply, from, toExclusive, zone)) {
-                long possibleHours = possibleHours(day.day(), zone, from, toExclusive);
+                long possibleHours = period.hoursOverlapping(EnergyMetricsPeriod.ofDay(day.day(), zone));
                 // A day too short to hold a whole hour holds no record, and no supply has data in it.
                 if (day.publishedHours() > 0
                         && PublicationThreshold.isReached(day.publishedHours(), possibleHours)) {
@@ -93,17 +92,5 @@ public class GetCommunityDailyEnergySeriesServiceImpl implements GetCommunityDai
                 .map(day -> CommunityEnergySeriesBucket.of(day.atStartOfDay(zone).toOffsetDateTime(),
                         supplies.size(), contributionsByDay.getOrDefault(day, List.of())))
                 .toList();
-    }
-
-    /**
-     * The hours of the local day that lie inside the period, counted on the instant line, so a day
-     * with a daylight saving change has 23 or 25.
-     */
-    private static long possibleHours(LocalDate day, ZoneId zone, Instant from, Instant toExclusive) {
-        Instant dayStart = day.atStartOfDay(zone).toInstant();
-        Instant dayEnd = day.plusDays(1).atStartOfDay(zone).toInstant();
-        Instant start = dayStart.isAfter(from) ? dayStart : from;
-        Instant end = dayEnd.isBefore(toExclusive) ? dayEnd : toExclusive;
-        return ChronoUnit.HOURS.between(start, end);
     }
 }

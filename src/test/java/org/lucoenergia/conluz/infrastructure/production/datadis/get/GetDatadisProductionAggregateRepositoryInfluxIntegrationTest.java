@@ -4,16 +4,21 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.production.datadis.get.DailyProductionAggregate;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
+import org.lucoenergia.conluz.domain.production.datadis.get.ProductionAggregate;
+import org.lucoenergia.conluz.domain.production.datadis.get.RecordedProductionPeriod;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -143,6 +148,124 @@ class GetDatadisProductionAggregateRepositoryInfluxIntegrationTest extends BaseI
     @Test
     void readsNothingPerYearForNoCode() {
         assertTrue(repository.sumProductionByYear(List.of(), NEW_YEAR_FROM, NEW_YEAR_TO, MADRID).isEmpty());
+    }
+
+    @Test
+    @DisplayName("PEM-002 the totals of one code count its records, zeros included, over the half-open bounds")
+    void theTotalsOfOneCodeCountItsRecordsZerosIncluded() {
+        String plant = cups();
+        String other = cups();
+        fixture.writeAt(plant, FROM, 0f);
+        fixture.writeAt(plant, FROM.plusSeconds(3600), 1.25f);
+        fixture.writeAt(plant, FROM.plusSeconds(7200), 2.5f);
+        fixture.writeAt(plant, FROM.minusSeconds(3600), 1000f);
+        fixture.writeAt(plant, TO, 1000f);
+        fixture.writeAt(other, FROM.plusSeconds(3600), 1000f);
+
+        ProductionAggregate aggregate = repository.aggregate(plant, FROM, TO).orElseThrow();
+
+        assertEquals(3.75, aggregate.productionKWh(), 1e-6);
+        assertEquals(3, aggregate.hoursWithData());
+    }
+
+    @Test
+    @DisplayName("PEM-002 an interval without records has no totals, and one of stored zeros totals 0")
+    void anIntervalWithoutRecordsHasNoTotalsAndOneOfZerosTotalsZero() {
+        String silent = cups();
+        String zero = cups();
+        fixture.writeAt(zero, FROM, 0f);
+        fixture.writeAt(zero, FROM.plusSeconds(3600), 0f);
+
+        assertEquals(Optional.empty(), repository.aggregate(silent, FROM, TO));
+        assertEquals(Optional.of(new ProductionAggregate(0d, 2)), repository.aggregate(zero, FROM, TO));
+    }
+
+    @Test
+    @DisplayName("PEM-003 the records of one code are totalled and counted per local day, days without records left out")
+    void theRecordsAreTotalledAndCountedPerLocalDay() {
+        String plant = cups();
+        String other = cups();
+        // 2026-05-10T00:00 and 23:00 in Madrid belong to the 10th; 2026-05-12T01:00 to the 12th.
+        fixture.writeAt(plant, Instant.parse("2026-05-09T22:00:00Z"), 1f);
+        fixture.writeAt(plant, Instant.parse("2026-05-10T21:00:00Z"), 0f);
+        fixture.writeAt(plant, Instant.parse("2026-05-11T23:00:00Z"), 4f);
+        fixture.writeAt(other, Instant.parse("2026-05-10T10:00:00Z"), 1000f);
+
+        List<DailyProductionAggregate> days = repository.aggregateByLocalDay(plant,
+                Instant.parse("2026-05-09T22:00:00Z"), Instant.parse("2026-05-12T22:00:00Z"), MADRID);
+
+        assertEquals(List.of(
+                new DailyProductionAggregate(LocalDate.of(2026, 5, 10), 1d, 2),
+                new DailyProductionAggregate(LocalDate.of(2026, 5, 12), 4d, 1)), days);
+    }
+
+    @Test
+    @DisplayName("PEM-003 AC9 the local day the clocks go back groups its 25 hours")
+    void theDayTheClocksGoBackGroupsItsTwentyFiveHours() {
+        String plant = cups();
+        Instant dayStart = Instant.parse("2026-10-24T22:00:00Z");
+        for (int hour = 0; hour < 25; hour++) {
+            fixture.writeAt(plant, dayStart.plusSeconds(3600L * hour), hour % 2 == 0 ? 0f : 1f);
+        }
+        fixture.writeAt(plant, dayStart.plusSeconds(3600L * 25), 7f);
+
+        List<DailyProductionAggregate> days = repository.aggregateByLocalDay(plant, dayStart,
+                Instant.parse("2026-10-26T23:00:00Z"), MADRID);
+
+        assertEquals(List.of(
+                new DailyProductionAggregate(LocalDate.of(2026, 10, 25), 12d, 25),
+                new DailyProductionAggregate(LocalDate.of(2026, 10, 26), 7d, 1)), days);
+    }
+
+    @Test
+    @DisplayName("PEM-003 AC9 the local day the clocks go forward groups its 23 hours")
+    void theDayTheClocksGoForwardGroupsItsTwentyThreeHours() {
+        String plant = cups();
+        Instant dayStart = Instant.parse("2026-03-28T23:00:00Z");
+        for (int hour = 0; hour < 23; hour++) {
+            fixture.writeAt(plant, dayStart.plusSeconds(3600L * hour), 1f);
+        }
+        fixture.writeAt(plant, dayStart.plusSeconds(3600L * 23), 5f);
+
+        List<DailyProductionAggregate> days = repository.aggregateByLocalDay(plant, dayStart,
+                Instant.parse("2026-03-30T22:00:00Z"), MADRID);
+
+        assertEquals(List.of(
+                new DailyProductionAggregate(LocalDate.of(2026, 3, 29), 23d, 23),
+                new DailyProductionAggregate(LocalDate.of(2026, 3, 30), 5d, 1)), days);
+    }
+
+    @Test
+    void theRecordedPeriodRunsFromTheFirstToTheLastRecordOfTheCode() {
+        String plant = cups();
+        String other = cups();
+        fixture.writeAt(plant, Instant.parse("2026-05-10T10:00:00Z"), 1f);
+        fixture.writeAt(plant, Instant.parse("2026-03-01T08:00:00Z"), 0f);
+        fixture.writeAt(plant, Instant.parse("2026-07-20T19:00:00Z"), 0f);
+        fixture.writeAt(other, Instant.parse("2025-01-01T00:00:00Z"), 1f);
+
+        assertEquals(Optional.of(new RecordedProductionPeriod(Instant.parse("2026-03-01T08:00:00Z"),
+                        Instant.parse("2026-07-20T19:00:00Z"))),
+                repository.findRecordedPeriod(plant));
+    }
+
+    @Test
+    void aCodeWithoutRecordsHasNoRecordedPeriod() {
+        assertEquals(Optional.empty(), repository.findRecordedPeriod(cups()));
+    }
+
+    @Test
+    @DisplayName("PEM-003 AC7 the records of one code are read hour by hour, stored zeros kept and gaps absent")
+    void theRecordsAreReadHourByHour() {
+        String plant = cups();
+        String other = cups();
+        fixture.writeAt(plant, FROM, 0f);
+        fixture.writeAt(plant, FROM.plusSeconds(7200), 3.5f);
+        fixture.writeAt(plant, TO, 1000f);
+        fixture.writeAt(other, FROM.plusSeconds(3600), 1000f);
+
+        assertEquals(Map.of(FROM, 0d, FROM.plusSeconds(7200), 3.5d),
+                repository.findHourlyProduction(plant, FROM, TO));
     }
 
     private String cups() {

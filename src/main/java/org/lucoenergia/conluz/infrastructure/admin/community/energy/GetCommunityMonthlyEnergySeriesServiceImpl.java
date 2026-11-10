@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -89,7 +88,7 @@ public class GetCommunityMonthlyEnergySeriesServiceImpl implements GetCommunityM
                     continue;
                 }
                 MonthTotals totals = month.getValue();
-                long possibleHours = possibleHours(month.getKey(), zone, from, toExclusive);
+                long possibleHours = period.hoursOverlapping(EnergyMetricsPeriod.ofMonth(month.getKey(), zone));
                 if (totals.publishedHours > 0
                         && PublicationThreshold.isReached(totals.publishedHours, possibleHours)) {
                     contributionsByMonth
@@ -114,18 +113,6 @@ public class GetCommunityMonthlyEnergySeriesServiceImpl implements GetCommunityM
             months.computeIfAbsent(YearMonth.from(day.day()), m -> new MonthTotals()).add(day);
         }
         return months;
-    }
-
-    /**
-     * The hours of the local month that lie inside the period, counted on the instant line, so a month
-     * with a daylight saving change has one hour less or more.
-     */
-    private static long possibleHours(YearMonth month, ZoneId zone, Instant from, Instant toExclusive) {
-        Instant monthStart = month.atDay(1).atStartOfDay(zone).toInstant();
-        Instant monthEnd = month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant();
-        Instant start = monthStart.isAfter(from) ? monthStart : from;
-        Instant end = monthEnd.isBefore(toExclusive) ? monthEnd : toExclusive;
-        return ChronoUnit.HOURS.between(start, end);
     }
 
     private static final class MonthTotals {
