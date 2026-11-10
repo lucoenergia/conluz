@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigRepository;
-import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
+import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
+import org.lucoenergia.conluz.infrastructure.datadis.DatadisAuthorizer;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import java.time.Month;
 import java.util.List;
-import java.util.UUID;
 
 @Transactional
 @Disabled("These tests should not be included in a CI pipeline because connects with datadis, so, needs real data.")
@@ -24,7 +23,7 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
     @Autowired
     private GetDatadisConsumptionRepositoryRest datadisConsumptionRepositoryRest;
     @Autowired
-    private DatadisConfigRepository datadisConfigRepository;
+    private DatadisAuthorizer datadisAuthorizer;
 
     @Test
     void testGetMonthlyConsumption() {
@@ -50,14 +49,15 @@ class GetDatadisConsumptionRepositoryRestIntegrationTest extends BaseIntegration
         final String username = "username";
         final String password = "password";
 
-        // Save Datadis config on the DB
-        final DatadisConfigEntity config = new DatadisConfigEntity();
-        config.setId(UUID.randomUUID());
-        config.setUsername(username);
-        config.setPassword(password);
-        datadisConfigRepository.save(config);
+        final DatadisConfig config = new DatadisConfig.Builder()
+                .setUsername(username)
+                .setPassword(password)
+                .setBaseUrl(DatadisConfig.DEFAULT_BASE_URL)
+                .build();
+        final String bearerToken = "Bearer " + datadisAuthorizer.getAuthToken(config);
 
-        List<DatadisConsumption> result = datadisConsumptionRepositoryRest.getHourlyConsumptionsByMonth(supply, month, year);
+        List<DatadisConsumption> result = datadisConsumptionRepositoryRest.getHourlyConsumptionsByMonth(config,
+                bearerToken, supply, month, year);
 
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.isEmpty());
