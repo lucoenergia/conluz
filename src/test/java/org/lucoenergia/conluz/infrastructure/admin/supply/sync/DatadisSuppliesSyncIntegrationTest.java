@@ -11,6 +11,7 @@ import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepos
 import org.lucoenergia.conluz.domain.admin.supply.DatadisSupply;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.contract.SupplyContract;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.distributor.SupplyDistributor;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
@@ -487,6 +488,29 @@ class DatadisSuppliesSyncIntegrationTest extends BaseControllerTest {
             assertThat(supply.getDistributor().getCode()).isEqualTo("2");
             assertThat(supply.getContract().getValidDateFrom()).isEqualTo(LocalDate.of(2024, 6, 1));
         });
+    }
+
+    @Test
+    @DisplayName("DSS-009 a Datadis contract whose start date cannot be read keeps the stored start date, and still "
+            + "updates the distributor and point type")
+    void anUnreadableStartDateKeepsTheStoredOne() {
+        UUID communityId = communityWithDatadis(BASE_URL_A, UserMother.randomPersonalId(), TOKEN_A, true);
+        User owner = owner();
+        Supply supply = createSupplyRepository.create(SupplyMother.random(owner)
+                .withCode(SupplyMother.randomCups())
+                .withEnabled(true)
+                .withDistributor(null)
+                .withContract(new SupplyContract.Builder().withValidDateFrom(LocalDate.of(2024, 6, 1)).build())
+                .build(), UserId.of(owner.getId()), communityId);
+        datadis.supplies(BASE_URL_A, owner.getPersonalId(),
+                List.of(contract(supply.getCode(), "not a date", "7", 2)));
+
+        datadisSuppliesSyncService.synchronizeSupplies(communityId);
+
+        Supply stored = stored(supply);
+        assertThat(stored.getContract().getValidDateFrom()).isEqualTo(LocalDate.of(2024, 6, 1));
+        assertThat(stored.getDistributor().getCode()).isEqualTo("7");
+        assertThat(stored.getDistributor().getPointType()).isEqualTo(2);
     }
 
     @Test

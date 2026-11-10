@@ -47,9 +47,9 @@ public class DatadisSupplyUpdateStep {
                 .withPointType(datadisSupply.getPointType())
                 .build());
 
-        supply.setContract(new SupplyContract.Builder()
-                .withValidDateFrom(DatadisSupplySelection.startDate(datadisSupply).orElse(null))
-                .build());
+        // A start date Datadis did not send, or sent unreadable, does not erase the one already stored
+        DatadisSupplySelection.startDate(datadisSupply).ifPresent(startDate -> supply.setContract(
+                new SupplyContract.Builder().withValidDateFrom(startDate).build()));
 
         updateSupplyRepository.update(supply);
     }
