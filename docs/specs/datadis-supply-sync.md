@@ -108,9 +108,11 @@ spec covers which communities and supplies are synced, with which Datadis accoun
 - **Rule:** When Datadis returns several entries for a CUPS, the entry with the most recent contract start date MUST
   be used. An entry without a start date, or with one that is not a date, ranks after every dated entry. Entries
   with the same start date are ordered by distributor code, then point type, then distributor name, then address,
-  each in ascending order with a missing value last.
+  each in ascending order with a missing value last. When the entry used has no start date, or one that is not a
+  date, the supply's stored contract start date MUST be kept.
 - **Rationale:** Consumption requests must match the current contract. The tie-break covers every field the sync
-  writes, so the result never depends on the order Datadis returns the entries in.
+  writes, so the result never depends on the order Datadis returns the entries in. A missing date from Datadis says
+  nothing about the contract, so it must not erase a date already known.
 - **Source:** #562
 
 ### DSS-010 — An address entered by the community admin is kept
