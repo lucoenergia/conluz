@@ -87,3 +87,4 @@ are always called **tests**, never specs.
 | `DHI` | Datadis hourly ingestion | [`datadis-hourly-ingestion.md`](datadis-hourly-ingestion.md) |
 | `SCS` | Supply consumption series | [`supply-consumption-series.md`](supply-consumption-series.md) |
 | `API` | API contract | [`api-contract.md`](api-contract.md) |
+| `PEM` | Plant energy metrics and series | [`plant-energy-metrics.md`](plant-energy-metrics.md) |
