@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.infrastructure.shared.security.FastPasswordEncoder
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import org.lucoenergia.conluz.infrastructure.shared.time.MutableClockConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -19,7 +20,12 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+/**
+ * MockMvc is configured here, not only in {@link BaseControllerTest}: a test configuration that differs only by it
+ * would be a second Spring context, started once in every test fork.
+ */
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles({"test"})
 @Import({MutableClockConfiguration.class, FastPasswordEncoderTestConfiguration.class})
 public abstract class BaseIntegrationTest {
