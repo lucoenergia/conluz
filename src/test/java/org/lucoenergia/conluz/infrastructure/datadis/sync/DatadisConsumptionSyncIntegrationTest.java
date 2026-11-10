@@ -23,6 +23,8 @@ import org.lucoenergia.conluz.infrastructure.datadis.DatadisStub;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.rest.ConluzRestClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Duration;
@@ -33,9 +35,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * The Datadis consumption sync end to end, against two communities whose Datadis accounts live at different base URLs
@@ -201,6 +207,34 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
         assertThat(datadis.calls(BASE_URL_B, DatadisStub.CONSUMPTION_PATH))
                 .hasSize(4)
                 .allSatisfy(call -> assertThat(call.status()).isEqualTo(200));
+    }
+
+    @Test
+    @DisplayName("The consumption sync of a community whose configuration is disabled, or that has none, answers 409 "
+            + "and makes no Datadis request")
+    void theEndpointRefusesCommunitiesWithoutAnEnabledConfiguration() throws Exception {
+        UUID disabled = communityWithDatadis(BASE_URL_A, "token-a");
+        setDatadisConfigurationRepository.setEnabled(disabled, false);
+        UUID withoutConfiguration = createCommunityRepository.create(CommunityMother.random().build()).getId();
+        User owner = owner();
+        supply(owner, disabled);
+        supply(owner, withoutConfiguration);
+
+        for (UUID communityId : List.of(disabled, withoutConfiguration)) {
+            String authorization = loginAsCommunityAdmin(communityId);
+            datadis.clear();
+
+            mockMvc.perform(post("/api/v1/communities/{communityId}/consumption/datadis/sync", communityId)
+                            .header(HttpHeaders.AUTHORIZATION, authorization)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new SyncDatadisConsumptionsBody(2025))))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.status").value(409))
+                    .andExpect(jsonPath("$.message").value(
+                            containsString("POST /api/v1/communities/{communityId}/config/datadis/enable")));
+
+            assertThat(datadis.calls()).isEmpty();
+        }
     }
 
     private UUID communityWithDatadis(String baseUrl, String token, String... laterTokens) {
