@@ -73,12 +73,14 @@ spec covers which communities and supplies are synced, with which Datadis accoun
 - **Status:** Active
 - **Rule:** A registered supply that Datadis did not return in the run MUST be logged at WARN with its supply id and
   community id, and MUST NOT be modified. A Datadis entry that matches no registered supply MUST NOT be logged on
-  its own and MUST NOT modify data; only their number per community is logged, at DEBUG. A disabled supply is
-  neither reported nor modified. No log line carries a CUPS.
+  its own and MUST NOT modify data; only their number per community is logged, at DEBUG. Disabled supplies are
+  excluded from the sync: they MUST NOT be matched, MUST NOT be updated, and MUST NOT produce the "not returned"
+  WARN. No log line carries a CUPS.
 - **Rationale:** Datadis returns every supply authorised for each owner, including supplies outside the community,
   so unmatched entries are expected every night. The actionable case is a registered supply Datadis does not return:
-  a missing authorisation or a wrong CUPS. The CUPS identifies a point of supply and stays out of logs, as in
-  DHI-002.
+  a missing authorisation or a wrong CUPS. A disabled supply is one the community no longer manages, so Datadis not
+  returning it is expected and writing to it would be unwanted. The CUPS identifies a point of supply and stays out
+  of logs, as in DHI-002.
 - **Source:** #562
 
 ### DSS-007 — An ambiguous match is skipped
