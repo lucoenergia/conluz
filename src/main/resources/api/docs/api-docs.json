@@ -3233,6 +3233,66 @@
         ],
         "type" : "object"
       },
+      "PlantEnergyMetricsCoverageResponse" : {
+        "properties" : {
+          "expectedHours" : {
+            "description" : "Number of hours the period spans. Accounts for daylight saving transitions, so a transition day contributes 23 or 25 hours rather than 24. 0 when no period could be resolved.",
+            "example" : 24,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "hoursWithData" : {
+            "description" : "Number of hourly production records found in the period, zeros included. 0 when no period could be resolved.",
+            "example" : 24,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "expectedHours",
+          "hoursWithData"
+        ],
+        "type" : "object"
+      },
+      "PlantEnergyMetricsEnergyResponse" : {
+        "properties" : {
+          "productionKWh" : {
+            "description" : "Energy the plant produced over the period, as reported by the distributor for the plant's own supply. In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, which is not a measured zero, or when no period could be resolved.",
+            "example" : 152.4,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "productionKWh"
+        ],
+        "type" : "object"
+      },
+      "PlantEnergyMetricsResponse" : {
+        "properties" : {
+          "coverage" : {
+            "$ref" : "#/components/schemas/PlantEnergyMetricsCoverageResponse",
+            "description" : "How much of the period is backed by the plant's stored production records."
+          },
+          "energy" : {
+            "$ref" : "#/components/schemas/PlantEnergyMetricsEnergyResponse",
+            "description" : "The energy totals of the plant: its production."
+          },
+          "period" : {
+            "$ref" : "#/components/schemas/SupplyEnergyMetricsPeriodResponse",
+            "description" : "The period the metrics were computed over."
+          }
+        },
+        "required" : [
+          "coverage",
+          "energy",
+          "period"
+        ],
+        "type" : "object"
+      },
       "PlantReferenceResponse" : {
         "properties" : {
           "id" : {
@@ -16271,6 +16331,165 @@
           }
         ],
         "summary" : "Updates plant information",
+        "tags" : [
+          "Plants"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/energy-metrics" : {
+      "get" : {
+        "description" : "Aggregates the distributor's hourly records of the plant's own supply over one period.\nNo code or identifier of that supply is reported.\n\n- `energy.productionKWh`: what the plant produced, as reported by the distributor for\n  the plant's own supply: the energy the plant exported to the grid. Totalled from the\n  hourly records, not from the monthly pre-aggregates. An hour without a record adds\n  nothing; an hour stored as 0, such as at night, is a measured zero.\n- `coverage.hoursWithData` and `coverage.expectedHours`: how many hourly records were\n  found in the period, zeros included, and how many hours the period spans.\n\nA figure nothing was stored for is `null`, never `0`: a period without any production\nrecord has null production.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period. They must be supplied together, and\n  a `startDate` that is not before the `endDate` is a bad request.\n- `period=LATEST_PRODUCTION_DAY`: the latest complete local day, in the community's\n  time zone, with production: the latest day whose stored hourly records cover all\n  its hours (23, 24 or 25 on the days the clocks change). The search goes backwards\n  through the 24 months before the current day; the current day is never a\n  candidate, even when all its hours are stored. When no day in the search window is\n  complete, no period is resolved. Combining it with `startDate` or `endDate` is a\n  bad request.\n- Neither: from the earliest production record stored for the plant to the end of the\n  hour of the latest.\n\nWhen no period can be resolved, the response is still successful, with null period\nbounds, null production and no hour.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n   The refusal states the limit in `params`: `amount`, a whole number written as a\n   string, and `unit`, `MONTHS` or `DAYS` -- here `{\"amount\": \"24\", \"unit\": \"MONTHS\"}`.\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Required: the caller can manage the plant** (the plant's `canManage` capability):\nan active community admin of the plant's community. A member of that community who is\nnot an admin is answered 403, and every other caller, a platform admin who is not a\nmember included, 404.\n",
+        "operationId" : "getPlantEnergyMetrics",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "Start of an explicit period, inclusive. Requires endDate.",
+            "in" : "query",
+            "name" : "startDate",
+            "required" : false,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "End of an explicit period, exclusive. Requires startDate.",
+            "in" : "query",
+            "name" : "endDate",
+            "required" : false,
+            "schema" : {
+              "format" : "date-time",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "A period the server resolves by itself. Cannot be combined with startDate or endDate.",
+            "in" : "query",
+            "name" : "period",
+            "required" : false,
+            "schema" : {
+              "enum" : [
+                "LATEST_PRODUCTION_DAY"
+              ],
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlantEnergyMetricsResponse"
+                }
+              }
+            },
+            "description" : "Energy metrics retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves the energy metrics of a plant: its production as reported by the distributor.",
         "tags" : [
           "Plants"
         ]
