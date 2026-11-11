@@ -68,7 +68,7 @@ class GetCommunityEnergyMetricsServiceTest {
     private final Supply first = SupplyMother.random().withEnabled(true).build();
     private final Supply second = SupplyMother.random().withEnabled(true).build();
     private final Supply third = SupplyMother.random().withEnabled(true).build();
-    private final Plant plant = PlantMother.random(first).withTotalPower(100.0).build();
+    private final Plant plant = PlantMother.random(first).withPeakPowerKWp(100.0).build();
 
     @Test
     @DisplayName("CEM-003 self-consumption and surplus are summed over every supply in scope")
@@ -209,7 +209,7 @@ class GetCommunityEnergyMetricsServiceTest {
                 OffsetDateTime.parse("2025-03-01T00:00:00+01:00"));
         Instant from = period.getStartDate().toInstant();
         Instant to = period.getEndDate().toInstant();
-        Plant south = PlantMother.random(second).withTotalPower(50.0).build();
+        Plant south = PlantMother.random(second).withPeakPowerKWp(50.0).build();
         List<String> codes = List.of(first.getCode(), second.getCode());
         givenScope(period);
         when(getPlantRepository.findAllByCommunityId(COMMUNITY_ID)).thenReturn(List.of(plant, south));

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A plant has two powers (#567): its peak power, the sum of its modules in kWp, and its nominal
+         power, what it can export to the grid in kW. total_power held the peak power under a name
+         that said neither, which let the two be conflated. Only the name and the remarks change: the
+         values, the type and the NOT NULL constraint are kept. -->
+    <changeSet id="rename_plants_total_power_to_peak_power_kwp" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot rename plants.total_power to peak_power_kwp: total_power is missing or peak_power_kwp already exists. Nothing was changed.">
+            <columnExists tableName="plants" columnName="total_power"/>
+            <not>
+                <columnExists tableName="plants" columnName="peak_power_kwp"/>
+            </not>
+        </preConditions>
+        <renameColumn tableName="plants"
+                      oldColumnName="total_power"
+                      newColumnName="peak_power_kwp"
+                      columnDataType="double precision"/>
+        <setColumnRemarks tableName="plants"
+                          columnName="peak_power_kwp"
+                          remarks="Peak power of the plant's modules, in kWp."/>
+        <rollback>
+            <!-- total_power had no remarks -->
+            <sql>COMMENT ON COLUMN plants.peak_power_kwp IS NULL</sql>
+            <renameColumn tableName="plants"
+                          oldColumnName="peak_power_kwp"
+                          newColumnName="total_power"
+                          columnDataType="double precision"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

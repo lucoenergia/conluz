@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import java.time.LocalDate;
 
 @Schema(requiredProperties = {
-        "providerCode", "name", "address", "totalPower"
+        "providerCode", "name", "address", "peakPowerKWp", "nominalPowerKW"
 })
 public class CreatePlantBody {
 
@@ -35,8 +35,15 @@ public class CreatePlantBody {
     private LocalDate connectionDate;
     @NotBlank
     private String address;
+    @Schema(description = "Peak power of the plant's modules, in kWp.")
+    @NotNull
     @Positive
-    private Double totalPower;
+    private Double peakPowerKWp;
+    @Schema(description = "Power the plant can export to the grid, in kW, as capped by its inverters " +
+            "and grid connection.")
+    @NotNull
+    @Positive
+    private Double nominalPowerKW;
 
     public String getProviderCode() {
         return providerCode;
@@ -102,12 +109,20 @@ public class CreatePlantBody {
         this.address = address;
     }
 
-    public Double getTotalPower() {
-        return totalPower;
+    public Double getPeakPowerKWp() {
+        return peakPowerKWp;
     }
 
-    public void setTotalPower(Double totalPower) {
-        this.totalPower = totalPower;
+    public void setPeakPowerKWp(Double peakPowerKWp) {
+        this.peakPowerKWp = peakPowerKWp;
+    }
+
+    public Double getNominalPowerKW() {
+        return nominalPowerKW;
+    }
+
+    public void setNominalPowerKW(Double nominalPowerKW) {
+        this.nominalPowerKW = nominalPowerKW;
     }
 
     public Plant mapToPlant() {
@@ -119,7 +134,8 @@ public class CreatePlantBody {
                 .withDescription(description)
                 .withSupply(new Supply.Builder().withCode(supplyCode).build())
                 .withInverterProvider(inverterProvider)
-                .withTotalPower(totalPower)
+                .withPeakPowerKWp(peakPowerKWp)
+                .withNominalPowerKW(nominalPowerKW)
                 .withConnectionDate(connectionDate);
         return builder.build();
     }

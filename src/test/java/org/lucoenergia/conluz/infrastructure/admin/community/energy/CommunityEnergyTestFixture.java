@@ -220,8 +220,8 @@ public class CommunityEnergyTestFixture {
                 UserId.of(owner.getId()), communityId);
     }
 
-    private Plant createPlant(Supply supply, String name, double totalPower) {
-        return createPlantRepository.create(PlantMother.random(supply).withName(name).withTotalPower(totalPower)
+    private Plant createPlant(Supply supply, String name, double peakPowerKWp) {
+        return createPlantRepository.create(PlantMother.random(supply).withName(name).withPeakPowerKWp(peakPowerKWp)
                 .build(), SupplyId.of(supply.getId()));
     }
 

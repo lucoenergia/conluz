@@ -1024,6 +1024,18 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
           "providerCode" : {
             "description" : "The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code.",
             "minLength" : 1,
@@ -1036,20 +1048,16 @@
           "supplyCode" : {
             "minLength" : 1,
             "type" : "string"
-          },
-          "totalPower" : {
-            "exclusiveMinimum" : 0,
-            "format" : "double",
-            "type" : "number"
           }
         },
         "required" : [
           "address",
           "inverterProvider",
           "name",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "providerCode",
-          "supplyCode",
-          "totalPower"
+          "supplyCode"
         ],
         "type" : "object"
       },
@@ -3570,6 +3578,18 @@
           "name" : {
             "type" : "string"
           },
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "example" : 60,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
+            "example" : 100,
+            "format" : "double",
+            "type" : "number"
+          },
           "providerCode" : {
             "description" : "The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code.",
             "type" : "string"
@@ -3584,12 +3604,6 @@
           "supply" : {
             "$ref" : "#/components/schemas/SupplyReferenceResponse",
             "description" : "The supply this plant produces onto. A reference: the full supply, including its owner, is fetched from GET /supplies/{supplyId}, which not every caller who may list plants is allowed to call."
-          },
-          "totalPower" : {
-            "description" : "Installed power of the plant, in kWp.",
-            "example" : 100,
-            "format" : "double",
-            "type" : "number"
           }
         },
         "required" : [
@@ -3601,10 +3615,11 @@
           "id",
           "inverterProvider",
           "name",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "providerCode",
           "regulatoryCode",
-          "supply",
-          "totalPower"
+          "supply"
         ],
         "type" : "object"
       },
@@ -5570,6 +5585,18 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
           "providerCode" : {
             "description" : "The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code.",
             "minLength" : 1,
@@ -5582,21 +5609,17 @@
           "supplyCode" : {
             "minLength" : 1,
             "type" : "string"
-          },
-          "totalPower" : {
-            "exclusiveMinimum" : 0,
-            "format" : "double",
-            "type" : "number"
           }
         },
         "required" : [
           "address",
           "inverterProvider",
           "name",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "personalId",
           "providerCode",
-          "supplyCode",
-          "totalPower"
+          "supplyCode"
         ],
         "type" : "object"
       },

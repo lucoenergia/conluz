@@ -87,7 +87,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
                           "description": "Plant number one",
-                          "totalPower": "60.00",
+                          "peakPowerKWp": "60.00",
+                          "nominalPowerKW": "60.00",
                           "connectionDate": "2024-05-23",
                           "inverterProvider": "HUAWEI"
                         }
@@ -105,7 +106,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.name").value("Plant one"))
                 .andExpect(jsonPath("$.description").value("Plant number one"))
-                .andExpect(jsonPath("$.totalPower").value("60.0"))
+                .andExpect(jsonPath("$.peakPowerKWp").value("60.0"))
                 .andExpect(jsonPath("$.connectionDate").value("2024-05-23"))
                 .andExpect(jsonPath("$.inverterProvider").value("HUAWEI"))
                 .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
@@ -137,7 +138,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
-                          "totalPower": "60.00",
+                          "peakPowerKWp": "60.00",
+                          "nominalPowerKW": "60.00",
                           "inverterProvider": "HUAWEI"
                         }
                 """, plantCode, supply.getCode());
@@ -154,7 +156,7 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value("Fake Street 123"))
                 .andExpect(jsonPath("$.name").value("Plant one"))
                 .andExpect(jsonPath("$.description").isEmpty())
-                .andExpect(jsonPath("$.totalPower").value("60.0"))
+                .andExpect(jsonPath("$.peakPowerKWp").value("60.0"))
                 .andExpect(jsonPath("$.connectionDate").isEmpty())
                 .andExpect(jsonPath("$.inverterProvider").value("HUAWEI"))
                 .andExpect(jsonPath("$.supply.code").value(supply.getCode()));
@@ -186,7 +188,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                                   "name": "Plant one",
                                   "personalId": "12345678Z",
                                   "address": "Fake Street 123",
-                                  "totalPower": "60.00",
+                                  "peakPowerKWp": "60.00",
+                                  "nominalPowerKW": "60.00",
                                   "inverterProvider": "HUAWEI"
                                 }
                         """,
@@ -195,7 +198,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                                   "providerCode": "TS-65987",
                                   "personalId": "12345678Z",
                                   "address": "Fake Street 123",
-                                  "totalPower": "60.00",
+                                  "peakPowerKWp": "60.00",
+                                  "nominalPowerKW": "60.00",
                                   "inverterProvider": "HUAWEI"
                                 }
                         """,
@@ -204,7 +208,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                                   "providerCode": "TS-65987",
                                   "name": "Plant one",
                                   "address": "Fake Street 123",
-                                  "totalPower": "60.00",
+                                  "peakPowerKWp": "60.00",
+                                  "nominalPowerKW": "60.00",
                                   "inverterProvider": "HUAWEI"
                                 }
                         """,
@@ -213,16 +218,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                                   "providerCode": "TS-65987",
                                   "name": "Plant one",
                                   "personalId": "12345678Z",
-                                  "totalPower": "60.00",
-                                  "inverterProvider": "HUAWEI"
-                                }
-                        """,
-                """
-                                {
-                                  "providerCode": "TS-65987",
-                                  "name": "Plant one",
-                                  "personalId": "12345678Z",
-                                  "address": "Fake Street 123",
+                                  "peakPowerKWp": "60.00",
+                                  "nominalPowerKW": "60.00",
                                   "inverterProvider": "HUAWEI"
                                 }
                         """,
@@ -232,7 +229,18 @@ class CreatePlantControllerTest extends BaseControllerTest {
                                   "name": "Plant one",
                                   "personalId": "12345678Z",
                                   "address": "Fake Street 123",
-                                  "totalPower": "60.00"
+                                  "nominalPowerKW": "60.00",
+                                  "inverterProvider": "HUAWEI"
+                                }
+                        """,
+                """
+                                {
+                                  "providerCode": "TS-65987",
+                                  "name": "Plant one",
+                                  "personalId": "12345678Z",
+                                  "address": "Fake Street 123",
+                                  "peakPowerKWp": "60.00",
+                                  "nominalPowerKW": "60.00"
                                 }
                         """);
     }
@@ -262,7 +270,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
-                              "totalPower": "foo",
+                              "peakPowerKWp": "foo",
+                              "nominalPowerKW": "60.00",
                               "inverterProvider": "HUAWEI"
                             }
                         """,
@@ -272,7 +281,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
-                              "totalPower": "60.00",
+                              "peakPowerKWp": "60.00",
+                              "nominalPowerKW": "60.00",
                               "inverterProvider": "foo"
                             }
                         """,
@@ -282,7 +292,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
-                              "totalPower": "60.00",
+                              "peakPowerKWp": "60.00",
+                              "nominalPowerKW": "60.00",
                               "connectionDate": "2024/05/23",
                               "inverterProvider": "HUAWEI"
                             }
@@ -306,7 +317,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
 
         plantRepository.save(new PlantEntity.Builder()
                 .withProviderCode(plantCode)
-                .withTotalPower(23D)
+                .withPeakPowerKWp(23D)
+                .withNominalPowerKW(23D)
                 .withAddress("Fake Street 123")
                 .withInverterProvider(InverterProvider.HUAWEI)
                 .withId(UUID.randomUUID())
@@ -320,7 +332,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "name": "Plant one",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
-                          "totalPower": "60.00",
+                          "peakPowerKWp": "60.00",
+                          "nominalPowerKW": "60.00",
                           "inverterProvider": "HUAWEI"
                         }
                 """, plantCode, supplyOne.getCode());
@@ -351,7 +364,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "name": "Second plant",
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
-                          "totalPower": "60.00",
+                          "peakPowerKWp": "60.00",
+                          "nominalPowerKW": "60.00",
                           "inverterProvider": "HUAWEI"
                         }
                 """, supply.getCode());
@@ -411,7 +425,8 @@ class CreatePlantControllerTest extends BaseControllerTest {
                           "supplyCode": "%s",
                           "address": "Fake Street 123",
                           "description": "Plant number one",
-                          "totalPower": "60.00",
+                          "peakPowerKWp": "60.00",
+                          "nominalPowerKW": "60.00",
                           "connectionDate": "2024-05-23",
                           "inverterProvider": "HUAWEI"
                         }

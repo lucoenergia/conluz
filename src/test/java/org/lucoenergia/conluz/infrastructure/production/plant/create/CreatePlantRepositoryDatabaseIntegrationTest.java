@@ -61,7 +61,7 @@ class CreatePlantRepositoryDatabaseIntegrationTest extends BaseIntegrationTest {
         assertEquals(plant.getAddress(), row.get("address"));
         assertEquals(plant.getDescription(), row.get("description"));
         assertEquals(plant.getInverterProvider().name(), row.get("inverter_provider"));
-        assertEquals(plant.getTotalPower(), row.get("total_power"));
+        assertEquals(plant.getPeakPowerKWp(), row.get("peak_power_kwp"));
         assertEquals(Date.valueOf(plant.getConnectionDate()), row.get("connection_date"));
         assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM plants WHERE supply_id = ?", Integer.class,
                 supply.getId()));

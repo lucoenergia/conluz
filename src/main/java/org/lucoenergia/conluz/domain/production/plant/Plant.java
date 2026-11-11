@@ -38,10 +38,15 @@ public class Plant {
     @NotBlank
     private InverterProvider inverterProvider;
     /**
-     * Represented using kWp
+     * Peak power of the plant's modules, in kWp.
      */
     @NotNull
-    private Double totalPower;
+    private Double peakPowerKWp;
+    /**
+     * Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.
+     */
+    @NotNull
+    private Double nominalPowerKW;
     private LocalDate connectionDate;
     @NotNull
     private Supply supply;
@@ -74,8 +79,12 @@ public class Plant {
         return inverterProvider;
     }
 
-    public Double getTotalPower() {
-        return totalPower;
+    public Double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    public Double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public LocalDate getConnectionDate() {
@@ -106,7 +115,8 @@ public class Plant {
         private String address;
         private String description;
         private InverterProvider inverterProvider;
-        private Double totalPower;
+        private Double peakPowerKWp;
+        private Double nominalPowerKW;
         private LocalDate connectionDate;
         private Supply supply;
 
@@ -145,8 +155,13 @@ public class Plant {
             return this;
         }
 
-        public Builder withTotalPower(Double totalPower) {
-            this.totalPower = totalPower;
+        public Builder withPeakPowerKWp(Double peakPowerKWp) {
+            this.peakPowerKWp = peakPowerKWp;
+            return this;
+        }
+
+        public Builder withNominalPowerKW(Double nominalPowerKW) {
+            this.nominalPowerKW = nominalPowerKW;
             return this;
         }
 
@@ -169,7 +184,8 @@ public class Plant {
             station.address = this.address;
             station.description = this.description;
             station.inverterProvider = this.inverterProvider;
-            station.totalPower = this.totalPower;
+            station.peakPowerKWp = this.peakPowerKWp;
+            station.nominalPowerKW = this.nominalPowerKW;
             station.connectionDate = this.connectionDate;
             station.supply = this.supply;
             return station;

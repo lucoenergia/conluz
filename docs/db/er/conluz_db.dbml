@@ -158,10 +158,11 @@ Table "plants" {
   "address" text [not null]
   "description" text
   "inverter_provider" text [not null]
-  "total_power" doubleprecision [not null]
+  "peak_power_kwp" doubleprecision [not null, note: '''Peak power of the plant\'s modules, in kWp.''']
   "connection_date" date
   "supply_id" uuid [unique, not null]
   "regulatory_code" text [unique, note: '''The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider\'s station code (provider_code) and not a CUPS.''']
+  "nominal_power_kw" doubleprecision [not null, note: 'Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.']
 }
 
 Table "sharing_agreement" {

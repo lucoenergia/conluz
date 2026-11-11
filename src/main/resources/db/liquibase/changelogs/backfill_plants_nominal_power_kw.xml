@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Every existing plant gets a nominal power equal to its peak power (#567): it is the only power
+         recorded so far, and the agreements' indicative power was computed against it. A plant whose
+         inverters or grid connection cap export is corrected by hand after the release (an upgrade
+         action), through updatePlant. -->
+    <changeSet id="backfill_plants_nominal_power_kw" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot backfill plants.nominal_power_kw: some plants already have a nominal power, which the backfill would overwrite. Nothing was changed. List them with: SELECT id, nominal_power_kw FROM plants WHERE nominal_power_kw IS NOT NULL">
+            <columnExists tableName="plants" columnName="nominal_power_kw"/>
+            <columnExists tableName="plants" columnName="peak_power_kwp"/>
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM plants WHERE nominal_power_kw IS NOT NULL
+            </sqlCheck>
+        </preConditions>
+        <sql>UPDATE plants SET nominal_power_kw = peak_power_kwp</sql>
+        <rollback>
+            <sql>UPDATE plants SET nominal_power_kw = NULL</sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -104,9 +104,9 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     @Test
     void createsDraftAgreementWithSuppliedPowerAndCreator() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
-        // Deliberately different from plantA's totalPower, to prove the stored value comes
+        // Deliberately different from plantA's peakPowerKWp, to prove the stored value comes
         // from the request body and not from a server-side snapshot of the plant.
-        BigDecimal installedPowerKw = BigDecimal.valueOf(plantA.getTotalPower()).add(BigDecimal.ONE);
+        BigDecimal installedPowerKw = BigDecimal.valueOf(plantA.getPeakPowerKWp()).add(BigDecimal.ONE);
 
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

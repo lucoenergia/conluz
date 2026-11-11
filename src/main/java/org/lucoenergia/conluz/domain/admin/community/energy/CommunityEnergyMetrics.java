@@ -54,10 +54,10 @@ public class CommunityEnergyMetrics {
                 .map(plant -> {
                     Double production = productionBySupplyCode.get(plant.getSupply().getCode());
                     return new CommunityPlantEnergy(new PlantReference(plant.getId(), plant.getName()),
-                            plant.getTotalPower(), production, share(production, productionKWh));
+                            plant.getPeakPowerKWp(), production, share(production, productionKWh));
                 })
                 .toList();
-        this.installedPowerKWp = plants.stream().mapToDouble(Plant::getTotalPower).sum();
+        this.installedPowerKWp = plants.stream().mapToDouble(Plant::getPeakPowerKWp).sum();
     }
 
     /**

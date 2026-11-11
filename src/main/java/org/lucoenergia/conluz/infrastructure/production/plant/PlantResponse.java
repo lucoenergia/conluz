@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"id", "providerCode", "regulatoryCode", "supply", "name", "address",
-        "description", "inverterProvider", "totalPower", "connectionDate", "community", "capabilities"})
+        "description", "inverterProvider", "peakPowerKWp", "nominalPowerKW", "connectionDate", "community", "capabilities"})
 public class PlantResponse {
 
     private final UUID id;
@@ -32,8 +32,11 @@ public class PlantResponse {
     @Schema(types = {"string", "null"})
     private final String description;
     private final InverterProvider inverterProvider;
-    @Schema(description = "Installed power of the plant, in kWp.", example = "100.0")
-    private final Double totalPower;
+    @Schema(description = "Peak power of the plant's modules, in kWp.", example = "100.0")
+    private final Double peakPowerKWp;
+    @Schema(description = "Power the plant can export to the grid, in kW, as capped by its inverters " +
+            "and grid connection.", example = "60.0")
+    private final Double nominalPowerKW;
     @Schema(types = {"string", "null"})
     private final LocalDate connectionDate;
     @Schema(description = "The community that owns the plant.")
@@ -52,7 +55,8 @@ public class PlantResponse {
         this.address = plant.getAddress();
         this.description = plant.getDescription();
         this.inverterProvider = plant.getInverterProvider();
-        this.totalPower = plant.getTotalPower();
+        this.peakPowerKWp = plant.getPeakPowerKWp();
+        this.nominalPowerKW = plant.getNominalPowerKW();
         this.connectionDate = plant.getConnectionDate();
         this.community = new PlantCommunityResponse(plant.getCommunity().getId());
         this.capabilities = capabilities;
@@ -90,8 +94,12 @@ public class PlantResponse {
         return inverterProvider;
     }
 
-    public Double getTotalPower() {
-        return totalPower;
+    public Double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    public Double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public LocalDate getConnectionDate() {

@@ -157,7 +157,7 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
         assertTrue(description(PLANT, "productionKWh").contains("In kWh"));
         assertTrue(description(PLANT, "installedPowerKWp").contains("kWp"));
         assertTrue(description(RESPONSE, "installedPowerKWp").contains("kWp"));
-        assertTrue(description("PlantResponse", "totalPower").contains("kWp"));
+        assertTrue(description("PlantResponse", "peakPowerKWp").contains("kWp"));
     }
 
     @Test

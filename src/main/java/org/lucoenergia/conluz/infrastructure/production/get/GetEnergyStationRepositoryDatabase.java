@@ -56,7 +56,8 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
                 .withAddress(entity.getAddress())
                 .withDescription(entity.getDescription())
                 .withInverterProvider(entity.getInverterProvider())
-                .withTotalPower(entity.getTotalPower())
+                .withPeakPowerKWp(entity.getPeakPowerKWp())
+                .withNominalPowerKW(entity.getNominalPowerKW())
                 .withConnectionDate(entity.getConnectionDate())
                 .build();
     }

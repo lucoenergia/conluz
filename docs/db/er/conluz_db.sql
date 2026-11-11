@@ -406,11 +406,19 @@ CREATE TABLE public.plants (
                                address text NOT NULL,
                                description text,
                                inverter_provider text NOT NULL,
-                               total_power double precision NOT NULL,
+                               peak_power_kwp double precision NOT NULL,
                                connection_date date,
                                supply_id uuid NOT NULL,
-                               regulatory_code text
+                               regulatory_code text,
+                               nominal_power_kw double precision NOT NULL
 );
+
+
+--
+-- Name: COLUMN plants.peak_power_kwp; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.plants.peak_power_kwp IS 'Peak power of the plant''s modules, in kWp.';
 
 
 --
@@ -418,6 +426,13 @@ CREATE TABLE public.plants (
 --
 
 COMMENT ON COLUMN public.plants.regulatory_code IS 'The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider''s station code (provider_code) and not a CUPS.';
+
+
+--
+-- Name: COLUMN plants.nominal_power_kw; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.plants.nominal_power_kw IS 'Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.';
 
 
 --

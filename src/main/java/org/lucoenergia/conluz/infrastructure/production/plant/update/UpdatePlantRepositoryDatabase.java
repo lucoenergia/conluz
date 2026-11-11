@@ -62,7 +62,8 @@ public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
         currentPlant.setName(plant.getName());
         currentPlant.setDescription(plant.getDescription());
         currentPlant.setAddress(plant.getAddress());
-        currentPlant.setTotalPower(plant.getTotalPower());
+        currentPlant.setPeakPowerKWp(plant.getPeakPowerKWp());
+        currentPlant.setNominalPowerKW(plant.getNominalPowerKW());
         currentPlant.setConnectionDate(plant.getConnectionDate());
         currentPlant.setInverterProvider(plant.getInverterProvider());
 

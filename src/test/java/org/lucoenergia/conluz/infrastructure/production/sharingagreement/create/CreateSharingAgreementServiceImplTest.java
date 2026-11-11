@@ -106,7 +106,7 @@ class CreateSharingAgreementServiceImplTest {
     void create_buildsDraftAgreementUsingSuppliedPower() {
         UUID plantId = UUID.randomUUID();
         UUID createdBy = UUID.randomUUID();
-        Plant plant = PlantMother.random().withId(plantId).withTotalPower(7.25).build();
+        Plant plant = PlantMother.random().withId(plantId).withPeakPowerKWp(7.25).build();
         when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.of(plant));
         when(repository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
         CreateSharingAgreement request = new CreateSharingAgreement.Builder()

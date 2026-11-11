@@ -35,9 +35,15 @@ public class PlantEntity {
     @Enumerated(EnumType.STRING)
     private InverterProvider inverterProvider;
     /**
-     * Represented using kWp
+     * Peak power of the plant's modules, in kWp.
      */
-    private Double totalPower;
+    @Column(name = "peak_power_kwp")
+    private Double peakPowerKWp;
+    /**
+     * Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.
+     */
+    @Column(name = "nominal_power_kw")
+    private Double nominalPowerKW;
     private LocalDate connectionDate;
 
     public UUID getId() {
@@ -104,12 +110,20 @@ public class PlantEntity {
         this.inverterProvider = provider;
     }
 
-    public Double getTotalPower() {
-        return totalPower;
+    public Double getPeakPowerKWp() {
+        return peakPowerKWp;
     }
 
-    public void setTotalPower(Double totalPower) {
-        this.totalPower = totalPower;
+    public void setPeakPowerKWp(Double peakPowerKWp) {
+        this.peakPowerKWp = peakPowerKWp;
+    }
+
+    public Double getNominalPowerKW() {
+        return nominalPowerKW;
+    }
+
+    public void setNominalPowerKW(Double nominalPowerKW) {
+        this.nominalPowerKW = nominalPowerKW;
     }
 
     public LocalDate getConnectionDate() {
@@ -143,7 +157,8 @@ public class PlantEntity {
         private String address;
         private String description;
         private InverterProvider inverterProvider;
-        private Double totalPower;
+        private Double peakPowerKWp;
+        private Double nominalPowerKW;
         private LocalDate connectionDate;
 
         public Builder withId(UUID id) {
@@ -186,8 +201,13 @@ public class PlantEntity {
             return this;
         }
 
-        public Builder withTotalPower(Double totalPower) {
-            this.totalPower = totalPower;
+        public Builder withPeakPowerKWp(Double peakPowerKWp) {
+            this.peakPowerKWp = peakPowerKWp;
+            return this;
+        }
+
+        public Builder withNominalPowerKW(Double nominalPowerKW) {
+            this.nominalPowerKW = nominalPowerKW;
             return this;
         }
 
@@ -207,7 +227,8 @@ public class PlantEntity {
             plantEntity.setAddress(address);
             plantEntity.setDescription(description);
             plantEntity.setInverterProvider(inverterProvider);
-            plantEntity.setTotalPower(totalPower);
+            plantEntity.setPeakPowerKWp(peakPowerKWp);
+            plantEntity.setNominalPowerKW(nominalPowerKW);
             plantEntity.setConnectionDate(connectionDate);
 
             return plantEntity;

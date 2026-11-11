@@ -106,6 +106,24 @@ final class LiquibaseTestSupport {
         }
     }
 
+    /**
+     * The power columns of a plant row and their values, for the schema the database is at: {@code total_power}
+     * before #567 split it, {@code peak_power_kwp} and {@code nominal_power_kw} after. Lets a test that seeds plants
+     * on both sides of its own changeset keep working once later changesets are appended.
+     *
+     * @return the column list and the matching value list, to splice into an {@code INSERT}
+     */
+    static String[] plantPowerColumnsAndValues(Connection connection, String power) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT count(*) FROM information_schema.columns "
+                     + "WHERE table_name = 'plants' AND column_name = 'total_power'")) {
+            resultSet.next();
+            return resultSet.getInt(1) > 0
+                    ? new String[]{"total_power", power}
+                    : new String[]{"peak_power_kwp, nominal_power_kw", power + ", " + power};
+        }
+    }
+
     private static int appliedChangeSetCount(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM databasechangelog")) {

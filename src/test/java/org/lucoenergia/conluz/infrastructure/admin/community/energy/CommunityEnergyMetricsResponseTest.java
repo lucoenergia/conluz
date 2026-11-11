@@ -27,8 +27,8 @@ class CommunityEnergyMetricsResponseTest {
     private static final Instant H2 = Instant.parse("2026-05-10T09:00:00Z");
     private static final Instant H3 = Instant.parse("2026-05-10T10:00:00Z");
 
-    private final Plant north = PlantMother.random(SupplyMother.random().build()).withTotalPower(100.0).build();
-    private final Plant south = PlantMother.random(SupplyMother.random().build()).withTotalPower(50.0).build();
+    private final Plant north = PlantMother.random(SupplyMother.random().build()).withPeakPowerKWp(100.0).build();
+    private final Plant south = PlantMother.random(SupplyMother.random().build()).withPeakPowerKWp(50.0).build();
 
     @Test
     @DisplayName("EVL-001 every kWh figure is rounded to 3 decimals, and the shares are not rounded")

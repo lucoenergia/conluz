@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- The nominal power of a plant (#567): what it can export to the grid in kW, as capped by its
+         inverters and grid connection. It differs from the peak power when they cap export (Luco:
+         80 kWp, 60 kW). Added nullable; backfill_plants_nominal_power_kw fills it, and
+         add_not_null_constraint_to_plants_nominal_power_kw makes it NOT NULL. NULL only exists
+         between this changeset and the backfill, and means the value has not been filled yet. -->
+    <changeSet id="add_nominal_power_kw_to_plants" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add plants.nominal_power_kw: the plants table is missing or the column already exists. Nothing was changed.">
+            <tableExists tableName="plants"/>
+            <not>
+                <columnExists tableName="plants" columnName="nominal_power_kw"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="plants">
+            <column name="nominal_power_kw" type="double precision"
+                    remarks="Power the plant can export to the grid, in kW, as capped by its inverters and grid connection."/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="plants" columnName="nominal_power_kw"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

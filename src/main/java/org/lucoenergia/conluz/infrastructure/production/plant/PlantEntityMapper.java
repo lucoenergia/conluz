@@ -24,7 +24,8 @@ public class PlantEntityMapper extends BaseMapper<PlantEntity, Plant> {
                 .withName(entity.getName())
                 .withSupply(supplyEntityMapper.map(entity.getSupply()))
                 .withDescription(entity.getDescription())
-                .withTotalPower(entity.getTotalPower())
+                .withPeakPowerKWp(entity.getPeakPowerKWp())
+                .withNominalPowerKW(entity.getNominalPowerKW())
                 .withConnectionDate(entity.getConnectionDate())
                 .withInverterProvider(entity.getInverterProvider())
                 .build();

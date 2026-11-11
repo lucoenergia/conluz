@@ -148,8 +148,8 @@ class CommunityEnergyMetricsTest {
         assertEquals(List.of(2024, 2025), metrics.getCo2AvoidedFactorYears());
     }
 
-    private static Plant plant(String code, double totalPower) {
-        return PlantMother.random(SupplyMother.random().withCode(code).build()).withTotalPower(totalPower).build();
+    private static Plant plant(String code, double peakPowerKWp) {
+        return PlantMother.random(SupplyMother.random().withCode(code).build()).withPeakPowerKWp(peakPowerKWp).build();
     }
 
     private static String code(Plant plant) {

@@ -76,7 +76,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setDescription("The main plant");
         plantModified.setConnectionDate(LocalDate.of(2023, 5, 23));
         plantModified.setInverterProvider(InverterProvider.HUAWEI);
-        plantModified.setTotalPower(25.6D);
+        plantModified.setPeakPowerKWp(25.6D);
+        plantModified.setNominalPowerKW(25.6D);
 
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
 
@@ -94,7 +95,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.description").value(plantModified.getDescription()))
                 .andExpect(jsonPath("$.connectionDate").value(plantModified.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.inverterProvider").value(plantModified.getInverterProvider().name()))
-                .andExpect(jsonPath("$.totalPower").value(plantModified.getTotalPower()));
+                .andExpect(jsonPath("$.peakPowerKWp").value(plantModified.getPeakPowerKWp()));
     }
 
     @Test
@@ -156,7 +157,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         body.setDescription(plant.getDescription());
         body.setConnectionDate(plant.getConnectionDate());
         body.setInverterProvider(plant.getInverterProvider());
-        body.setTotalPower(plant.getTotalPower());
+        body.setPeakPowerKWp(plant.getPeakPowerKWp());
+        body.setNominalPowerKW(plant.getNominalPowerKW());
         return body;
     }
 
@@ -183,7 +185,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setSupplyCode(supply.getCode());
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
-        plantModified.setTotalPower(25.6D);
+        plantModified.setPeakPowerKWp(25.6D);
+        plantModified.setNominalPowerKW(25.6D);
         plantModified.setInverterProvider(InverterProvider.HUAWEI);
 
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
@@ -218,7 +221,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setProviderCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
-        plantModified.setTotalPower(25.6D);
+        plantModified.setPeakPowerKWp(25.6D);
+        plantModified.setNominalPowerKW(25.6D);
         plantModified.setSupplyCode(supplyTwo.getCode());
         plantModified.setInverterProvider(InverterProvider.HUAWEI);
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
@@ -236,7 +240,7 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.description").isEmpty())
                 .andExpect(jsonPath("$.connectionDate").isEmpty())
                 .andExpect(jsonPath("$.inverterProvider").value(plantOne.getInverterProvider().name()))
-                .andExpect(jsonPath("$.totalPower").value(plantModified.getTotalPower()));
+                .andExpect(jsonPath("$.peakPowerKWp").value(plantModified.getPeakPowerKWp()));
     }
 
     @Test
@@ -250,7 +254,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setProviderCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
-        plantModified.setTotalPower(25.6D);
+        plantModified.setPeakPowerKWp(25.6D);
+        plantModified.setNominalPowerKW(25.6D);
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
 
         mockMvc.perform(put("/api/v1/plants/" + plantId)
@@ -283,7 +288,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setProviderCode("TS-234123");
         plantModified.setName("Main plant");
         plantModified.setAddress("Fake Street 666");
-        plantModified.setTotalPower(25.6D);
+        plantModified.setPeakPowerKWp(25.6D);
+        plantModified.setNominalPowerKW(25.6D);
         plantModified.setSupplyCode("unknown");
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
 
@@ -308,7 +314,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                           "providerCode": "TS-234123",
                           "name": "Main plant",
                           "address": "Fake Street 666",
-                          "totalPower": "25.6"
+                          "peakPowerKWp": "25.6",
+                          "nominalPowerKW": "25.6"
                         }
                 """;
 
@@ -354,21 +361,24 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                                 {
                                   "name": "Main plant",
                                   "address": "Fake Street 666",
-                                  "totalPower": "25.6"
+                                  "peakPowerKWp": "25.6",
+                                  "nominalPowerKW": "25.6"
                                 }
                         """,
                 """
                                 {
                                   "providerCode": "TS-234123",
                                   "address": "Fake Street 666",
-                                  "totalPower": "25.6"
+                                  "peakPowerKWp": "25.6",
+                                  "nominalPowerKW": "25.6"
                                 }
                         """,
                 """
                                 {
                                   "providerCode": "TS-234123",
                                   "name": "Main plant",
-                                  "totalPower": "25.6"
+                                  "peakPowerKWp": "25.6",
+                                  "nominalPowerKW": "25.6"
                                 }
                         """,
                 """
@@ -407,7 +417,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
-                              "totalPower": "foo",
+                              "peakPowerKWp": "foo",
+                              "nominalPowerKW": "60.00",
                               "inverterProvider": "HUAWEI"
                             }
                         """,
@@ -417,7 +428,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
-                              "totalPower": "60.00",
+                              "peakPowerKWp": "60.00",
+                              "nominalPowerKW": "60.00",
                               "inverterProvider": "foo"
                             }
                         """,
@@ -427,7 +439,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                               "name": "Plant one",
                               "personalId": "12345678Z",
                               "address": "Fake Street 123",
-                              "totalPower": "60.00",
+                              "peakPowerKWp": "60.00",
+                              "nominalPowerKW": "60.00",
                               "connectionDate": "2024/05/23",
                               "inverterProvider": "HUAWEI"
                             }
@@ -494,7 +507,8 @@ class UpdatePlantControllerTest extends BaseControllerTest {
         plantModified.setDescription("The main plant");
         plantModified.setConnectionDate(LocalDate.of(2023, 5, 23));
         plantModified.setInverterProvider(InverterProvider.HUAWEI);
-        plantModified.setTotalPower(25.6D);
+        plantModified.setPeakPowerKWp(25.6D);
+        plantModified.setNominalPowerKW(25.6D);
 
         String bodyAsString = objectMapper.writeValueAsString(plantModified);
 

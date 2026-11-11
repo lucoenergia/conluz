@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyRest;
+import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.plantPowerColumnsAndValues;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.applyUpToChangeSet;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.freshDatabase;
 import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.LiquibaseTestSupport.rollbackToChangeSet;
@@ -194,9 +195,10 @@ class ConfigurationOwnerUniqueMigrationIntegrationTest {
             statement.executeUpdate();
         }
         UUID plantId = UUID.randomUUID();
+        String[] power = plantPowerColumnsAndValues(connection, "10.0");
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO plants (id, name, provider_code, address, inverter_provider, total_power, supply_id) "
-                        + "VALUES (?, 'Plant', ?, 'Address', 'HUAWEI', 10.0, ?)")) {
+                "INSERT INTO plants (id, name, provider_code, address, inverter_provider, " + power[0] + ", supply_id) "
+                        + "VALUES (?, 'Plant', ?, 'Address', 'HUAWEI', " + power[1] + ", ?)")) {
             statement.setObject(1, plantId);
             statement.setString(2, "PLANT-" + code);
             statement.setObject(3, supplyId);

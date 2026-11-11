@@ -61,7 +61,8 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
                 .withAddress(plant.getAddress())
                 .withDescription(plant.getDescription())
                 .withInverterProvider(plant.getInverterProvider())
-                .withTotalPower(plant.getTotalPower())
+                .withPeakPowerKWp(plant.getPeakPowerKWp())
+                .withNominalPowerKW(plant.getNominalPowerKW())
                 .withConnectionDate(plant.getConnectionDate())
                 .withSupply(supplyEntity)
                 .build();

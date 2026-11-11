@@ -65,7 +65,7 @@ class GetPlantByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.address").value(plant.getAddress()))
                 .andExpect(jsonPath("$.description").value(plant.getDescription()))
                 .andExpect(jsonPath("$.inverterProvider").value(plant.getInverterProvider().name()))
-                .andExpect(jsonPath("$.totalPower").value(plant.getTotalPower()))
+                .andExpect(jsonPath("$.peakPowerKWp").value(plant.getPeakPowerKWp()))
                 .andExpect(jsonPath("$.connectionDate").value(plant.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$.supply.code").value(supply.getCode()))

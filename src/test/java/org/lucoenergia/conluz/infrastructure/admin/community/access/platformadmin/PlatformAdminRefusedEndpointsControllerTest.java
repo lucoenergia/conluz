@@ -195,7 +195,8 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
         String agreements = plants + "/sharing-agreements";
         String anAgreement = agreements + "/{a}";
         Map<String, Object> plantBody = Map.of("name", "Plant", "address", "Calle Mayor 4", "supplyCode",
-                supply.getCode(), "providerCode", "NE=1", "inverterProvider", "HUAWEI", "totalPower", 10.0);
+                supply.getCode(), "providerCode", "NE=1", "inverterProvider", "HUAWEI", "peakPowerKWp", 10.0,
+                "nominalPowerKW", 10.0);
         Map<String, Object> coefficientIds = Map.of("coefficientIds", List.of(UUID.randomUUID()));
         assertEveryCallIsRefused(List.of(
                 call(403, HttpMethod.GET, "/api/v1/communities/{c}/plants"),

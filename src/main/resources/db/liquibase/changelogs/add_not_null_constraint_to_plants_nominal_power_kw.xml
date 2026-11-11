@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Every plant has a nominal power (#567). Runs after backfill_plants_nominal_power_kw, which fills
+         it on every existing row from peak_power_kwp (itself NOT NULL). A row without one at this point
+         is one the backfill did not reach, so the precondition HALTs instead of inventing a value. -->
+    <changeSet id="add_not_null_constraint_to_plants_nominal_power_kw" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot make plants.nominal_power_kw NOT NULL: some plants have no nominal power. Nothing was changed. List them with: SELECT id, peak_power_kwp FROM plants WHERE nominal_power_kw IS NULL">
+            <columnExists tableName="plants" columnName="nominal_power_kw"/>
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM plants WHERE nominal_power_kw IS NULL
+            </sqlCheck>
+        </preConditions>
+        <addNotNullConstraint tableName="plants"
+                              columnName="nominal_power_kw"
+                              columnDataType="double precision"/>
+        <rollback>
+            <dropNotNullConstraint tableName="plants"
+                                   columnName="nominal_power_kw"
+                                   columnDataType="double precision"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
