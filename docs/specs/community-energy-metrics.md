@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Communities`; operations `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #559 |
+| **Last reviewed against code** | #567 |
 
 ## Purpose
 
 The energy figures of a whole community, from the distributor's records: what its plants produced,
 how much of the energy assigned to its supplies was used in the community and how much went to the
 grid, an estimate of what that surplus earned at OMIE day-ahead prices, an estimate of the CO₂ the
-production avoided, the installed power, and how many supplies have data. Only community aggregates are exposed, never a figure of a single supply or
+production avoided, the peak and nominal power, and how many supplies have data. Only community aggregates are exposed, never a figure of a single supply or
 member. The period these operations are computed over follows EPR-001 to EPR-005
 (`energy-periods.md`), and the precision and names of their energy figures follow `energy-values.md`.
 The rest of the capability is specified lazily, as issues touch it.
@@ -69,11 +69,12 @@ Then the response is 200 with null period bounds and no figures
 
 - **Status:** Active
 - **Rule:** Totals MUST be sums over the supplies in scope (self-consumption, surplus) and over the
-  community's plants (production). The used and exported shares MUST be computed from
-  self-consumption and surplus only, on unrounded values, and MUST be null when both are zero.
+  community's plants (production, peak power, nominal power). The used and exported shares MUST be
+  computed from self-consumption and surplus only, on unrounded values, and MUST be null when both
+  are zero.
 - **Rationale:** The two shares must add up to 1, independently of the losses between plant export
-  and assigned energy.
-- **Source:** #554
+  and assigned energy. Peak and nominal power are now both community totals. Shares are unchanged.
+- **Source:** #554, #567
 
 **Scenarios**
 
@@ -85,6 +86,10 @@ Then the shares are 0.6 used in the community and 0.4 exported
 Given supplies in scope whose records carry no self-consumption and no surplus
 When the community energy metrics are read
 Then both shares are null
+
+Given a community with plant A of 80 kWp and 60 kW and plant B of 20 kWp and 20 kW
+When the community energy metrics are read
+Then the peak power is 100 kWp and the nominal power is 80 kW
 ```
 
 ### CEM-004 — Coverage counts the supplies with data under the 90 % threshold
@@ -110,11 +115,12 @@ Then it does not
 ### CEM-005 — Every plant is listed, and a plant without records has no production
 
 - **Status:** Active
-- **Rule:** Metrics MUST list every plant of the community with its reference, installed power (kWp),
-  production and share of total production. A plant with no production records in the period MUST
-  report null production and null share.
-- **Rationale:** A gap is not a measured zero.
-- **Source:** #554
+- **Rule:** Metrics MUST list every plant of the community with its reference, peak power (kWp),
+  nominal power (kW), production and share of total production. A plant with no production records
+  in the period MUST report null production and null share.
+- **Rationale:** A member needs both what the community installed and what it can deliver to the
+  grid. A gap is not a measured zero.
+- **Source:** #554, #567
 
 ### CEM-006 — A series emits every bucket, with null for a gap and the supplies with data
 
