@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.create;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -102,11 +103,12 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("AC14 the agreement's nominal power is stored as given, whatever the plant's own nominal power")
     void createsDraftAgreementWithSuppliedPowerAndCreator() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
-        // Deliberately different from plantA's peakPowerKWp, to prove the stored value comes
+        // Deliberately different from plantA's nominalPowerKW, to prove the stored value comes
         // from the request body and not from a server-side snapshot of the plant.
-        BigDecimal nominalPowerKW = BigDecimal.valueOf(plantA.getPeakPowerKWp()).add(BigDecimal.ONE);
+        BigDecimal nominalPowerKW = BigDecimal.valueOf(plantA.getNominalPowerKW()).add(BigDecimal.ONE);
 
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)

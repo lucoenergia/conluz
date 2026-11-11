@@ -1,9 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.update;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -42,11 +44,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -152,6 +156,48 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                         .content("{\"name\":\"New name\"}"))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1"})
+    @DisplayName("AC14 a nominal power that is not above 0 is refused with 400, and nothing is updated")
+    void returnsBadRequestWhenNominalPowerKWIsNotPositive(String nominalPowerKW) throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        BigDecimal before = draftAgreement.getNominalPowerKW();
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("New name", nominalPowerKW)))
+                .andExpect(status().isBadRequest());
+
+        SharingAgreementEntity persisted = sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow();
+        assertEquals(before, persisted.getNominalPowerKW());
+    }
+
+    @Test
+    @DisplayName("AC13 AC14 the agreement's nominal power is stored as given, whatever the plant's own nominal "
+            + "power, and read back by getSharingAgreementById and getSharingAgreements")
+    void theNominalPowerIsStoredAsGivenAndReadBack() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        // Deliberately different from plantA's nominalPowerKW, which is below 1: the agreement's value is its own
+        BigDecimal nominalPowerKW = new BigDecimal("60.5");
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("New name", nominalPowerKW.toPlainString())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nominalPowerKW").value(nominalPowerKW.doubleValue()));
+
+        mockMvc.perform(get(url(plantA.getId(), draftAgreement.getId())).header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nominalPowerKW").value(nominalPowerKW.doubleValue()));
+        mockMvc.perform(get("/api/v1/plants/" + plantA.getId() + "/sharing-agreements")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == '" + draftAgreement.getId() + "')].nominalPowerKW")
+                        .value(contains(nominalPowerKW.doubleValue())));
     }
 
     @ParameterizedTest

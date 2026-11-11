@@ -22,8 +22,8 @@ class CommunityEnergyMetricsTest {
     private static final EnergyMetricsPeriod PERIOD = new EnergyMetricsPeriod(
             OffsetDateTime.parse("2026-05-10T00:00:00+02:00"), OffsetDateTime.parse("2026-05-11T00:00:00+02:00"));
 
-    private final Plant north = plant("ESNORTH0000000000000000F", 100.0);
-    private final Plant south = plant("ESSOUTH0000000000000000F", 50.5);
+    private final Plant north = plant("ESNORTH0000000000000000F", 100.0, 80.0);
+    private final Plant south = plant("ESSOUTH0000000000000000F", 50.5, 50.5);
 
     @Test
     @DisplayName("CEM-003 AC5 self-consumption 60 and surplus 40 give shares of 0.6 and 0.4")
@@ -76,6 +76,40 @@ class CommunityEnergyMetricsTest {
     }
 
     @Test
+    @DisplayName("CEM-003 AC10 peak and nominal power are each summed over every plant of the community")
+    void peakAndNominalPowerAreEachSummedOverEveryPlant() {
+        Plant a = plant("ESPLANTA000000000000000F", 80.0, 60.0);
+        Plant b = plant("ESPLANTB000000000000000F", 20.0, 20.0);
+
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 2, 2,
+                List.of(a, b), Map.of(code(a), 30d, code(b), 10d));
+
+        assertEquals(100.0, metrics.getPeakPowerKWp(), TOLERANCE);
+        assertEquals(80.0, metrics.getNominalPowerKW(), TOLERANCE);
+    }
+
+    @Test
+    @DisplayName("CEM-005 AC11 each plant reports its own peak and nominal power, also without production records")
+    void eachPlantReportsItsOwnPeakAndNominalPower() {
+        Plant a = plant("ESPLANTA000000000000000F", 80.0, 60.0);
+        Plant b = plant("ESPLANTB000000000000000F", 20.0, 20.0);
+
+        CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 2, 2,
+                List.of(a, b), Map.of(code(a), 30d));
+
+        CommunityPlantEnergy first = metrics.getPlants().get(0);
+        assertEquals(a.getId(), first.getPlant().id());
+        assertEquals(80.0, first.getPeakPowerKWp(), TOLERANCE);
+        assertEquals(60.0, first.getNominalPowerKW(), TOLERANCE);
+        CommunityPlantEnergy second = metrics.getPlants().get(1);
+        assertEquals(b.getId(), second.getPlant().id());
+        assertEquals(20.0, second.getPeakPowerKWp(), TOLERANCE);
+        assertEquals(20.0, second.getNominalPowerKW(), TOLERANCE);
+        assertNull(second.getProductionKWh());
+        assertNull(second.getProductionShare());
+    }
+
+    @Test
     @DisplayName("CEM-005 AC6 a plant without production records has null production and share, never 0")
     void aPlantWithoutRecordsHasNullProductionAndShare() {
         CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 1, 1,
@@ -108,7 +142,7 @@ class CommunityEnergyMetricsTest {
     }
 
     @Test
-    @DisplayName("CEM-001 AC2 without a period every figure is null and the plants keep their installed power")
+    @DisplayName("CEM-001 AC2 without a period every figure is null and the plants keep their peak and nominal power")
     void withoutAPeriodEveryFigureIsNull() {
         CommunityEnergyMetrics metrics = CommunityEnergyMetrics.withoutPeriod(3, List.of(north, south));
 
@@ -122,7 +156,9 @@ class CommunityEnergyMetricsTest {
         assertEquals(3, metrics.getSupplyCount());
         assertEquals(0, metrics.getSuppliesWithData());
         assertEquals(150.5, metrics.getPeakPowerKWp(), TOLERANCE);
+        assertEquals(130.5, metrics.getNominalPowerKW(), TOLERANCE);
         assertEquals(2, metrics.getPlants().size());
+        assertEquals(80.0, metrics.getPlants().get(0).getNominalPowerKW(), TOLERANCE);
         assertNull(metrics.getPlants().get(0).getProductionKWh());
     }
 
@@ -148,8 +184,9 @@ class CommunityEnergyMetricsTest {
         assertEquals(List.of(2024, 2025), metrics.getCo2AvoidedFactorYears());
     }
 
-    private static Plant plant(String code, double peakPowerKWp) {
-        return PlantMother.random(SupplyMother.random().withCode(code).build()).withPeakPowerKWp(peakPowerKWp).build();
+    private static Plant plant(String code, double peakPowerKWp, double nominalPowerKW) {
+        return PlantMother.random(SupplyMother.random().withCode(code).build()).withPeakPowerKWp(peakPowerKWp)
+                .withNominalPowerKW(nominalPowerKW).build();
     }
 
     private static String code(Plant plant) {

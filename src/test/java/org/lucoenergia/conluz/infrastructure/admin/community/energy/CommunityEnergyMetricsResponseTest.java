@@ -27,8 +27,10 @@ class CommunityEnergyMetricsResponseTest {
     private static final Instant H2 = Instant.parse("2026-05-10T09:00:00Z");
     private static final Instant H3 = Instant.parse("2026-05-10T10:00:00Z");
 
-    private final Plant north = PlantMother.random(SupplyMother.random().build()).withPeakPowerKWp(100.0).build();
-    private final Plant south = PlantMother.random(SupplyMother.random().build()).withPeakPowerKWp(50.0).build();
+    private final Plant north = PlantMother.random(SupplyMother.random().build()).withPeakPowerKWp(100.0)
+            .withNominalPowerKW(80.0).build();
+    private final Plant south = PlantMother.random(SupplyMother.random().build()).withPeakPowerKWp(50.0)
+            .withNominalPowerKW(40.0).build();
 
     @Test
     @DisplayName("EVL-001 every kWh figure is rounded to 3 decimals, and the shares are not rounded")
@@ -46,6 +48,7 @@ class CommunityEnergyMetricsResponseTest {
         assertEquals(2.0, response.getPlants().get(0).getProductionKWh());
         assertEquals(1.0, response.getPlants().get(0).getProductionShare());
         assertEquals(150.0, response.getPeakPowerKWp());
+        assertEquals(120.0, response.getNominalPowerKW());
         assertEquals(3, response.getCoverage().getSupplyCount());
         assertEquals(2, response.getCoverage().getSuppliesWithData());
         assertEquals(PERIOD.getStartDate(), response.getPeriod().getStartDate());
@@ -53,7 +56,7 @@ class CommunityEnergyMetricsResponseTest {
     }
 
     @Test
-    @DisplayName("CEM-005 a plant is referenced by its id and name, and a gap stays null")
+    @DisplayName("CEM-005 a plant is referenced by its id and name, with its peak and nominal power, and a gap stays null")
     void aPlantIsReferencedByItsIdAndNameAndAGapStaysNull() {
         CommunityEnergyMetrics metrics = CommunityEnergyMetrics.of(PERIOD, 1d, 1d, null, null, 1, 1,
                 List.of(north, south), Map.of(north.getSupply().getCode(), 3d));
@@ -63,6 +66,7 @@ class CommunityEnergyMetricsResponseTest {
         assertEquals(south.getId(), plant.getPlant().getId());
         assertEquals(south.getName(), plant.getPlant().getName());
         assertEquals(50.0, plant.getPeakPowerKWp());
+        assertEquals(40.0, plant.getNominalPowerKW());
         assertNull(plant.getProductionKWh());
         assertNull(plant.getProductionShare());
     }

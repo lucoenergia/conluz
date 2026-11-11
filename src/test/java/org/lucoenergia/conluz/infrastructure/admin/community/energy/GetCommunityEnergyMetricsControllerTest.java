@@ -12,6 +12,7 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.price.get.GetPriceRepository;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.infrastructure.admin.community.energy.CommunityEnergyTestFixture.EnergyCommunity;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.web.KWhJson;
@@ -127,6 +128,43 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
         KWhJson.assertKWh(body, "/energy/productionKWh", "50");
         KWhJson.assertKWh(body, "/plants/0/productionKWh", "40.25");
         KWhJson.assertKWh(body, "/plants/1/productionKWh", "9.75");
+    }
+
+    @Test
+    @DisplayName("CEM-003 AC10 the community peak and nominal power are each the sum over its plants")
+    void theCommunityPeakAndNominalPowerAreEachTheSumOverItsPlants() throws Exception {
+        UUID communityId = fixture.createEmptyCommunity().getId();
+        Plant a = fixture.createPlant(communityId, "A plant", 80.0, 60.0);
+        fixture.createPlant(communityId, "B plant", 20.0, 20.0);
+        fixture.writeProduction(a, TEN, 30f);
+
+        requestPeriod(communityId, loginUser(fixture.createMember(communityId)), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.peakPowerKWp").value(closeTo(100.0, TOLERANCE)))
+                .andExpect(jsonPath("$.nominalPowerKW").value(closeTo(80.0, TOLERANCE)));
+    }
+
+    @Test
+    @DisplayName("CEM-005 AC11 each plant reports its own peak and nominal power, also a plant without production "
+            + "records, whose production and share are null")
+    void eachPlantReportsItsOwnPeakAndNominalPower() throws Exception {
+        UUID communityId = fixture.createEmptyCommunity().getId();
+        Plant a = fixture.createPlant(communityId, "A plant", 80.0, 60.0);
+        Plant b = fixture.createPlant(communityId, "B plant", 20.0, 20.0);
+        fixture.writeProduction(a, TEN, 30f);
+
+        requestPeriod(communityId, loginUser(fixture.createMember(communityId)), DAY_START, DAY_END)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.plants.length()").value(2))
+                .andExpect(jsonPath("$.plants[0].plant.id").value(a.getId().toString()))
+                .andExpect(jsonPath("$.plants[0].peakPowerKWp").value(closeTo(80.0, TOLERANCE)))
+                .andExpect(jsonPath("$.plants[0].nominalPowerKW").value(closeTo(60.0, TOLERANCE)))
+                .andExpect(jsonPath("$.plants[0].productionKWh").value(closeTo(30.0, TOLERANCE)))
+                .andExpect(jsonPath("$.plants[1].plant.id").value(b.getId().toString()))
+                .andExpect(jsonPath("$.plants[1].peakPowerKWp").value(closeTo(20.0, TOLERANCE)))
+                .andExpect(jsonPath("$.plants[1].nominalPowerKW").value(closeTo(20.0, TOLERANCE)))
+                .andExpect(jsonPath("$.plants[1].productionKWh").value(nullValue()))
+                .andExpect(jsonPath("$.plants[1].productionShare").value(nullValue()));
     }
 
     @Test
@@ -404,6 +442,24 @@ class GetCommunityEnergyMetricsControllerTest extends BaseControllerTest {
                         .queryParam("startDate", DAY_START)
                         .queryParam("endDate", DAY_END))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("CEM-007 AC15 the metrics of a community with peak and nominal power are refused as before: "
+            + "401 anonymous, 403 platform admin without membership, 404 non-member")
+    void accessIsUnchangedWithPeakAndNominalPower() throws Exception {
+        UUID communityId = fixture.createEmptyCommunity().getId();
+        fixture.createPlant(communityId, "A plant", 80.0, 60.0);
+        fixture.createPlant(communityId, "B plant", 20.0, 20.0);
+
+        mockMvc.perform(get(PATH, communityId)
+                        .queryParam("startDate", DAY_START)
+                        .queryParam("endDate", DAY_END))
+                .andExpect(status().isUnauthorized());
+        requestPeriod(communityId, loginAsDefaultPlatformAdmin(), DAY_START, DAY_END)
+                .andExpect(status().isForbidden());
+        requestPeriod(communityId, loginAsPartner(), DAY_START, DAY_END)
+                .andExpect(status().isNotFound());
     }
 
     @Test
