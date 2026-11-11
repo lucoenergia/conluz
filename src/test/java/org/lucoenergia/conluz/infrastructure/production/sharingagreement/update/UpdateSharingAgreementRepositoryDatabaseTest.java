@@ -83,15 +83,15 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         return sharingAgreementRepository.save(agreement);
     }
 
-    private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal installedPowerKw) {
-        return anUpdate(name, notes, installedPowerKw, null);
+    private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal nominalPowerKW) {
+        return anUpdate(name, notes, nominalPowerKW, null);
     }
 
-    private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal installedPowerKw, UUID updatedBy) {
+    private UpdateSharingAgreement anUpdate(String name, String notes, BigDecimal nominalPowerKW, UUID updatedBy) {
         return new UpdateSharingAgreement.Builder()
                 .withName(name)
                 .withNotes(notes)
-                .withInstalledPowerKw(installedPowerKw)
+                .withNominalPowerKW(nominalPowerKW)
                 .withUpdatedBy(updatedBy)
                 .build();
     }
@@ -124,14 +124,14 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
 
         assertEquals("New name", result.getName());
         assertEquals("New notes", result.getNotes());
-        assertEquals(0, BigDecimal.valueOf(9.5).compareTo(result.getInstalledPowerKw()));
+        assertEquals(0, BigDecimal.valueOf(9.5).compareTo(result.getNominalPowerKW()));
         assertEquals(SharingAgreementStatus.DRAFT, result.getStatus());
         assertEquals(plant.getId(), result.getPlantId());
     }
 
     @ParameterizedTest
     @EnumSource(SharingAgreementStatus.class)
-    void update_changesInstalledPowerKw_regardlessOfStatus(SharingAgreementStatus status) {
+    void update_changesNominalPowerKW_regardlessOfStatus(SharingAgreementStatus status) {
         PlantEntity plant = persistPlant();
         SharingAgreementEntity entity = persistAgreement(plant, status);
         Instant originalCreatedAt = entity.getCreatedAt();
@@ -139,7 +139,7 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         SharingAgreement result = repository.update(plant.getId(), entity.getId(),
                 anUpdate("New name", "New notes", BigDecimal.valueOf(9.5)));
 
-        assertEquals(0, BigDecimal.valueOf(9.5).compareTo(result.getInstalledPowerKw()));
+        assertEquals(0, BigDecimal.valueOf(9.5).compareTo(result.getNominalPowerKW()));
         assertEquals(status, result.getStatus());
         assertEquals(plant.getId(), result.getPlantId());
         assertEquals(originalCreatedAt, result.getCreatedAt());

@@ -1077,17 +1077,17 @@
       },
       "CreateSharingAgreementBody" : {
         "properties" : {
-          "installedPowerKw" : {
-            "description" : "Snapshot of the plant's installed power at authoring time, in kW",
-            "example" : 12.5,
-            "exclusiveMinimum" : 0,
-            "type" : "number"
-          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
             "minLength" : 1,
             "type" : "string"
+          },
+          "nominalPowerKW" : {
+            "description" : "Snapshot of the plant's nominal power at authoring time, in kW.",
+            "example" : 12.5,
+            "exclusiveMinimum" : 0,
+            "type" : "number"
           },
           "notes" : {
             "description" : "Free-text notes about the agreement",
@@ -1096,8 +1096,8 @@
           }
         },
         "required" : [
-          "installedPowerKw",
-          "name"
+          "name",
+          "nominalPowerKW"
         ],
         "type" : "object"
       },
@@ -4616,15 +4616,15 @@
             "format" : "uuid",
             "type" : "string"
           },
-          "installedPowerKw" : {
-            "description" : "Snapshot of the plant's installed power at authoring time, in kW",
-            "example" : 12.5,
-            "type" : "number"
-          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
             "type" : "string"
+          },
+          "nominalPowerKW" : {
+            "description" : "Snapshot of the plant's nominal power at authoring time, in kW.",
+            "example" : 12.5,
+            "type" : "number"
           },
           "notes" : {
             "description" : "Free-text notes about the agreement",
@@ -4673,8 +4673,8 @@
           "createdBy",
           "file",
           "id",
-          "installedPowerKw",
           "name",
+          "nominalPowerKW",
           "notes",
           "plantId",
           "status",
@@ -5653,17 +5653,17 @@
       },
       "UpdateSharingAgreementBody" : {
         "properties" : {
-          "installedPowerKw" : {
-            "description" : "Snapshot of the plant's installed power at authoring time, in kW",
-            "example" : 12.5,
-            "exclusiveMinimum" : 0,
-            "type" : "number"
-          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
             "minLength" : 1,
             "type" : "string"
+          },
+          "nominalPowerKW" : {
+            "description" : "Snapshot of the plant's nominal power at authoring time, in kW.",
+            "example" : 12.5,
+            "exclusiveMinimum" : 0,
+            "type" : "number"
           },
           "notes" : {
             "description" : "Free-text notes about the agreement",
@@ -5672,8 +5672,8 @@
           }
         },
         "required" : [
-          "installedPowerKw",
-          "name"
+          "name",
+          "nominalPowerKW"
         ],
         "type" : "object"
       },
@@ -18130,7 +18130,7 @@
         ]
       },
       "post" : {
-        "description" : "This endpoint creates a new DRAFT sharing agreement under the given plant. The\nagreement's installed power is supplied by the caller as a snapshot of the plant's\ninstalled power at authoring time (the frontend pre-fills it from the plant's\ncurrent total power, but it may be edited before submission).\n\n**Required: Community Admin**\n\nReturns 404 if the plant does not exist or the caller is not a member of its\ncommunity, to avoid leaking the plant's existence.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint creates a new DRAFT sharing agreement under the given plant. The\nagreement's nominal power is supplied by the caller as a snapshot of the plant's\nnominal power at authoring time (the frontend pre-fills it from the plant's\ncurrent nominal power, but it may be edited before submission).\n\n**Required: Community Admin**\n\nReturns 404 if the plant does not exist or the caller is not a member of its\ncommunity, to avoid leaking the plant's existence.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "createSharingAgreement",
         "parameters" : [
           {
@@ -18545,7 +18545,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint replaces the name, notes and installed power of a sharing agreement,\nregardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be\nedited this way. All three fields must be provided; this is a full replacement of\nthe updatable fields, not a partial update. Its status, plant and creation metadata\ncan never be changed through this endpoint. The acting user and the time of the\nedit are recorded as updatedBy/updatedAt on the returned agreement.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint replaces the name, notes and nominal power of a sharing agreement,\nregardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be\nedited this way. All three fields must be provided; this is a full replacement of\nthe updatable fields, not a partial update. Its status, plant and creation metadata\ncan never be changed through this endpoint. The acting user and the time of the\nedit are recorded as updatedBy/updatedAt on the returned agreement.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "updateSharingAgreement",
         "parameters" : [
           {
@@ -18683,7 +18683,7 @@
             "bearerToken" : [ ]
           }
         ],
-        "summary" : "Replaces a sharing agreement's name, notes and installed power",
+        "summary" : "Replaces a sharing agreement's name, notes and nominal power",
         "tags" : [
           "Sharing agreements"
         ]

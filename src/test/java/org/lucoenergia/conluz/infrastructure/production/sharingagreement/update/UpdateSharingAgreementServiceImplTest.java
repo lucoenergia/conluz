@@ -33,7 +33,7 @@ class UpdateSharingAgreementServiceImplTest {
         return new UpdateSharingAgreement.Builder()
                 .withName("name")
                 .withNotes("notes")
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withUpdatedBy(UUID.randomUUID())
                 .build();
     }

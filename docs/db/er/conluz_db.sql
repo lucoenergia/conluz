@@ -526,7 +526,7 @@ CREATE TABLE public.sharing_agreement (
                                           name text NOT NULL,
                                           notes text,
                                           status text NOT NULL,
-                                          installed_power_kw numeric,
+                                          nominal_power_kw numeric,
                                           created_at timestamp with time zone NOT NULL,
                                           created_by uuid,
                                           updated_at timestamp with time zone,
@@ -571,10 +571,10 @@ COMMENT ON COLUMN public.sharing_agreement.status IS 'DRAFT, PUBLISHED or SUPERS
 
 
 --
--- Name: COLUMN sharing_agreement.installed_power_kw; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN sharing_agreement.nominal_power_kw; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.sharing_agreement.installed_power_kw IS 'A deliberate snapshot of the plant''s installed power at authoring time, not a join to plants.total_power: the plant''s installed power today is not the power the agreement was authored against.';
+COMMENT ON COLUMN public.sharing_agreement.nominal_power_kw IS 'A snapshot of the plant''s nominal power at authoring time, in kW, recorded with the agreement and not read from the plant.';
 
 
 --

@@ -244,7 +244,7 @@ class DeleteSupplyServiceIntegrationTest extends BaseSupplyCreationRaceTest {
     private SharingAgreement newDraftAgreement(Plant plant, User author) {
         return createSharingAgreementService.create(plant.getId(), new CreateSharingAgreement.Builder()
                 .withName("Agreement " + UUID.randomUUID())
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedBy(author.getId())
                 .build());
     }

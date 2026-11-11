@@ -148,7 +148,7 @@ class DeletePlantServiceIntegrationTest extends BaseSupplyCreationRaceTest {
     private static CreateSharingAgreement agreementRequest() {
         return new CreateSharingAgreement.Builder()
                 .withName("Agreement " + UUID.randomUUID())
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .build();
     }
 
@@ -174,7 +174,7 @@ class DeletePlantServiceIntegrationTest extends BaseSupplyCreationRaceTest {
                 .withPlantId(plant.getId())
                 .withName("Agreement " + UUID.randomUUID())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(Instant.now())
                 .build());
     }

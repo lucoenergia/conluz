@@ -97,7 +97,7 @@ class OpenInViewDisabledReadPathsControllerTest extends BaseControllerTest {
         plant = createPlantService.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
         agreement = createSharingAgreementService.create(plant.getId(), new CreateSharingAgreement.Builder()
                 .withName("Agreement " + UUID.randomUUID())
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedBy(communityAdmin.getId())
                 .build());
         materializeService.replaceAllBySupplyId(plant.getId(), agreement.getId(),

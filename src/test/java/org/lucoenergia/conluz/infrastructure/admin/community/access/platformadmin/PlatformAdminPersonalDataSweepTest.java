@@ -103,7 +103,7 @@ class PlatformAdminPersonalDataSweepTest extends BaseRegisterMemberTest {
                 .withPlantId(plant.getId())
                 .withName("Agreement " + UUID.randomUUID())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(admin.getId())
                 .build());

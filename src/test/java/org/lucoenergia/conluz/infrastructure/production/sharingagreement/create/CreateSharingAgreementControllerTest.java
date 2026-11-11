@@ -71,7 +71,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\",\"installedPowerKw\":12.5}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"nominalPowerKW\":12.5}"))
                 .andDo(print())
                 .andExpect(status().isForbidden());
     }
@@ -84,7 +84,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\",\"installedPowerKw\":12.5}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"nominalPowerKW\":12.5}"))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
@@ -106,25 +106,25 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
         // Deliberately different from plantA's peakPowerKWp, to prove the stored value comes
         // from the request body and not from a server-side snapshot of the plant.
-        BigDecimal installedPowerKw = BigDecimal.valueOf(plantA.getPeakPowerKWp()).add(BigDecimal.ONE);
+        BigDecimal nominalPowerKW = BigDecimal.valueOf(plantA.getPeakPowerKWp()).add(BigDecimal.ONE);
 
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\",\"notes\":\"initial\",\"installedPowerKw\":" + installedPowerKw + "}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"notes\":\"initial\",\"nominalPowerKW\":" + nominalPowerKW + "}"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.plantId").value(plantA.getId().toString()))
                 .andExpect(jsonPath("$.name").value("2024 winter distribution"))
                 .andExpect(jsonPath("$.notes").value("initial"))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
-                .andExpect(jsonPath("$.installedPowerKw").value(installedPowerKw.doubleValue()))
+                .andExpect(jsonPath("$.nominalPowerKW").value(nominalPowerKW.doubleValue()))
                 .andExpect(jsonPath("$.createdBy").isNotEmpty())
                 .andExpect(jsonPath("$.file").value(nullValue()));
     }
 
     @Test
-    void returnsBadRequestWhenInstalledPowerKwIsMissing() throws Exception {
+    void returnsBadRequestWhenNominalPowerKWIsMissing() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(post(url(plantA.getId()))
@@ -137,13 +137,13 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1"})
-    void returnsBadRequestWhenInstalledPowerKwIsNotPositive(String installedPowerKw) throws Exception {
+    void returnsBadRequestWhenNominalPowerKWIsNotPositive(String nominalPowerKW) throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(post(url(plantA.getId()))
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"2024 winter distribution\",\"installedPowerKw\":" + installedPowerKw + "}"))
+                        .content("{\"name\":\"2024 winter distribution\",\"nominalPowerKW\":" + nominalPowerKW + "}"))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }

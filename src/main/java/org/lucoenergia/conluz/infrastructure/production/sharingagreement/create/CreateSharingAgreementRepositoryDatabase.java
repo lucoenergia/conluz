@@ -39,7 +39,7 @@ public class CreateSharingAgreementRepositoryDatabase implements CreateSharingAg
         entity.setName(agreement.getName());
         entity.setNotes(agreement.getNotes());
         entity.setStatus(agreement.getStatus());
-        entity.setInstalledPowerKw(agreement.getInstalledPowerKw());
+        entity.setNominalPowerKW(agreement.getNominalPowerKW());
         entity.setCreatedAt(agreement.getCreatedAt());
         entity.setCreatedBy(agreement.getCreatedBy());
 

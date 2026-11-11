@@ -26,8 +26,8 @@ public class SharingAgreementEntity {
     private String notes;
     @Enumerated(EnumType.STRING)
     private SharingAgreementStatus status;
-    @Column(name = "installed_power_kw")
-    private BigDecimal installedPowerKw;
+    @Column(name = "nominal_power_kw")
+    private BigDecimal nominalPowerKW;
     @Column(name = "created_at")
     private Instant createdAt;
     /**
@@ -88,12 +88,12 @@ public class SharingAgreementEntity {
         this.status = status;
     }
 
-    public BigDecimal getInstalledPowerKw() {
-        return installedPowerKw;
+    public BigDecimal getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
-    public void setInstalledPowerKw(BigDecimal installedPowerKw) {
-        this.installedPowerKw = installedPowerKw;
+    public void setNominalPowerKW(BigDecimal nominalPowerKW) {
+        this.nominalPowerKW = nominalPowerKW;
     }
 
     public Instant getCreatedAt() {

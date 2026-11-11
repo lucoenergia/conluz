@@ -143,7 +143,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void returnsBadRequestWhenInstalledPowerKwIsMissing() throws Exception {
+    void returnsBadRequestWhenNominalPowerKWIsMissing() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
@@ -167,12 +167,12 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("New name"))
-                .andExpect(jsonPath("$.installedPowerKw").value(5.5))
+                .andExpect(jsonPath("$.nominalPowerKW").value(5.5))
                 .andExpect(jsonPath("$.status").value(status.name()));
 
         SharingAgreementEntity persisted = sharingAgreementRepository.findById(agreement.getId()).orElseThrow();
         assertEquals(status, persisted.getStatus());
-        assertEquals(0, BigDecimal.valueOf(5.5).compareTo(persisted.getInstalledPowerKw()));
+        assertEquals(0, BigDecimal.valueOf(5.5).compareTo(persisted.getNominalPowerKW()));
     }
 
     @Test
@@ -190,7 +190,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.id").value(draftAgreement.getId().toString()))
                 .andExpect(jsonPath("$.plantId").value(plantA.getId().toString()))
                 .andExpect(jsonPath("$.name").value("Updated name"))
-                .andExpect(jsonPath("$.installedPowerKw").value(9.75))
+                .andExpect(jsonPath("$.nominalPowerKW").value(9.75))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andExpect(jsonPath("$.updatedBy").exists())
@@ -313,8 +313,8 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .build());
     }
 
-    private String body(String name, String installedPowerKw) {
-        return "{\"name\":\"" + name + "\",\"installedPowerKw\":" + installedPowerKw + "}";
+    private String body(String name, String nominalPowerKW) {
+        return "{\"name\":\"" + name + "\",\"nominalPowerKW\":" + nominalPowerKW + "}";
     }
 
     private String url(UUID plantId, UUID agreementId) {
