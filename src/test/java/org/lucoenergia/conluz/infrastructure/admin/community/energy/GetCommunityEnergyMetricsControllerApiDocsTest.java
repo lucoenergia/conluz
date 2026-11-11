@@ -37,11 +37,11 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
     @Test
     void documentsEveryFieldOfEverySchemaAsRequired() throws Exception {
         Map<String, List<String>> expected = Map.of(
-                RESPONSE, List.of("period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-                        "coverage", "plants", "surplusIncome", "co2Avoided"),
+                RESPONSE, List.of("period", "energy", "selfConsumptionRatio", "surplusRatio", "peakPowerKWp",
+                        "nominalPowerKW", "coverage", "plants", "surplusIncome", "co2Avoided"),
                 ENERGY, List.of("productionKWh", "selfConsumptionKWh", "surplusKWh"),
                 COVERAGE, List.of("supplyCount", "suppliesWithData"),
-                PLANT, List.of("plant", "installedPowerKWp", "productionKWh", "productionShare"),
+                PLANT, List.of("plant", "peakPowerKWp", "nominalPowerKW", "productionKWh", "productionShare"),
                 SURPLUS_INCOME, List.of("amountEur", "unpricedSurplusKWh"),
                 CO2_AVOIDED, List.of("amountKg", "factorYears"));
 
@@ -67,8 +67,10 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
         }
         assertNullableWithBaseType(PLANT, "productionKWh", "number");
         assertNullableWithBaseType(PLANT, "productionShare", "number");
-        assertNotNullable(RESPONSE, "installedPowerKWp");
-        assertNotNullable(PLANT, "installedPowerKWp");
+        assertNotNullable(RESPONSE, "peakPowerKWp");
+        assertNotNullable(PLANT, "peakPowerKWp");
+        assertNotNullable(RESPONSE, "nominalPowerKW");
+        assertNotNullable(PLANT, "nominalPowerKW");
         assertNotNullable(COVERAGE, "supplyCount");
         assertNotNullable(COVERAGE, "suppliesWithData");
     }
@@ -155,9 +157,12 @@ class GetCommunityEnergyMetricsControllerApiDocsTest extends BaseControllerTest 
             assertTrue(description(ENERGY, field).contains("In kWh"), () -> ENERGY + "." + field);
         }
         assertTrue(description(PLANT, "productionKWh").contains("In kWh"));
-        assertTrue(description(PLANT, "installedPowerKWp").contains("kWp"));
-        assertTrue(description(RESPONSE, "installedPowerKWp").contains("kWp"));
+        assertTrue(description(PLANT, "peakPowerKWp").contains("kWp"));
+        assertTrue(description(RESPONSE, "peakPowerKWp").contains("kWp"));
         assertTrue(description("PlantResponse", "peakPowerKWp").contains("kWp"));
+        assertTrue(description(PLANT, "nominalPowerKW").contains("in kW"));
+        assertTrue(description(RESPONSE, "nominalPowerKW").contains("in kW"));
+        assertTrue(description("PlantResponse", "nominalPowerKW").contains("in kW"));
     }
 
     @Test

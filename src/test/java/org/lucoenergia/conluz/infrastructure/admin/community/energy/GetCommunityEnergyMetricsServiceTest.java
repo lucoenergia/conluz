@@ -125,7 +125,7 @@ class GetCommunityEnergyMetricsServiceTest {
         CommunityEnergyMetrics metrics = getSeptember();
 
         assertEquals(42d, metrics.getProductionKWh(), 1e-12);
-        assertEquals(100d, metrics.getInstalledPowerKWp(), 1e-12);
+        assertEquals(100d, metrics.getPeakPowerKWp(), 1e-12);
     }
 
     @Test

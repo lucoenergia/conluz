@@ -6,8 +6,8 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.consumption.SupplyEner
 
 import java.util.List;
 
-@Schema(requiredProperties = {"period", "energy", "selfConsumptionRatio", "surplusRatio", "installedPowerKWp",
-        "surplusIncome", "co2Avoided", "coverage", "plants"})
+@Schema(requiredProperties = {"period", "energy", "selfConsumptionRatio", "surplusRatio", "peakPowerKWp",
+        "nominalPowerKW", "surplusIncome", "co2Avoided", "coverage", "plants"})
 public class CommunityEnergyMetricsResponse {
 
     @Schema(description = "The period the metrics were computed over, the same for every supply and plant.")
@@ -27,8 +27,11 @@ public class CommunityEnergyMetricsResponse {
             "unknown.",
             example = "0.18", types = {"number", "null"})
     private final Double surplusRatio;
-    @Schema(description = "Installed power of every plant of the community, summed, in kWp.", example = "200.0")
-    private final double installedPowerKWp;
+    @Schema(description = "Peak power of every plant of the community, summed, in kWp.", example = "200.0")
+    private final double peakPowerKWp;
+    @Schema(description = "Power every plant of the community can export to the grid, summed, in kW.",
+            example = "160.0")
+    private final double nominalPowerKW;
     @Schema(description = "An estimate of what the community's surplus earned at OMIE day-ahead prices " +
             "over the period, and the surplus that could not be priced. Computed over exactly the surplus " +
             "reported in energy.surplusKWh.")
@@ -48,7 +51,8 @@ public class CommunityEnergyMetricsResponse {
         this.energy = new CommunityEnergyMetricsEnergyResponse(metrics);
         this.selfConsumptionRatio = metrics.getSelfConsumptionRatio();
         this.surplusRatio = metrics.getSurplusRatio();
-        this.installedPowerKWp = metrics.getInstalledPowerKWp();
+        this.peakPowerKWp = metrics.getPeakPowerKWp();
+        this.nominalPowerKW = metrics.getNominalPowerKW();
         this.surplusIncome = new CommunityEnergyMetricsSurplusIncomeResponse(metrics);
         this.co2Avoided = new CommunityEnergyMetricsCo2AvoidedResponse(metrics);
         this.coverage = new CommunityEnergyMetricsCoverageResponse(metrics.getSupplyCount(),
@@ -72,8 +76,12 @@ public class CommunityEnergyMetricsResponse {
         return surplusRatio;
     }
 
-    public double getInstalledPowerKWp() {
-        return installedPowerKWp;
+    public double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    public double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public CommunityEnergyMetricsSurplusIncomeResponse getSurplusIncome() {

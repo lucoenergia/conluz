@@ -65,11 +65,11 @@ class CommunityEnergyMetricsTest {
                 List.of(north, south), Map.of(code(north), 30d, code(south), 10d));
 
         assertEquals(40d, metrics.getProductionKWh(), TOLERANCE);
-        assertEquals(150.5, metrics.getInstalledPowerKWp(), TOLERANCE);
+        assertEquals(150.5, metrics.getPeakPowerKWp(), TOLERANCE);
         CommunityPlantEnergy first = metrics.getPlants().get(0);
         assertEquals(north.getId(), first.getPlant().id());
         assertEquals(north.getName(), first.getPlant().name());
-        assertEquals(100.0, first.getInstalledPowerKWp(), TOLERANCE);
+        assertEquals(100.0, first.getPeakPowerKWp(), TOLERANCE);
         assertEquals(30d, first.getProductionKWh(), TOLERANCE);
         assertEquals(0.75, first.getProductionShare(), TOLERANCE);
         assertEquals(0.25, metrics.getPlants().get(1).getProductionShare(), TOLERANCE);
@@ -121,7 +121,7 @@ class CommunityEnergyMetricsTest {
         assertNull(metrics.getSurplusRatio());
         assertEquals(3, metrics.getSupplyCount());
         assertEquals(0, metrics.getSuppliesWithData());
-        assertEquals(150.5, metrics.getInstalledPowerKWp(), TOLERANCE);
+        assertEquals(150.5, metrics.getPeakPowerKWp(), TOLERANCE);
         assertEquals(2, metrics.getPlants().size());
         assertNull(metrics.getPlants().get(0).getProductionKWh());
     }

@@ -45,7 +45,7 @@ class CommunityEnergyMetricsResponseTest {
         assertEquals(metrics.getSurplusRatio(), response.getSurplusRatio());
         assertEquals(2.0, response.getPlants().get(0).getProductionKWh());
         assertEquals(1.0, response.getPlants().get(0).getProductionShare());
-        assertEquals(150.0, response.getInstalledPowerKWp());
+        assertEquals(150.0, response.getPeakPowerKWp());
         assertEquals(3, response.getCoverage().getSupplyCount());
         assertEquals(2, response.getCoverage().getSuppliesWithData());
         assertEquals(PERIOD.getStartDate(), response.getPeriod().getStartDate());
@@ -62,7 +62,7 @@ class CommunityEnergyMetricsResponseTest {
 
         assertEquals(south.getId(), plant.getPlant().getId());
         assertEquals(south.getName(), plant.getPlant().getName());
-        assertEquals(50.0, plant.getInstalledPowerKWp());
+        assertEquals(50.0, plant.getPeakPowerKWp());
         assertNull(plant.getProductionKWh());
         assertNull(plant.getProductionShare());
     }

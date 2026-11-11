@@ -13,7 +13,8 @@ import java.util.Objects;
 /**
  * The energy figures of a community over one period: its plants' production, the self-consumption
  * and surplus of every supply in scope, summed, the shares derived from them, the estimated income of
- * that surplus, the CO₂ the production avoided, the installed power and how many supplies have data.
+ * that surplus, the CO₂ the production avoided, the peak and nominal power and how many supplies
+ * have data.
  *
  * <p>Every figure is kept unrounded; the shares are computed here once, from the unrounded sums, and
  * rounding is left to the response. A figure nothing was stored for is null rather than zero.
@@ -28,7 +29,8 @@ public class CommunityEnergyMetrics {
     private final int supplyCount;
     private final int suppliesWithData;
     private final List<CommunityPlantEnergy> plants;
-    private final double installedPowerKWp;
+    private final double peakPowerKWp;
+    private final double nominalPowerKW;
     private final SurplusIncome surplusIncome;
     private final AvoidedEmissions avoidedEmissions;
 
@@ -54,10 +56,12 @@ public class CommunityEnergyMetrics {
                 .map(plant -> {
                     Double production = productionBySupplyCode.get(plant.getSupply().getCode());
                     return new CommunityPlantEnergy(new PlantReference(plant.getId(), plant.getName()),
-                            plant.getPeakPowerKWp(), production, share(production, productionKWh));
+                            plant.getPeakPowerKWp(), plant.getNominalPowerKW(), production,
+                            share(production, productionKWh));
                 })
                 .toList();
-        this.installedPowerKWp = plants.stream().mapToDouble(Plant::getPeakPowerKWp).sum();
+        this.peakPowerKWp = plants.stream().mapToDouble(Plant::getPeakPowerKWp).sum();
+        this.nominalPowerKW = plants.stream().mapToDouble(Plant::getNominalPowerKW).sum();
     }
 
     /**
@@ -90,7 +94,7 @@ public class CommunityEnergyMetrics {
 
     /**
      * The metrics when no period could be resolved: null bounds, no figure, no supply with data, and
-     * every plant listed with its installed power alone.
+     * every plant listed with its peak and nominal power alone.
      */
     public static CommunityEnergyMetrics withoutPeriod(int supplyCount, List<Plant> plants) {
         return new CommunityEnergyMetrics(null, null, null, null, null, null, supplyCount, 0, plants, Map.of());
@@ -192,10 +196,17 @@ public class CommunityEnergyMetrics {
     }
 
     /**
-     * The installed power of every plant of the community, summed, in kWp.
+     * The peak power of every plant of the community, summed, in kWp.
      */
-    public double getInstalledPowerKWp() {
-        return installedPowerKWp;
+    public double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    /**
+     * The nominal power of every plant of the community, summed, in kW.
+     */
+    public double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public int getSupplyCount() {

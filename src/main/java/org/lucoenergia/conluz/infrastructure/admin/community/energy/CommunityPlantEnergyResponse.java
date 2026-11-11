@@ -7,13 +7,16 @@ import org.lucoenergia.conluz.infrastructure.shared.web.reference.PlantReference
 /**
  * One plant of the community over the period of the energy metrics.
  */
-@Schema(requiredProperties = {"plant", "installedPowerKWp", "productionKWh", "productionShare"})
+@Schema(requiredProperties = {"plant", "peakPowerKWp", "nominalPowerKW", "productionKWh", "productionShare"})
 public class CommunityPlantEnergyResponse {
 
     @Schema(description = "The plant.")
     private final PlantReferenceResponse plant;
-    @Schema(description = "Installed power of the plant, in kWp.", example = "100.0")
-    private final double installedPowerKWp;
+    @Schema(description = "Peak power of the plant's modules, in kWp.", example = "100.0")
+    private final double peakPowerKWp;
+    @Schema(description = "Power the plant can export to the grid, in kW, as capped by its inverters " +
+            "and grid connection.", example = "80.0")
+    private final double nominalPowerKW;
     @Schema(description = "Energy the plant exported to the grid at its connection point over the period, " +
             "as measured by the distributor for the plant's own supply (net of the plant's own consumption). " +
             "In kWh, rounded to 3 decimals. Null when the plant stored no production record in the period, " +
@@ -28,7 +31,8 @@ public class CommunityPlantEnergyResponse {
 
     public CommunityPlantEnergyResponse(CommunityPlantEnergy plantEnergy) {
         this.plant = new PlantReferenceResponse(plantEnergy.getPlant().id(), plantEnergy.getPlant().name());
-        this.installedPowerKWp = plantEnergy.getInstalledPowerKWp();
+        this.peakPowerKWp = plantEnergy.getPeakPowerKWp();
+        this.nominalPowerKW = plantEnergy.getNominalPowerKW();
         this.productionKWh = CommunityEnergyMetricsEnergyResponse.round(plantEnergy.getProductionKWh());
         this.productionShare = plantEnergy.getProductionShare();
     }
@@ -37,8 +41,12 @@ public class CommunityPlantEnergyResponse {
         return plant;
     }
 
-    public double getInstalledPowerKWp() {
-        return installedPowerKWp;
+    public double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    public double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public Double getProductionKWh() {
