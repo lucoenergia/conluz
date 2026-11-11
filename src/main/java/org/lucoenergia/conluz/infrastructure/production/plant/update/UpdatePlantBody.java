@@ -24,6 +24,11 @@ public class UpdatePlantBody {
             "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
             "not a CUPS.")
     private String regulatoryCode;
+    @Schema(description = "The CIL (Codigo de la Instalacion de produccion a efectos de " +
+            "Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. " +
+            "25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique " +
+            "across the platform. Omitted, empty or blank means no CIL: the plant's CIL is cleared.")
+    private String cil;
     @NotBlank
     private String name;
     private String description;
@@ -58,6 +63,14 @@ public class UpdatePlantBody {
 
     public void setRegulatoryCode(String regulatoryCode) {
         this.regulatoryCode = regulatoryCode;
+    }
+
+    public String getCil() {
+        return cil;
+    }
+
+    public void setCil(String cil) {
+        this.cil = cil;
     }
 
     public String getName() {
@@ -129,6 +142,7 @@ public class UpdatePlantBody {
         builder.withId(uuid)
                 .withProviderCode(providerCode)
                 .withRegulatoryCode(regulatoryCode)
+                .withCil(cil)
                 .withName(name)
                 .withDescription(description)
                 .withInverterProvider(inverterProvider)

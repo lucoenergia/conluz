@@ -31,6 +31,11 @@ public class Plant {
      * It is not the provider's station code ({@code provider_code}) and not a CUPS.
      */
     private String regulatoryCode;
+    /**
+     * The CIL (Código de la Instalación de producción a efectos de Liquidación): the settlement code of the
+     * installation assigned by the distribution company. Null when the plant has none recorded. See {@link PlantCil}.
+     */
+    private String cil;
     @NotBlank
     private String address;
     @NotBlank
@@ -65,6 +70,19 @@ public class Plant {
 
     public String getRegulatoryCode() {
         return regulatoryCode;
+    }
+
+    public String getCil() {
+        return cil;
+    }
+
+    /**
+     * Replaces the CIL with its normalised form (PLT-004).
+     *
+     * @throws PlantCilInvalidException when the CIL, once normalised, is not one
+     */
+    public void normaliseCil() {
+        cil = PlantCil.normalise(cil);
     }
 
     public String getAddress() {
@@ -112,6 +130,7 @@ public class Plant {
         private String name;
         private String providerCode;
         private String regulatoryCode;
+        private String cil;
         private String address;
         private String description;
         private InverterProvider inverterProvider;
@@ -137,6 +156,11 @@ public class Plant {
 
         public Builder withRegulatoryCode(String regulatoryCode) {
             this.regulatoryCode = regulatoryCode;
+            return this;
+        }
+
+        public Builder withCil(String cil) {
+            this.cil = cil;
             return this;
         }
 
@@ -181,6 +205,7 @@ public class Plant {
             station.name = this.name;
             station.providerCode = this.providerCode;
             station.regulatoryCode = this.regulatoryCode;
+            station.cil = this.cil;
             station.address = this.address;
             station.description = this.description;
             station.inverterProvider = this.inverterProvider;

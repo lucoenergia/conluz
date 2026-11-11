@@ -1021,6 +1021,10 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "cil" : {
+            "description" : "The CIL (Codigo de la Instalacion de produccion a efectos de Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. 25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique across the platform. Omitted, empty or blank means no CIL.",
+            "type" : "string"
+          },
           "connectionDate" : {
             "format" : "date",
             "type" : "string"
@@ -1598,6 +1602,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -1830,6 +1836,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -3562,6 +3570,13 @@
             "$ref" : "#/components/schemas/PlantCapabilitiesResponse",
             "description" : "What the caller may do with this plant."
           },
+          "cil" : {
+            "description" : "The CIL (Codigo de la Instalacion de produccion a efectos de Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. 25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique across the platform. Null when the plant has none recorded.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "community" : {
             "$ref" : "#/components/schemas/PlantCommunityResponse",
             "description" : "The community that owns the plant."
@@ -3623,6 +3638,7 @@
         "required" : [
           "address",
           "capabilities",
+          "cil",
           "community",
           "connectionDate",
           "description",
@@ -4103,6 +4119,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -4282,6 +4300,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -5580,6 +5600,10 @@
         "properties" : {
           "address" : {
             "minLength" : 1,
+            "type" : "string"
+          },
+          "cil" : {
+            "description" : "The CIL (Codigo de la Instalacion de produccion a efectos de Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. 25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique across the platform. Omitted, empty or blank means no CIL: the plant's CIL is cleared.",
             "type" : "string"
           },
           "connectionDate" : {
@@ -16024,7 +16048,7 @@
     },
     "/api/v1/plants" : {
       "post" : {
-        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
+        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nThe CIL is optional. It is upper-cased and stripped of all whitespace, and empty after that means\nno CIL. A CIL that is not then exactly 25 ASCII alphanumeric characters is answered 400 with\n`PLANT_CIL_INVALID`. A CIL identifies at most one plant across the platform: a CIL another plant\nholds is answered 409 with `PLANT_CIL_ALREADY_IN_USE`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
         "operationId" : "createPlant",
         "requestBody" : {
           "content" : {
@@ -16114,6 +16138,22 @@
             "content" : {
               "application/json" : {
                 "examples" : {
+                  "CIL already in use" : {
+                    "description" : "CIL already in use",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLANT_CIL_ALREADY_IN_USE",
+                          "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                          "params" : { }
+                        }
+                      ],
+                      "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
                   "Supply already has a plant" : {
                     "description" : "Supply already has a plant",
                     "value" : {
@@ -16138,7 +16178,7 @@
                 }
               }
             },
-            "description" : "The supply is already the supply of another plant. Nothing is written."
+            "description" : "The supply is already the supply of another plant, or another plant holds the CIL. Nothing is written."
           },
           "500" : {
             "content" : {
@@ -16458,7 +16498,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n",
+        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n\nThe CIL is replaced like every other field, so omitting it clears it. It is upper-cased and stripped\nof all whitespace, and empty after that means no CIL. A CIL that is not then exactly 25 ASCII\nalphanumeric characters is answered 400 with `PLANT_CIL_INVALID`. A CIL identifies at most one\nplant across the platform: a CIL another plant holds is answered 409 with\n`PLANT_CIL_ALREADY_IN_USE`, and nothing is updated; keeping the plant's own CIL is not a conflict.\n",
         "operationId" : "updatePlant",
         "parameters" : [
           {
@@ -16572,6 +16612,22 @@
             "content" : {
               "application/json" : {
                 "examples" : {
+                  "CIL already in use" : {
+                    "description" : "CIL already in use",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLANT_CIL_ALREADY_IN_USE",
+                          "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                          "params" : { }
+                        }
+                      ],
+                      "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
                   "Supply already has a plant" : {
                     "description" : "Supply already has a plant",
                     "value" : {
@@ -16596,7 +16652,7 @@
                 }
               }
             },
-            "description" : "The supply is already the supply of another plant. Nothing is written."
+            "description" : "The supply is already the supply of another plant, or another plant holds the CIL. Nothing is written."
           },
           "500" : {
             "content" : {

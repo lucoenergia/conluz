@@ -163,6 +163,7 @@ Table "plants" {
   "supply_id" uuid [unique, not null]
   "regulatory_code" text [unique, note: '''The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider\'s station code (provider_code) and not a CUPS.''']
   "nominal_power_kw" doubleprecision [not null, note: 'Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.']
+  "cil" "character varying(25)" [unique, note: 'The CIL of the plant: the settlement code of the production installation assigned by the distribution company, 25 alphanumeric characters, upper-cased and without whitespace.']
 }
 
 Table "sharing_agreement" {

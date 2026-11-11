@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- The CIL of a plant (#567): the Spanish settlement code of a production installation,
+         assigned by the distribution company and needed to claim surplus compensation. The plant
+         writers store it upper-cased and without whitespace, so the unique constraint compares
+         normalised values. A CIL identifies at most one plant: the writers refuse a second one
+         before writing, and the constraint is the backstop for two writers racing each other.
+         NULL means the plant has no CIL recorded, as every existing plant does after this
+         changeset; NULLs do not conflict with each other. -->
+    <changeSet id="add_cil_to_plants" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add plants.cil: the plants table is missing, the column already exists, or plants_cil_uq already exists. Nothing was changed.">
+            <tableExists tableName="plants"/>
+            <not>
+                <columnExists tableName="plants" columnName="cil"/>
+            </not>
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_constraint WHERE conname = 'plants_cil_uq'
+            </sqlCheck>
+        </preConditions>
+        <addColumn tableName="plants">
+            <column name="cil" type="VARCHAR(25)"
+                    remarks="The CIL of the plant: the settlement code of the production installation assigned by the distribution company, 25 alphanumeric characters, upper-cased and without whitespace."/>
+        </addColumn>
+        <addUniqueConstraint tableName="plants"
+                             columnNames="cil"
+                             constraintName="plants_cil_uq"/>
+        <rollback>
+            <dropUniqueConstraint tableName="plants" constraintName="plants_cil_uq"/>
+            <dropColumn tableName="plants" columnName="cil"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

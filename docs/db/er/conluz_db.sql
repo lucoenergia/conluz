@@ -410,7 +410,8 @@ CREATE TABLE public.plants (
                                connection_date date,
                                supply_id uuid NOT NULL,
                                regulatory_code text,
-                               nominal_power_kw double precision NOT NULL
+                               nominal_power_kw double precision NOT NULL,
+                               cil character varying(25)
 );
 
 
@@ -433,6 +434,13 @@ COMMENT ON COLUMN public.plants.regulatory_code IS 'The identifier assigned by t
 --
 
 COMMENT ON COLUMN public.plants.nominal_power_kw IS 'Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.';
+
+
+--
+-- Name: COLUMN plants.cil; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.plants.cil IS 'The CIL of the plant: the settlement code of the production installation assigned by the distribution company, 25 alphanumeric characters, upper-cased and without whitespace.';
 
 
 --
@@ -929,6 +937,14 @@ ALTER TABLE ONLY public.one_time_token
 
 ALTER TABLE ONLY public.one_time_token
     ADD CONSTRAINT one_time_token_token_hash_uq UNIQUE (token_hash);
+
+
+--
+-- Name: plants plants_cil_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.plants
+    ADD CONSTRAINT plants_cil_uq UNIQUE (cil);
 
 
 --

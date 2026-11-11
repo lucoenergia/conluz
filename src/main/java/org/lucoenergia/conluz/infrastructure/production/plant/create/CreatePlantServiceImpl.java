@@ -32,14 +32,17 @@ public class CreatePlantServiceImpl implements CreatePlantService {
     }
 
     /**
-     * The supply is locked against deletion before the plant is written (SUP-001): a deletion in progress is waited
-     * for, and then the supply is not found, instead of the plant failing on its foreign key.
+     * The CIL is normalised before anything is read (PLT-004). The supply is locked against deletion before the plant
+     * is written (SUP-001): a deletion in progress is waited for, and then the supply is not found, instead of the
+     * plant failing on its foreign key.
      */
     public Plant create(Plant plant, SupplyId id) {
+        plant.normaliseCil();
         return createLocked(plant, id, () -> new SupplyNotFoundException(id));
     }
 
     public Plant create(Plant plant, SupplyCode code) {
+        plant.normaliseCil();
         Optional<Supply> supply = getSupplyRepository.findByCode(code);
         if (supply.isEmpty()) {
             throw new SupplyNotFoundException(code);

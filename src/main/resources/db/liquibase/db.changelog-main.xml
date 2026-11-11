@@ -93,4 +93,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/backfill_plants_nominal_power_kw.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_not_null_constraint_to_plants_nominal_power_kw.xml" relativeToChangelogFile="true" />
     <include file="changelogs/rename_sharing_agreement_installed_power_kw_to_nominal_power_kw.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_cil_to_plants.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

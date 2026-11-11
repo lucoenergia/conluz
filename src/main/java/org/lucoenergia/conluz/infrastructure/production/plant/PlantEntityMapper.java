@@ -20,6 +20,7 @@ public class PlantEntityMapper extends BaseMapper<PlantEntity, Plant> {
                 .withId(entity.getId())
                 .withProviderCode(entity.getProviderCode())
                 .withRegulatoryCode(entity.getRegulatoryCode())
+                .withCil(entity.getCil())
                 .withAddress(entity.getAddress())
                 .withName(entity.getName())
                 .withSupply(supplyEntityMapper.map(entity.getSupply()))

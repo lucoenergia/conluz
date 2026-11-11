@@ -53,6 +53,7 @@ public class GetEnergyStationRepositoryDatabase implements GetEnergyStationRepos
                 .withId(entity.getId())
                 .withName(entity.getName())
                 .withProviderCode(entity.getProviderCode())
+                .withCil(entity.getCil())
                 .withAddress(entity.getAddress())
                 .withDescription(entity.getDescription())
                 .withInverterProvider(entity.getInverterProvider())

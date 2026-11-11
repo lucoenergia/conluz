@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant.create;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantAlreadyExistsException;
+import org.lucoenergia.conluz.domain.production.plant.PlantCilAlreadyInUseException;
 import org.lucoenergia.conluz.domain.production.plant.PlantCannotBeCreatedException;
 import org.lucoenergia.conluz.domain.production.plant.SupplyAlreadyHasPlantException;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
@@ -14,6 +15,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantCilUniqueConstraint;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantSupplyUniqueConstraint;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -51,12 +53,16 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
         if (plantRepository.existsBySupplyId(id.getId())) {
             throw new SupplyAlreadyHasPlantException(id);
         }
+        if (plant.getCil() != null && plantRepository.existsByCil(plant.getCil())) {
+            throw new PlantCilAlreadyInUseException();
+        }
 
         SupplyEntity supplyEntity = result.get();
         PlantEntity plantEntity = new PlantEntity.Builder()
                 .withId(UUID.randomUUID())
                 .withProviderCode(plant.getProviderCode())
                 .withRegulatoryCode(plant.getRegulatoryCode())
+                .withCil(plant.getCil())
                 .withName(plant.getName())
                 .withAddress(plant.getAddress())
                 .withDescription(plant.getDescription())
@@ -68,11 +74,11 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
                 .build();
 
         try {
-            // Flushed here so a concurrent plant on the same supply that passed the check above is
-            // rejected by the unique constraint now, where it can be told apart from other integrity errors.
+            // Flushed here so a concurrent plant on the same supply, or with the same CIL, that passed the checks
+            // above is rejected by a unique constraint now, where it can be told apart from other integrity errors.
             plantRepository.saveAndFlush(plantEntity);
         } catch (DataIntegrityViolationException e) {
-            throw PlantSupplyUniqueConstraint.translate(e, id);
+            throw translate(e, id);
         }
 
         Optional<PlantEntity> newPlantEntity = plantRepository.findByProviderCode(plant.getProviderCode());
@@ -84,5 +90,10 @@ public class CreatePlantRepositoryDatabase implements CreatePlantRepository {
         newPlant.setSupply(supplyEntityMapper.map(supplyEntity));
 
         return newPlant;
+    }
+
+    private static RuntimeException translate(DataIntegrityViolationException e, SupplyId id) {
+        RuntimeException translated = PlantSupplyUniqueConstraint.translate(e, id);
+        return translated != e ? translated : PlantCilUniqueConstraint.translate(e);
     }
 }

@@ -40,6 +40,10 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
 
     boolean existsBySupplyId(UUID supplyId);
 
+    boolean existsByCil(String cil);
+
+    boolean existsByCilAndIdNot(String cil, UUID id);
+
     /**
      * For each plant whose own supply is one of the given supplies: its supply id, its id and its name,
      * in that order, as a projection that loads no entity.

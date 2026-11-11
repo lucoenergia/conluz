@@ -28,6 +28,11 @@ public class PlantEntity {
      */
     @Column(name = "regulatory_code")
     private String regulatoryCode;
+    /**
+     * The CIL of the plant, upper-cased and without whitespace; null when it has none recorded.
+     */
+    @Column(name = "cil")
+    private String cil;
     @ManyToOne(fetch = FetchType.LAZY)
     private SupplyEntity supply;
     private String address;
@@ -76,6 +81,14 @@ public class PlantEntity {
 
     public void setRegulatoryCode(String regulatoryCode) {
         this.regulatoryCode = regulatoryCode;
+    }
+
+    public String getCil() {
+        return cil;
+    }
+
+    public void setCil(String cil) {
+        this.cil = cil;
     }
 
     public SupplyEntity getSupply() {
@@ -153,6 +166,7 @@ public class PlantEntity {
         private String name;
         private String providerCode;
         private String regulatoryCode;
+        private String cil;
         private SupplyEntity supply;
         private String address;
         private String description;
@@ -178,6 +192,11 @@ public class PlantEntity {
 
         public Builder withRegulatoryCode(String regulatoryCode) {
             this.regulatoryCode = regulatoryCode;
+            return this;
+        }
+
+        public Builder withCil(String cil) {
+            this.cil = cil;
             return this;
         }
 
@@ -223,6 +242,7 @@ public class PlantEntity {
             plantEntity.setName(name);
             plantEntity.setProviderCode(providerCode);
             plantEntity.setRegulatoryCode(regulatoryCode);
+            plantEntity.setCil(cil);
             plantEntity.setSupply(supply);
             plantEntity.setAddress(address);
             plantEntity.setDescription(description);

@@ -36,9 +36,11 @@ public class UpdatePlantServiceImpl implements UpdatePlantService {
     /**
      * A plant moved to another supply locks that supply against deletion before it is written (SUP-001): a deletion
      * in progress is waited for, and then the supply is not found, instead of the plant failing on its foreign key.
-     * The plant is checked first, as the update checks it before the supply.
+     * The plant is checked first, as the update checks it before the supply. The CIL is normalised before anything
+     * is read (PLT-004).
      */
     public Plant update(Plant plant) {
+        plant.normaliseCil();
         PlantId plantId = PlantId.of(plant.getId());
         Plant current = getPlantRepository.findById(plantId).orElseThrow(() -> new PlantNotFoundException(plantId));
         String supplyCode = plant.getSupply().getCode();

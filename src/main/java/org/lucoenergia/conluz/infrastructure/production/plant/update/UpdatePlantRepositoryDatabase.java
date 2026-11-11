@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.plant.update;
 
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.PlantCilAlreadyInUseException;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.SupplyAlreadyHasPlantException;
 import org.lucoenergia.conluz.domain.production.plant.update.UpdatePlantRepository;
@@ -13,6 +14,7 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntityMapper;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
+import org.lucoenergia.conluz.infrastructure.production.plant.PlantCilUniqueConstraint;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantSupplyUniqueConstraint;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -44,6 +46,11 @@ public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
             throw new PlantNotFoundException(PlantId.of(plantId));
         }
         PlantEntity currentPlant = result.get();
+        // Keeping the plant's own CIL is not a conflict (PLT-005). Checked before the loaded plant is changed, so
+        // the query does not flush a change that is then refused.
+        if (plant.getCil() != null && repository.existsByCilAndIdNot(plant.getCil(), plantId)) {
+            throw new PlantCilAlreadyInUseException();
+        }
         // The supply is resolved and checked first, so a refused move leaves the loaded plant untouched.
         if (!currentPlant.getSupply().getCode().equals(plant.getSupply().getCode())) {
             Optional<SupplyEntity> supplyEntityOptional = supplyRepository.findByCode(plant.getSupply().getCode());
@@ -59,6 +66,7 @@ public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
 
         currentPlant.setProviderCode(plant.getProviderCode());
         currentPlant.setRegulatoryCode(plant.getRegulatoryCode());
+        currentPlant.setCil(plant.getCil());
         currentPlant.setName(plant.getName());
         currentPlant.setDescription(plant.getDescription());
         currentPlant.setAddress(plant.getAddress());
@@ -68,11 +76,13 @@ public class UpdatePlantRepositoryDatabase implements UpdatePlantRepository {
         currentPlant.setInverterProvider(plant.getInverterProvider());
 
         try {
-            // Flushed here so a concurrent plant on the same supply that passed the check above is
-            // rejected by the unique constraint now, where it can be told apart from other integrity errors.
+            // Flushed here so a concurrent plant on the same supply, or with the same CIL, that passed the checks
+            // above is rejected by a unique constraint now, where it can be told apart from other integrity errors.
             return mapper.map(repository.saveAndFlush(currentPlant));
         } catch (DataIntegrityViolationException e) {
-            throw PlantSupplyUniqueConstraint.translate(e, SupplyId.of(currentPlant.getSupply().getId()));
+            RuntimeException translated = PlantSupplyUniqueConstraint.translate(e,
+                    SupplyId.of(currentPlant.getSupply().getId()));
+            throw translated != e ? translated : PlantCilUniqueConstraint.translate(e);
         }
     }
 }
