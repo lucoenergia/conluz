@@ -94,9 +94,24 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("AC7 both monthly series state their source, what refreshes it and that they can lag the energy metrics")
-    void bothMonthlySeriesStateTheirSourceAndFreshness() throws Exception {
-        for (String path : List.of(SUPPLY_MONTHLY_PATH, MEMBERSHIP_MONTHLY_PATH)) {
+    @DisplayName("MCS-004 the membership monthly series states it sums the hourly records when it is read")
+    void theMembershipMonthlySeriesStatesItsSourceAndFreshness() throws Exception {
+        String description = operationDescription(MEMBERSHIP_MONTHLY_PATH);
+
+        for (String statement : List.of(
+                "summed from its hourly records when the series is read",
+                "as fresh as the energy metrics")) {
+            assertTrue(description.contains(statement),
+                    () -> "does not state \"" + statement + "\": " + description);
+        }
+        assertFalse(description.contains("pre-aggregated"),
+                () -> "still names the monthly pre-aggregate as its source: " + description);
+    }
+
+    @Test
+    @DisplayName("AC7 the supply monthly series states its source, what refreshes it and that it can lag the energy metrics")
+    void theSupplyMonthlySeriesStatesItsSourceAndFreshness() throws Exception {
+        for (String path : List.of(SUPPLY_MONTHLY_PATH)) {
             String description = operationDescription(path);
 
             for (String statement : List.of(

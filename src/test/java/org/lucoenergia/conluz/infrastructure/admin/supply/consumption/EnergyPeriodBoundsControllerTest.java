@@ -450,10 +450,12 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * One record per month, aggregated by the production aggregation into a pre-aggregate stamped at
-     * local midnight of day 1: 1 kWh in July, 2 in August, 4 in September.
+     * July, August and September published at every hour, then one record per month carrying grid
+     * import, aggregated by the production aggregation into a pre-aggregate stamped at local midnight
+     * of day 1: 1 kWh in July, 2 in August, 4 in September.
      */
     private void givenMonthlyAggregatesForJulyAugustAndSeptember() {
+        publish(YearMonth.of(2026, 7), YearMonth.of(2026, 8), YearMonth.of(2026, 9));
         writeAt(OffsetDateTime.parse("2026-07-15T12:00:00+02:00"), 1f);
         writeAt(OffsetDateTime.parse("2026-08-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 4f);
@@ -475,15 +477,26 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Pre-aggregates for September, October and November: November's is stamped at local midnight
-     * of 1 November, after the current hour.
+     * September, October and November published at every hour, then pre-aggregates for them:
+     * November's is stamped at local midnight of 1 November, after the current hour.
      */
     private void givenMonthlyAggregatesForSeptemberOctoberAndNovember() {
+        publish(YearMonth.of(2026, 9), YearMonth.of(2026, 10), YearMonth.of(2026, 11));
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 1f);
         writeAt(OffsetDateTime.parse("2026-10-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-11-15T12:00:00+01:00"), 4f);
         for (Month month : List.of(Month.SEPTEMBER, Month.OCTOBER, Month.NOVEMBER)) {
             monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
+        }
+    }
+
+    /**
+     * A published zero at every hour of each month, written before the records it is meant to hold:
+     * a record written later at the same instant replaces these fields.
+     */
+    private void publish(YearMonth... months) {
+        for (YearMonth month : months) {
+            influxFixture.writePublishedZeros(supply.getCode(), month, ZoneId.of("Europe/Madrid"));
         }
     }
 

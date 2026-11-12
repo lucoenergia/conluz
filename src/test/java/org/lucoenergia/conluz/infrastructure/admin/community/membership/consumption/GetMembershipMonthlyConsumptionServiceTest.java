@@ -24,9 +24,9 @@ import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
+import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.PublishedMonthlyConsumptionReader;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
-import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.energymetrics.MembershipEnergyMetricsScopeResolverImpl;
@@ -42,7 +42,9 @@ import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,14 +54,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
  * Covers what the service itself decides: which supplies are read, over which bounds, which months
- * the series has, and which supply's bucket lands in which month. The per-supply monthly series is
- * stubbed; how a month's buckets fold is pinned by {@code MembershipMonthlyConsumptionBucketTest}.
+ * the series has, and which supply's bucket lands in which month. The reader of the supplies'
+ * published months is stubbed; how a month's buckets fold is pinned by
+ * {@code MembershipMonthlyConsumptionBucketTest}.
  */
 class GetMembershipMonthlyConsumptionServiceTest {
 
@@ -79,7 +83,8 @@ class GetMembershipMonthlyConsumptionServiceTest {
 
     private final GetMembershipsRepository getMembershipsRepository = mock(GetMembershipsRepository.class);
     private final GetSupplyRepository getSupplyRepository = mock(GetSupplyRepository.class);
-    private final GetDatadisConsumptionService getDatadisConsumptionService = mock(GetDatadisConsumptionService.class);
+    private final PublishedMonthlyConsumptionReader publishedMonthlyConsumptionReader =
+            mock(PublishedMonthlyConsumptionReader.class);
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final ReferenceMonthResolver referenceMonthResolver = mock(ReferenceMonthResolver.class);
@@ -90,8 +95,10 @@ class GetMembershipMonthlyConsumptionServiceTest {
             new MembershipEnergyMetricsScopeResolverImpl(getMembershipsRepository, getSupplyRepository,
                     aggregateRepository, referenceMonthResolver, zoneResolver, new DateConverter(timeConfiguration),
                     CLOCK),
-            getDatadisConsumptionService,
+            publishedMonthlyConsumptionReader,
             zoneResolver);
+
+    private final Map<UUID, List<SupplyConsumptionBucket>> publishedMonths = new HashMap<>();
 
     private final Supply first = SupplyMother.random().build();
     private final Supply second = SupplyMother.random().build();
@@ -226,7 +233,7 @@ class GetMembershipMonthlyConsumptionServiceTest {
 
     /**
      * AC7. A membership without supplies still gets every requested month, with zero totals, no
-     * savings and a supply count of zero; the per-supply series is never asked.
+     * savings and a supply count of zero.
      */
     @Test
     void aMembershipWithoutSuppliesGetsEveryMonthEmpty() {
@@ -242,7 +249,6 @@ class GetMembershipMonthlyConsumptionServiceTest {
             assertEquals(0, bucket.getSupplyCount());
             assertEquals(0, bucket.getSuppliesWithData());
         }
-        verifyNoInteractions(getDatadisConsumptionService);
     }
 
     /**
@@ -254,7 +260,7 @@ class GetMembershipMonthlyConsumptionServiceTest {
                 () -> service.getMonthlySeries(COMMUNITY_ID, USER_ID, END, START));
 
         assertEquals(InvalidEnergyMetricsPeriodException.Reason.START_AFTER_END, exception.getReason());
-        verifyNoInteractions(getMembershipsRepository, getSupplyRepository, getDatadisConsumptionService);
+        verifyNoInteractions(getMembershipsRepository, getSupplyRepository, publishedMonthlyConsumptionReader);
     }
 
     @Test
@@ -265,7 +271,7 @@ class GetMembershipMonthlyConsumptionServiceTest {
         assertThrows(MembershipNotFoundException.class,
                 () -> service.getMonthlySeries(COMMUNITY_ID, USER_ID, START, END));
 
-        verifyNoInteractions(getDatadisConsumptionService);
+        verifyNoInteractions(publishedMonthlyConsumptionReader);
     }
 
     /**
@@ -279,13 +285,13 @@ class GetMembershipMonthlyConsumptionServiceTest {
         when(resolver.resolve(COMMUNITY_ID, USER_ID, START, END, null))
                 .thenReturn(new MembershipEnergyMetricsScope(List.of(first), null));
         GetMembershipMonthlyConsumptionService withoutPeriod =
-                new GetMembershipMonthlyConsumptionServiceImpl(resolver, getDatadisConsumptionService, zoneResolver);
+                new GetMembershipMonthlyConsumptionServiceImpl(resolver, publishedMonthlyConsumptionReader, zoneResolver);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> withoutPeriod.getMonthlySeries(COMMUNITY_ID, USER_ID, START, END));
 
         assertTrue(exception.getMessage().contains("without a period"), exception::getMessage);
-        verifyNoInteractions(getDatadisConsumptionService);
+        verifyNoInteractions(publishedMonthlyConsumptionReader);
     }
 
     private void givenMembership() {
@@ -310,15 +316,18 @@ class GetMembershipMonthlyConsumptionServiceTest {
     }
 
     /**
-     * Stubs the per-supply series for exactly these bounds, so a call over any other bounds would
-     * return nothing and fail the expectations.
+     * Stubs the supply's published months for exactly these bounds, in the community's zone, so a
+     * read over any other bounds or zone would return nothing and fail the expectations.
      */
     private void givenMonthlySeries(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate,
                                     SupplyConsumptionBucket... buckets) {
-        when(getDatadisConsumptionService.getMonthlySeriesBySupply(eq(SupplyId.of(supply.getId())), any(), any()))
-                .thenReturn(List.of());
-        when(getDatadisConsumptionService.getMonthlySeriesBySupply(SupplyId.of(supply.getId()), startDate, endDate))
-                .thenReturn(List.of(buckets));
+        publishedMonths.put(supply.getId(), List.of(buckets));
+        doAnswer(invocation -> {
+            EnergyMetricsPeriod period = invocation.getArgument(1);
+            boolean expected = period.getStartDate().equals(startDate) && period.getEndDate().equals(endDate)
+                    && ZONE.equals(invocation.getArgument(2));
+            return expected ? publishedMonths : Map.of();
+        }).when(publishedMonthlyConsumptionReader).getPublishedMonths(any(), any(), any());
     }
 
     private static SupplyConsumptionBucket month(String date, float consumptionKWh, float selfConsumptionKWh,

@@ -109,12 +109,13 @@ class GetMembershipMonthlyConsumptionControllerApiDocsTest extends BaseControlle
 
         for (String statement : List.of(
                 "A bucket is returned for every month in range",
-                "which omits months without a stored record",
+                "which omits months without data",
+                "at least 90 % of the month's hours inside the period",
                 "the number of supplies the member currently owns in the community",
                 "the months before a supply started reporting show as incomplete",
-                "It is `null` when no supply stored a record that month",
+                "It is `null` when no supply has data that month",
                 "reports `0.00`",
-                "`suppliesWithData` is measured from stored monthly records",
+                "`suppliesWithData` is measured month by month",
                 "local calendar months of the community's time zone",
                 "it is `null` exactly when `savingsEur` is",
                 "Platform admins are not granted access")) {

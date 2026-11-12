@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.consumption;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -25,11 +27,13 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture.hourlyRecord;
@@ -39,9 +43,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * End to end over a real PostgreSQL and InfluxDB. Each test writes hourly records and builds the
- * monthly pre-aggregates from them through the production aggregation, so every month the endpoint
- * reads is stamped exactly as production stamps it.
+ * End to end over a real PostgreSQL and InfluxDB. Each test writes hourly records; a supply that
+ * must have data in a month is first given a published zero at every hour of it, so that its
+ * self-consumption reaches the publication threshold and only the test's own records add anything.
  *
  * <p>The tariff in the test profile is the 0.15 EUR/kWh estimate with no VAT, so a month's savings
  * are always {@code self-consumed kWh * 0.15}, and every expected figure below is arithmetic on the
@@ -56,7 +60,11 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
     private static final String JANUARY_START = "2024-01-01T00:00:00+01:00";
     private static final String FEBRUARY_START = "2024-02-01T00:00:00+01:00";
     private static final String FEBRUARY_END = "2024-02-29T23:00:00+01:00";
+    private static final String MARCH_START = "2024-03-01T00:00:00+01:00";
+    private static final String METRICS_PATH =
+            "/api/v1/communities/{communityId}/memberships/{userId}/energy-metrics";
 
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
     private static final YearMonth JANUARY = YearMonth.of(2024, 1);
     private static final YearMonth FEBRUARY = YearMonth.of(2024, 2);
 
@@ -97,9 +105,9 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity large = persistSupply(member, community);
         SupplyEntity small = persistSupply(member, community);
+        publish(FEBRUARY, large, small);
         write(large, "2024/02/10", "13:00", 100.5f, 40f, 20.25f);
         write(small, "2024/02/10", "14:00", 7.25f, 2.5f, 1.5f);
-        aggregate(FEBRUARY, large, small);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
                 .andExpect(status().isOk())
@@ -127,8 +135,8 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        publish(FEBRUARY, supply);
         write(supply, "2024/02/10", "13:00", 3f, 2f, 0f);
-        aggregate(FEBRUARY, supply);
 
         request(community, member, loginUser(member), JANUARY_START, FEBRUARY_END)
                 .andExpect(status().isOk())
@@ -151,10 +159,10 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
     }
 
     /**
-     * AC5. Three supplies in February: one reporting every day, one reporting a single day and one
-     * silent. Two supplies have data and only one has the whole month, so supplyCount (3),
-     * suppliesWithData (2) and the supplies with full data (1) all differ. 29 + 2 kWh consumed;
-     * 29 + 1 kWh self-consumed at 0.15 is 4.50.
+     * AC5. Three supplies in February: one published for the whole month, one with records on a
+     * single day only -- far below the publication threshold -- and one silent. Only the first has
+     * data, so supplyCount (3) and suppliesWithData (1) differ, and the incomplete supply's records
+     * add nothing until it is published. 29 kWh consumed and self-consumed; 29 kWh at 0.15 is 4.35.
      */
     @Test
     void aPartlyReportedMonthReportsTheSupplyCountAndTheSuppliesThatContributed() throws Exception {
@@ -163,20 +171,20 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         SupplyEntity everyDay = persistSupply(member, community);
         SupplyEntity oneDay = persistSupply(member, community);
         persistSupply(member, community);
+        publish(FEBRUARY, everyDay);
         for (int day = 1; day <= 29; day++) {
             write(everyDay, String.format("2024/02/%02d", day), "13:00", 1f, 1f, 0f);
         }
         write(oneDay, "2024/02/10", "13:00", 2f, 1f, 0f);
-        aggregate(FEBRUARY, everyDay, oneDay);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].supplyCount").value(3))
-                .andExpect(jsonPath("$[0].suppliesWithData").value(2))
-                .andExpect(jsonPath("$[0].gridImportKWh").value(31.0))
-                .andExpect(jsonPath("$[0].selfConsumptionKWh").value(30.0))
-                .andExpect(jsonPath("$[0].savingsEur").value(4.50));
+                .andExpect(jsonPath("$[0].suppliesWithData").value(1))
+                .andExpect(jsonPath("$[0].gridImportKWh").value(29.0))
+                .andExpect(jsonPath("$[0].selfConsumptionKWh").value(29.0))
+                .andExpect(jsonPath("$[0].savingsEur").value(4.35));
     }
 
     @Test
@@ -185,9 +193,9 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community.getId());
         SupplyEntity first = persistSupply(member, community);
         SupplyEntity second = persistSupply(member, community);
+        publish(FEBRUARY, first, second);
         write(first, "2024/02/10", "13:00", 1f, 1f, 0f);
         write(second, "2024/02/11", "13:00", 1f, 1f, 0f);
-        aggregate(FEBRUARY, first, second);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
                 .andExpect(status().isOk())
@@ -196,7 +204,7 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
     }
 
     /**
-     * A stored month whose records carry zero energy is a measured zero: the supply has data, and
+     * A published month whose records carry zero energy is a measured zero: the supply has data, and
      * the savings are 0.00 with their source, not null.
      */
     @Test
@@ -204,14 +212,59 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        publish(FEBRUARY, supply);
         write(supply, "2024/02/10", "13:00", 0f, 0f, 0f);
-        aggregate(FEBRUARY, supply);
 
         request(community, member, loginUser(member), FEBRUARY_START, FEBRUARY_END)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].suppliesWithData").value(1))
                 .andExpect(jsonPath("$[0].tariffSource").value("ESTIMATE"))
                 .andExpect(content().string(containsString("\"savingsEur\":0.00")));
+    }
+
+    /**
+     * February was aggregated from preliminary data: its pre-aggregate holds no self-consumption.
+     * The hourly records now carry the published figures, and no aggregation has run since. The
+     * series sums the hourly records, so it reports them, and agrees with the energy metrics, which
+     * read the same records.
+     */
+    @Test
+    @DisplayName("MCS-004 a month is summed from the hourly records, not from a stale pre-aggregate, and agrees with the energy metrics")
+    void aMonthIsSummedFromTheHourlyRecordsAndNotFromAStalePreAggregate() throws Exception {
+        CommunityEntity community = persistCommunity();
+        User member = persistMember(community.getId());
+        SupplyEntity first = persistSupply(member, community);
+        SupplyEntity second = persistSupply(member, community);
+        publish(FEBRUARY, first, second);
+        influxFixture.writeMonthlyAggregate(first.getCode(), FEBRUARY, ZONE, 90.0, 0.0, 3.0);
+        influxFixture.writeMonthlyAggregate(second.getCode(), FEBRUARY, ZONE, 90.0, 0.0, 3.0);
+        write(first, "2024/02/01", "01:00", 10.5f, 4.25f, 1f);
+        write(first, "2024/02/29", "24:00", 1.25f, 0.5f, 0.25f);
+        write(second, "2024/02/15", "14:00", 20f, 8f, 2.5f);
+        String token = loginUser(member);
+
+        JsonNode month = objectMapper.readTree(request(community, member, token, FEBRUARY_START, MARCH_START)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andReturn().getResponse().getContentAsString()).get(0);
+        JsonNode metrics = objectMapper.readTree(mockMvc.perform(get(METRICS_PATH, community.getId(), member.getId())
+                        .header(HttpHeaders.AUTHORIZATION, token)
+                        .queryParam("startDate", FEBRUARY_START)
+                        .queryParam("endDate", MARCH_START))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        assertEquals(12.75, month.path("selfConsumptionKWh").asDouble(), 1e-9);
+        assertEquals(31.75, month.path("gridImportKWh").asDouble(), 1e-9);
+        assertEquals(3.75, month.path("surplusKWh").asDouble(), 1e-9);
+        assertEquals(metrics.path("energy").path("selfConsumptionKWh").asDouble(),
+                month.path("selfConsumptionKWh").asDouble(), 1e-9, "self-consumption");
+        assertEquals(metrics.path("energy").path("surplusKWh").asDouble(),
+                month.path("surplusKWh").asDouble(), 1e-9, "surplus");
+        assertEquals(metrics.path("energy").path("gridImportKWh").asDouble(),
+                month.path("gridImportKWh").asDouble(), 1e-9, "grid import");
+        assertEquals(metrics.path("savings").path("amountEur").asDouble(),
+                month.path("savingsEur").asDouble(), 1e-9, "savings");
     }
 
     // --- Months ---
@@ -226,8 +279,11 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         CommunityEntity community = persistCommunity();
         User member = persistMember(community.getId());
         SupplyEntity supply = persistSupply(member, community);
+        publish(JANUARY, supply);
+        publish(FEBRUARY, supply);
         write(supply, "2024/01/20", "13:00", 1f, 1f, 0f);
         write(supply, "2024/02/10", "13:00", 2f, 1f, 0f);
+        // The per-supply series compared with still reads the monthly pre-aggregates.
         aggregate(JANUARY, supply);
         aggregate(FEBRUARY, supply);
         String start = "2024-01-15T12:00:00+01:00";
@@ -442,6 +498,20 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
             monthlyAggregationRepository.aggregateMonthlyConsumption(
                     SupplyMother.random().withId(supply.getId()).withCode(supply.getCode()).build(),
                     month.getMonth(), month.getYear());
+        }
+    }
+
+    /**
+     * Publishes the month for each supply: a record carrying zero at every hour of it, so the supply
+     * has data in the month and only the records written afterwards add anything. Written before
+     * them, since a record written later at the same instant replaces these fields.
+     */
+    private void publish(YearMonth month, SupplyEntity... supplies) {
+        for (SupplyEntity supply : supplies) {
+            influxFixture.writePublishedZeros(supply.getCode(), month, ZONE);
+            if (!writtenCups.contains(supply.getCode())) {
+                writtenCups.add(supply.getCode());
+            }
         }
     }
 }

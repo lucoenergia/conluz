@@ -142,6 +142,28 @@ public class DatadisConsumptionInfluxFixture {
     }
 
     /**
+     * Writes a monthly pre-aggregate point for the CUPS directly, stamped at local midnight of the
+     * month's first day as the production aggregation stamps it, without summing any hourly record:
+     * a month aggregated from data that has changed since.
+     */
+    public void writeMonthlyAggregate(String cups, YearMonth month, ZoneId zone, double consumptionKWh,
+                                      double selfConsumptionEnergyKWh, double surplusEnergyKWh) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            batchPoints.point(Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT)
+                    .time(month.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli(), TimeUnit.MILLISECONDS)
+                    .tag("cups", cups)
+                    .addField("consumption_kwh", consumptionKWh)
+                    .addField("self_consumption_energy_kwh", selfConsumptionEnergyKWh)
+                    .addField("surplus_energy_kwh", surplusEnergyKWh)
+                    .addField("generation_energy_kwh", 0.0)
+                    .addField("obtain_method", "Real")
+                    .build());
+            connection.write(batchPoints);
+        }
+    }
+
+    /**
      * Removes the monthly pre-aggregates of the CUPS, for tests that build them through the
      * production aggregation from the hourly records they write.
      */
