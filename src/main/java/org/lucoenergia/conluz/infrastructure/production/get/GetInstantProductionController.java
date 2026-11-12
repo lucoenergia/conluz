@@ -35,12 +35,14 @@ public class GetInstantProductionController {
     @GetMapping
     @Operation(
             summary = "Delivers real-time energy production details of a community.",
-            description = "Offers real-time insights into the instantaneous energy production of the plants of the "
+            description = "Deprecated: use `getPlantInverterProductionToday`.\n\n"
+                    + "Offers real-time insights into the instantaneous energy production of the plants of the "
                     + "community identified by the path `communityId`. **Required: any member of the community.** "
                     + "Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a "
                     + "non-member platform admin. When a `supplyId` is provided, it must back a plant of the community "
                     + "in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
             tags = ApiTag.PRODUCTION,
+            deprecated = true,
             operationId = "getInstantProduction"
     )
     @ApiResponses(value = {

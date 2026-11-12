@@ -45,6 +45,8 @@ public class GetDatadisYearlyProductionController {
     @Operation(
             summary = "Retrieves yearly Datadis production data of a community within a given date interval.",
             description = """
+                    Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.
+
                     Retrieves yearly Datadis-derived production data for the plants of the community identified by
                     `communityId`, within the specified date range. **Required: any member of the community.**
 
@@ -58,6 +60,7 @@ public class GetDatadisYearlyProductionController {
                     in the time zone the application is configured with, at which the year starts.
                     """,
             tags = ApiTag.PRODUCTION,
+            deprecated = true,
             operationId = "getDatadisYearlyProduction",
             security = @SecurityRequirement(name = "bearerToken")
     )
