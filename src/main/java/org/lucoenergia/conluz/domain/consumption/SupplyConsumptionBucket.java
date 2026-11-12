@@ -18,15 +18,22 @@ public class SupplyConsumptionBucket {
 
     private final DatadisConsumption consumption;
     private final SupplySavings savings;
+    private final boolean publishedData;
 
-    private SupplyConsumptionBucket(DatadisConsumption consumption, SupplySavings savings) {
+    private SupplyConsumptionBucket(DatadisConsumption consumption, SupplySavings savings, boolean publishedData) {
         this.consumption = consumption;
         this.savings = savings;
+        this.publishedData = publishedData;
     }
 
-    public static SupplyConsumptionBucket of(DatadisConsumption consumption, SupplySavings savings) {
+    /**
+     * @param publishedData whether the supply has data in the bucket: its records carry published
+     *                      self-consumption, as the series the bucket belongs to measures it
+     */
+    public static SupplyConsumptionBucket of(DatadisConsumption consumption, SupplySavings savings,
+                                             boolean publishedData) {
         return new SupplyConsumptionBucket(Objects.requireNonNull(consumption),
-                Objects.requireNonNull(savings));
+                Objects.requireNonNull(savings), publishedData);
     }
 
     public DatadisConsumption getConsumption() {
@@ -35,6 +42,15 @@ public class SupplyConsumptionBucket {
 
     public SupplySavings getSavings() {
         return savings;
+    }
+
+    /**
+     * Whether the supply has data in the bucket: its records carry published self-consumption. A
+     * supply's self-consumption is published some days after the month ends; until then its records
+     * carry consumption and surplus but no self-consumption, which is not a measured zero.
+     */
+    public boolean hasPublishedData() {
+        return publishedData;
     }
 
     /**
@@ -53,6 +69,7 @@ public class SupplyConsumptionBucket {
         return "SupplyConsumptionBucket{" +
                 "consumption=" + consumption +
                 ", savings=" + savings +
+                ", publishedData=" + publishedData +
                 '}';
     }
 }

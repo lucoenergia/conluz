@@ -5,10 +5,12 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
+import org.lucoenergia.conluz.domain.consumption.PublicationThreshold;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplyHourlyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
@@ -79,7 +81,8 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
                     DatadisConsumption consumption = stored != null
                             ? stored.getConsumption()
                             : nothingStored(supply, hour, zone);
-                    return priceHour(supply, consumption, hour, zone, rangeToExclusive);
+                    boolean publishedData = stored != null && stored.getPublishedHours() > 0;
+                    return priceHour(supply, consumption, publishedData, hour, zone, rangeToExclusive);
                 })
                 .toList();
     }
@@ -104,7 +107,7 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
 
         return getDatadisConsumptionRepository.getDailyConsumptionsByRangeOfDates(supply, startDate, effectiveEndDate)
                 .stream()
-                .map(consumption -> priceDay(supply, consumption, zone, rangeFrom, rangeToExclusive))
+                .map(day -> priceDay(supply, day, zone, rangeFrom, rangeToExclusive))
                 .toList();
     }
 
@@ -145,14 +148,21 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      * <p>Clipping is correct here because the bucket's own energy is clipped the same way: the
      * query reads the hourly measurement between the requested bounds, so a partial edge bucket
      * reports the energy of exactly the hours this interval covers.
+     *
+     * <p>The supply has data that day when its records carrying self-consumption reach the
+     * {@link PublicationThreshold publication threshold} of the day's hours inside the range.
      */
-    private SupplyConsumptionBucket priceDay(Supply supply, DatadisConsumption consumption, ZoneId zone,
+    private SupplyConsumptionBucket priceDay(Supply supply, DatadisDailyConsumption stored, ZoneId zone,
                                              Instant rangeFrom, Instant rangeToExclusive) {
+        DatadisConsumption consumption = stored.getConsumption();
         LocalDate day = DateConverter.convertStringToLocalDate(consumption.getDate());
         Instant from = latest(day.atStartOfDay(zone).toInstant(), rangeFrom);
         Instant toExclusive = earliest(day.plusDays(1).atStartOfDay(zone).toInstant(), rangeToExclusive);
+        long possibleHours = ChronoUnit.HOURS.between(from, toExclusive);
+        boolean publishedData = stored.getPublishedHours() > 0
+                && PublicationThreshold.isReached(stored.getPublishedHours(), possibleHours);
 
-        return price(supply, consumption, from, toExclusive);
+        return price(supply, consumption, publishedData, from, toExclusive);
     }
 
     /**
@@ -162,11 +172,12 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      * that falls mid-hour leaves a partial last hour, priced over exactly the part its energy covers,
      * as the daily series prices a partial edge day.
      */
-    private SupplyHourlyConsumptionBucket priceHour(Supply supply, DatadisConsumption consumption, Instant hour,
-                                                    ZoneId zone, Instant rangeToExclusive) {
+    private SupplyHourlyConsumptionBucket priceHour(Supply supply, DatadisConsumption consumption,
+                                                    boolean publishedData, Instant hour, ZoneId zone,
+                                                    Instant rangeToExclusive) {
         Instant toExclusive = earliest(hour.plus(1, ChronoUnit.HOURS), rangeToExclusive);
         return SupplyHourlyConsumptionBucket.of(hour.atZone(zone).toOffsetDateTime(),
-                price(supply, consumption, hour, toExclusive));
+                price(supply, consumption, publishedData, hour, toExclusive));
     }
 
     /**
@@ -187,7 +198,9 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         LocalDate firstDayOfMonth = DateConverter.convertStringToLocalDate(consumption.getDate())
                 .withDayOfMonth(1);
 
-        return price(supply, consumption,
+        // The pre-aggregate keeps no count of the records carrying self-consumption: every stored
+        // point counts as data.
+        return price(supply, consumption, true,
                 firstDayOfMonth.atStartOfDay(zone).toInstant(),
                 firstDayOfMonth.plusMonths(1).atStartOfDay(zone).toInstant());
     }
@@ -198,11 +211,11 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      * very figure reported beside it and issues no query at all. A bucket that does straddle one
      * still has its parts queried and priced segment by segment.
      */
-    private SupplyConsumptionBucket price(Supply supply, DatadisConsumption consumption, Instant from,
-                                          Instant toExclusive) {
+    private SupplyConsumptionBucket price(Supply supply, DatadisConsumption consumption, boolean publishedData,
+                                          Instant from, Instant toExclusive) {
         SupplySavings savings = supplySavingsCalculator.estimate(supply, from, toExclusive,
                 selfConsumptionOf(consumption));
-        return SupplyConsumptionBucket.of(consumption, savings);
+        return SupplyConsumptionBucket.of(consumption, savings, publishedData);
     }
 
     /**

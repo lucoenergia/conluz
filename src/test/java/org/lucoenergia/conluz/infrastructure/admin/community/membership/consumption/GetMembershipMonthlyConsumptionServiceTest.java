@@ -332,7 +332,8 @@ class GetMembershipMonthlyConsumptionServiceTest {
         consumption.setSelfConsumptionEnergyKWh(selfConsumptionKWh);
         consumption.setObtainMethod("Real");
         EstimatedPrice price = source == TariffSource.ESTIMATE ? PRICE : null;
-        return SupplyConsumptionBucket.of(consumption, SupplySavings.of(new BigDecimal(savingsEur), source, price));
+        return SupplyConsumptionBucket.of(consumption, SupplySavings.of(new BigDecimal(savingsEur), source, price),
+                true);
     }
 
     private static void assertMonths(List<MembershipMonthlyConsumptionBucket> series, String... expected) {

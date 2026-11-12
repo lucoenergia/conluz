@@ -303,7 +303,7 @@ class GetMembershipHourlyConsumptionServiceTest {
         consumption.setSelfConsumptionEnergyKWh(selfConsumptionKWh);
         consumption.setObtainMethod(obtainMethod);
         return SupplyHourlyConsumptionBucket.of(start, SupplyConsumptionBucket.of(consumption,
-                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE)));
+                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE), obtainMethod != null));
     }
 
     private static void assertHours(List<MembershipHourlyConsumptionBucket> series, String... expected) {

@@ -8,9 +8,9 @@ import org.lucoenergia.conluz.domain.admin.community.energy.SupplyEnergyContribu
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
-import org.lucoenergia.conluz.domain.consumption.PublicationThreshold;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.MonthlyPublishedAggregate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +30,7 @@ import java.util.UUID;
  * into local calendar months.
  *
  * <p>A supply has data in a month when its records carrying self-consumption reach the
- * {@link PublicationThreshold publication threshold} of the month's hours inside the period: the
+ * {@link MonthlyPublishedAggregate#isPublishedWithin publication threshold} of the month's hours inside the period: the
  * criterion the metrics' coverage applies to a period and the daily series to a day. The monthly
  * pre-aggregates are not read, since they keep no count of those records and store a month's missing
  * self-consumption as 0.
@@ -81,19 +81,16 @@ public class GetCommunityMonthlyEnergySeriesServiceImpl implements GetCommunityM
 
         Map<YearMonth, List<SupplyEnergyContribution>> contributionsByMonth = new HashMap<>();
         for (Supply supply : supplies) {
-            for (Map.Entry<YearMonth, MonthTotals> month : foldIntoMonths(
-                    daysBySupplyCode.getOrDefault(supply.getCode(), List.of())).entrySet()) {
+            for (MonthlyPublishedAggregate month : MonthlyPublishedAggregate.foldIntoMonths(
+                    daysBySupplyCode.getOrDefault(supply.getCode(), List.of())).values()) {
                 // A day before the first selected month belongs to no bucket.
-                if (!months.contains(month.getKey())) {
+                if (!months.contains(month.month())) {
                     continue;
                 }
-                MonthTotals totals = month.getValue();
-                long possibleHours = period.hoursOverlapping(EnergyMetricsPeriod.ofMonth(month.getKey(), zone));
-                if (totals.publishedHours > 0
-                        && PublicationThreshold.isReached(totals.publishedHours, possibleHours)) {
+                if (month.isPublishedWithin(period, zone)) {
                     contributionsByMonth
-                            .computeIfAbsent(month.getKey(), m -> new ArrayList<>())
-                            .add(new SupplyEnergyContribution(totals.selfConsumptionKWh, totals.surplusKWh));
+                            .computeIfAbsent(month.month(), m -> new ArrayList<>())
+                            .add(new SupplyEnergyContribution(month.selfConsumptionKWh(), month.surplusKWh()));
                 }
             }
         }
@@ -102,29 +99,5 @@ public class GetCommunityMonthlyEnergySeriesServiceImpl implements GetCommunityM
                 .map(month -> CommunityEnergySeriesBucket.of(month.atDay(1).atStartOfDay(zone).toOffsetDateTime(),
                         supplies.size(), contributionsByMonth.getOrDefault(month, List.of())))
                 .toList();
-    }
-
-    /**
-     * One supply's days added up per local calendar month, unrounded.
-     */
-    private static Map<YearMonth, MonthTotals> foldIntoMonths(List<DailyPublishedAggregate> days) {
-        Map<YearMonth, MonthTotals> months = new HashMap<>();
-        for (DailyPublishedAggregate day : days) {
-            months.computeIfAbsent(YearMonth.from(day.day()), m -> new MonthTotals()).add(day);
-        }
-        return months;
-    }
-
-    private static final class MonthTotals {
-
-        private double selfConsumptionKWh;
-        private double surplusKWh;
-        private long publishedHours;
-
-        void add(DailyPublishedAggregate day) {
-            selfConsumptionKWh += day.selfConsumptionKWh();
-            surplusKWh += day.surplusKWh();
-            publishedHours += day.publishedHours();
-        }
     }
 }

@@ -81,7 +81,7 @@ class MembershipDailyConsumptionBucketTest {
         consumption.setSelfConsumptionEnergyKWh(selfConsumptionKWh);
         consumption.setObtainMethod("Real");
         return SupplyConsumptionBucket.of(consumption,
-                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE));
+                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE), true);
     }
 
     private static void assertDecimal(String expected, BigDecimal actual) {

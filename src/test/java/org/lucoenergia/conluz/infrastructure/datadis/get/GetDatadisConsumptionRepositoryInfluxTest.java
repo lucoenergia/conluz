@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
 
-        List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate);
+        List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate).stream().map(DatadisDailyConsumption::getConsumption).toList();
 
         assertNotNull(result);
         assertFalse(result.isEmpty());

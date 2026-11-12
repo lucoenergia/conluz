@@ -14,10 +14,12 @@ public class DatadisHourlyConsumption {
 
     private final Instant startsAt;
     private final DatadisConsumption consumption;
+    private final long publishedHours;
 
-    public DatadisHourlyConsumption(Instant startsAt, DatadisConsumption consumption) {
+    public DatadisHourlyConsumption(Instant startsAt, DatadisConsumption consumption, long publishedHours) {
         this.startsAt = Objects.requireNonNull(startsAt);
         this.consumption = Objects.requireNonNull(consumption);
+        this.publishedHours = publishedHours;
     }
 
     /**
@@ -31,11 +33,20 @@ public class DatadisHourlyConsumption {
         return consumption;
     }
 
+    /**
+     * The number of the hour's records carrying self-consumption, zero included: 0 when the hour's
+     * self-consumption has not been published, or nothing was stored.
+     */
+    public long getPublishedHours() {
+        return publishedHours;
+    }
+
     @Override
     public String toString() {
         return "DatadisHourlyConsumption{" +
                 "startsAt=" + startsAt +
                 ", consumption=" + consumption +
+                ", publishedHours=" + publishedHours +
                 '}';
     }
 }

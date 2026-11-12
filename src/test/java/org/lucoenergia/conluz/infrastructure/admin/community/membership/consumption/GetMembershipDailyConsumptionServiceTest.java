@@ -333,7 +333,7 @@ class GetMembershipDailyConsumptionServiceTest {
         consumption.setSelfConsumptionEnergyKWh(selfConsumptionKWh);
         consumption.setObtainMethod(obtainMethod);
         return SupplyConsumptionBucket.of(consumption,
-                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE));
+                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE), obtainMethod != null);
     }
 
     private static void assertDays(List<MembershipDailyConsumptionBucket> series, String... expected) {

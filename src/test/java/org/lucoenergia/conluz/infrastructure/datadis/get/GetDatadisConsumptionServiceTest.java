@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplyHourlyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
@@ -34,6 +35,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -268,9 +270,9 @@ class GetDatadisConsumptionServiceTest {
         givenASingleSegmentAt(SupplyId.of(supply.getId()), "0.15");
         givenASingleSegmentAt(SupplyId.of(otherSupply.getId()), "0.30");
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(eq(supply), any(), any()))
-                .thenReturn(List.of(bucket("2024/02/05", 4.0), bucket("2024/02/06", 2.0)));
+                .thenReturn(List.of(publishedDay(bucket("2024/02/05", 4.0)), publishedDay(bucket("2024/02/06", 2.0))));
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(eq(otherSupply), any(), any()))
-                .thenReturn(List.of(bucket("2024/02/05", 4.0), bucket("2024/02/06", 2.0)));
+                .thenReturn(List.of(publishedDay(bucket("2024/02/05", 4.0)), publishedDay(bucket("2024/02/06", 2.0))));
 
         OffsetDateTime from = madridOffset("2024-02-05T00:00+01:00");
         OffsetDateTime to = madridOffset("2024-02-06T23:59:59+01:00");
@@ -387,7 +389,14 @@ class GetDatadisConsumptionServiceTest {
 
     private void givenDailyBuckets(DatadisConsumption... buckets) {
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
-                .thenReturn(List.of(buckets));
+                .thenReturn(Arrays.stream(buckets).map(GetDatadisConsumptionServiceTest::publishedDay).toList());
+    }
+
+    /**
+     * A day whose every hour carries self-consumption.
+     */
+    private static DatadisDailyConsumption publishedDay(DatadisConsumption consumption) {
+        return new DatadisDailyConsumption(consumption, 25);
     }
 
     private void givenStoredHours(DatadisHourlyConsumption... hours) {
@@ -400,7 +409,7 @@ class GetDatadisConsumptionServiceTest {
         DatadisConsumption consumption = bucket(start.toLocalDate().toString().replace('-', '/'), selfConsumptionKWh);
         consumption.setTime(start.toLocalTime().toString());
         consumption.setObtainMethod("Real");
-        return new DatadisHourlyConsumption(start.toInstant(), consumption);
+        return new DatadisHourlyConsumption(start.toInstant(), consumption, 1);
     }
 
     private void givenMonthlyBuckets(DatadisConsumption... buckets) {

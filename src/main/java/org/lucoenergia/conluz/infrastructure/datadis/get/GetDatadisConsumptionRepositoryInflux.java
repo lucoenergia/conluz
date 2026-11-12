@@ -6,6 +6,7 @@ import org.influxdb.dto.QueryResult;
 import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
@@ -74,9 +75,13 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
     }
 
     @Override
-    public List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
-        return getConsumptionsByRangeOfDatesGroupedByDuration(supply, startDate, endDate,
-                DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, InfluxDuration.DAILY, true, true);
+    public List<DatadisDailyConsumption> getDailyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate,
+                                                                            OffsetDateTime endDate) {
+        return queryGroupedPoints(supply, startDate, endDate, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                InfluxDuration.DAILY, true, true)
+                .stream()
+                .map(point -> new DatadisDailyConsumption(toConsumption(point), publishedHoursOf(point)))
+                .toList();
     }
 
     @Override
@@ -96,7 +101,8 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         return queryGroupedPoints(supply, startDate, endDate, DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
                 InfluxDuration.HOURLY, true, false)
                 .stream()
-                .map(point -> new DatadisHourlyConsumption(point.getTime(), toConsumption(point)))
+                .map(point -> new DatadisHourlyConsumption(point.getTime(), toConsumption(point),
+                        publishedHoursOf(point)))
                 .toList();
     }
 
@@ -197,6 +203,7 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                                 SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
                                 SUM("generation_energy_kwh") AS "generation_energy_kwh",
                                 SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
+                                COUNT("self_consumption_energy_kwh") AS "published_hours",
                                 LAST("obtain_method") AS "obtain_method"
                             FROM "%s"
                             WHERE cups = '%s'
@@ -217,6 +224,14 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
             InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
             return resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class);
         }
+    }
+
+    /**
+     * The number of the group's records carrying self-consumption. COUNT over the field skips the
+     * records where it is absent and counts zeros; a group without any record comes back null.
+     */
+    private static long publishedHoursOf(DatadisConsumptionPoint point) {
+        return point.getPublishedHours() == null ? 0L : point.getPublishedHours().longValue();
     }
 
     private List<DatadisConsumption> mapToConsumption(List<DatadisConsumptionPoint> consumptionPoints) {
