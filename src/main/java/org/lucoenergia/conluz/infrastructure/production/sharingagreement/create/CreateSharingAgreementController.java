@@ -56,9 +56,9 @@ public class CreateSharingAgreementController {
             summary = "Creates a new sharing agreement under a plant",
             description = """
                     This endpoint creates a new DRAFT sharing agreement under the given plant. The
-                    agreement's installed power is supplied by the caller as a snapshot of the plant's
-                    installed power at authoring time (the frontend pre-fills it from the plant's
-                    current total power, but it may be edited before submission).
+                    agreement's nominal power is supplied by the caller as a snapshot of the plant's
+                    nominal power at authoring time (the frontend pre-fills it from the plant's
+                    current nominal power, but it may be edited before submission).
 
                     **Required: Community Admin**
 

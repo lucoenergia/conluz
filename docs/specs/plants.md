@@ -4,14 +4,15 @@
 | --- | --- |
 | **Prefix** | `PLT` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Plants`; operations `deletePlant`, `createPlant`, `updatePlant` |
+| **Contract** | OpenAPI snapshot → tag `Plants`; operations `deletePlant`, `createPlant`, `updatePlant`, `getPlantById`, `getAllPlants` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #411 |
+| **Last reviewed against code** | #567 |
 
 ## Purpose
 
 A plant is a generation installation attached to a supply of a community. This spec covers what deleting one does,
-and which supply a plant may be attached to. It covers only the rules #437 and #411 touched.
+which supply a plant may be attached to, the powers a plant records (its peak and nominal power), and its CIL. It
+covers only the rules #437, #411 and #567 touched.
 
 ## Glossary
 
@@ -21,6 +22,9 @@ and which supply a plant may be attached to. It covers only the rules #437 and #
 | Sharing agreement | The community's record of how a plant's energy is shared among supplies, with its distributor files. |
 | Partition coefficient | The share of a plant's production a sharing agreement assigns to a supply. |
 | Huawei configuration | The credentials and settings a plant uses to reach the Huawei FusionSolar API (HCF). |
+| Peak power | The sum of the plant's modules, in kWp. |
+| Nominal power | The most the plant can export to the grid, in kW, as capped by its inverters and its grid connection conditions. It may be below or above the peak power. |
+| CIL | Código de la Instalación de producción a efectos de Liquidación: the Spanish settlement code of a production installation, assigned by the distribution company's metering party; 25 alphanumeric characters (REE, SIMEL). |
 
 ## Rules
 
@@ -62,11 +66,59 @@ and which supply a plant may be attached to. It covers only the rules #437 and #
   before writing, and the database constraint catches the race between two of them.
 - **Source:** #411
 
+### PLT-003 — A plant has a nominal power above 0, unconstrained by its peak power
+
+- **Status:** Active
+- **Rule:** A plant MUST have a nominal power (`nominalPowerKW`), the power it can export to the grid in kW, greater
+  than 0, on `createPlant` and `updatePlant`. It MUST NOT be constrained relative to the peak power (`peakPowerKWp`);
+  a value that is not above 0 MUST be refused with 400 and nothing written.
+- **Rationale:** Peak and nominal power differ when inverters or grid connection conditions cap export (Luco: 80 kWp,
+  60 kW). An oversized inverter makes nominal above peak possible, so no ordering holds in general.
+- **Source:** #567
+
+### PLT-004 — A plant's CIL is normalised, and is 25 ASCII alphanumeric characters
+
+- **Status:** Active
+- **Rule:** A plant MAY have a CIL. On `createPlant` and `updatePlant` the CIL MUST be upper-cased and stripped of
+  every whitespace or Unicode space character (U+00A0 included), wherever it appears; empty after that means no CIL.
+  A non-empty CIL that is not exactly 25 ASCII alphanumeric characters MUST be refused with 400 `PLANT_CIL_INVALID`
+  and nothing written.
+- **Rationale:** The CIL is assigned by the distribution company and is 25 alphanumeric characters (REE SIMEL).
+  Normalising lets a code pasted from a distributor document be compared reliably. Optional because existing plants
+  and plants still being registered have none.
+- **Source:** #567
+
+**Scenarios**
+
+```gherkin
+Given a plant written with the CIL " es0031406912345678ab1f001 "
+When it is read
+Then its CIL is "ES0031406912345678AB1F001"
+
+Given a plant that has a CIL
+When it is updated without a CIL, or with an empty or blank one
+Then it has no CIL
+```
+
+### PLT-005 — A CIL identifies at most one plant
+
+- **Status:** Active
+- **Rule:** A CIL MUST identify at most one plant across the platform. Creating or updating a plant with a CIL another
+  plant holds MUST be refused with 409 `PLANT_CIL_ALREADY_IN_USE` and nothing written; keeping a plant's own CIL is
+  not a conflict. Two racing writers MUST end with one plant holding it and the same refusal for the other, never an
+  unhandled error.
+- **Rationale:** The CIL identifies a single production installation for settlement; two plants with one CIL would
+  make surplus claims ambiguous. The writer checks first; a unique constraint on the normalised value catches the
+  race, as PLT-002 does for supplies.
+- **Source:** #567
+
 ## Impossible states
 
 - Two plants attached to the same supply — prevented by PLT-002 and the `plants_supply_id_uq` unique
   constraint. A database holding such plants does not start the release that adds the constraint until
   they are resolved by hand.
+
+- Two plants holding the same CIL — prevented by PLT-005 and the `plants_cil_uq` unique constraint.
 
 - A sharing agreement, partition coefficient or Huawei configuration whose plant does not exist — prevented by the
   foreign keys to `plants`, which PLT-001 refuses or clears before deleting the plant.

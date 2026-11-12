@@ -253,7 +253,7 @@ class CommunityProductionSupplyIdControllerTest extends BaseControllerTest {
                 .withPlantId(plant.getId())
                 .withName("Agreement " + UUID.randomUUID())
                 .withStatus(SharingAgreementStatus.PUBLISHED)
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(createdBy.getId())
                 .build());

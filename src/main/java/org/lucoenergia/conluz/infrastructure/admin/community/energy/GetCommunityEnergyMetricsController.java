@@ -58,7 +58,8 @@ public class GetCommunityEnergyMetricsController {
                       was used in the community and that went to the grid, on a 0-1 scale, computed
                       **once** from the summed self-consumption and surplus, so they add up to 1. Both
                       are `null` when both figures are zero or unknown, never `0`.
-                    - `installedPowerKWp`: the installed power of every plant of the community.
+                    - `peakPowerKWp` and `nominalPowerKW`: the peak power of the modules and the power
+                      that can be exported to the grid, each summed over every plant of the community.
                     - `surplusIncome.amountEur`: an **estimate** of what `energy.surplusKWh` earned at
                       OMIE day-ahead prices, the Spanish system's marginal price. Each hour's surplus is
                       priced at the mean of the prices stored for that hour (four quarter-hour prices, or a
@@ -76,8 +77,8 @@ public class GetCommunityEnergyMetricsController {
                     - `co2Avoided.factorYears`: the years of the factors applied, in ascending order. Both
                       are `null` when `energy.productionKWh` is, or when a year with production is earlier
                       than every available factor.
-                    - `plants`: every plant of the community with its installed power, its production
-                      and its share of the community's production.
+                    - `plants`: every plant of the community with its peak and nominal power, its
+                      production and its share of the community's production.
 
                     A figure nothing was stored for is `null`, never `0`: a plant without any production
                     record in the period has null production and share, and so do the energy totals
@@ -104,7 +105,7 @@ public class GetCommunityEnergyMetricsController {
 
                     When no period can be resolved, the response is still successful, with null period
                     bounds, null figures and ratios, no supply with data, and every plant listed with
-                    its installed power alone.
+                    its peak and nominal power alone.
 
                     """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
 

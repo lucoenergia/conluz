@@ -29,7 +29,7 @@ class SharingAgreementTest {
                 .withName("Reparto 2025-2026")
                 .withNotes("Adjusted after member B joined")
                 .withStatus(SharingAgreementStatus.PUBLISHED)
-                .withInstalledPowerKw(BigDecimal.valueOf(12.5))
+                .withNominalPowerKW(BigDecimal.valueOf(12.5))
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(UUID.randomUUID())
                 .build();

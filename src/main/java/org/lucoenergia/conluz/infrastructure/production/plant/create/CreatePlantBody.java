@@ -11,7 +11,7 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import java.time.LocalDate;
 
 @Schema(requiredProperties = {
-        "providerCode", "name", "address", "totalPower"
+        "providerCode", "name", "address", "peakPowerKWp", "nominalPowerKW"
 })
 public class CreatePlantBody {
 
@@ -25,6 +25,11 @@ public class CreatePlantBody {
             "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
             "not a CUPS.")
     private String regulatoryCode;
+    @Schema(description = "The CIL (Codigo de la Instalacion de produccion a efectos de " +
+            "Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. " +
+            "25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique " +
+            "across the platform. Omitted, empty or blank means no CIL.")
+    private String cil;
     @NotBlank
     private String name;
     private String description;
@@ -35,8 +40,15 @@ public class CreatePlantBody {
     private LocalDate connectionDate;
     @NotBlank
     private String address;
+    @Schema(description = "Peak power of the plant's modules, in kWp.")
+    @NotNull
     @Positive
-    private Double totalPower;
+    private Double peakPowerKWp;
+    @Schema(description = "Power the plant can export to the grid, in kW, as capped by its inverters " +
+            "and grid connection.")
+    @NotNull
+    @Positive
+    private Double nominalPowerKW;
 
     public String getProviderCode() {
         return providerCode;
@@ -52,6 +64,14 @@ public class CreatePlantBody {
 
     public void setRegulatoryCode(String regulatoryCode) {
         this.regulatoryCode = regulatoryCode;
+    }
+
+    public String getCil() {
+        return cil;
+    }
+
+    public void setCil(String cil) {
+        this.cil = cil;
     }
 
     public String getName() {
@@ -102,24 +122,34 @@ public class CreatePlantBody {
         this.address = address;
     }
 
-    public Double getTotalPower() {
-        return totalPower;
+    public Double getPeakPowerKWp() {
+        return peakPowerKWp;
     }
 
-    public void setTotalPower(Double totalPower) {
-        this.totalPower = totalPower;
+    public void setPeakPowerKWp(Double peakPowerKWp) {
+        this.peakPowerKWp = peakPowerKWp;
+    }
+
+    public Double getNominalPowerKW() {
+        return nominalPowerKW;
+    }
+
+    public void setNominalPowerKW(Double nominalPowerKW) {
+        this.nominalPowerKW = nominalPowerKW;
     }
 
     public Plant mapToPlant() {
         Plant.Builder builder = new Plant.Builder();
         builder.withProviderCode(providerCode)
                 .withRegulatoryCode(regulatoryCode)
+                .withCil(cil)
                 .withAddress(address)
                 .withName(name)
                 .withDescription(description)
                 .withSupply(new Supply.Builder().withCode(supplyCode).build())
                 .withInverterProvider(inverterProvider)
-                .withTotalPower(totalPower)
+                .withPeakPowerKWp(peakPowerKWp)
+                .withNominalPowerKW(nominalPowerKW)
                 .withConnectionDate(connectionDate);
         return builder.build();
     }

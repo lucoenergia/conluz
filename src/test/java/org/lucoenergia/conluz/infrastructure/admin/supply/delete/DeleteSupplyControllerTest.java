@@ -131,7 +131,7 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
                 .withPlantId(plant.getId())
                 .withName("Agreement " + UUID.randomUUID())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(Instant.now())
                 .build());
         SupplyPartitionCoefficient coefficient = saveSupplyPartitionCoefficientRepository.save(

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A sharing agreement's power is a snapshot of the plant's nominal power at authoring time
+         (#567): the power the plant can export to the grid, which the indicative power per supply
+         (coefficient times power) must be computed against. The column is renamed to say so, and its
+         remarks no longer name plants.total_power, which #567 renamed. The values are kept as they
+         are: an agreement's power stays its own, and is not derived from the plant's. NULL still
+         means the agreement records no power, as before. -->
+    <changeSet id="rename_sharing_agreement_installed_power_kw_to_nominal_power_kw" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot rename sharing_agreement.installed_power_kw to nominal_power_kw: installed_power_kw is missing or nominal_power_kw already exists. Nothing was changed.">
+            <columnExists tableName="sharing_agreement" columnName="installed_power_kw"/>
+            <not>
+                <columnExists tableName="sharing_agreement" columnName="nominal_power_kw"/>
+            </not>
+        </preConditions>
+        <renameColumn tableName="sharing_agreement"
+                      oldColumnName="installed_power_kw"
+                      newColumnName="nominal_power_kw"
+                      columnDataType="NUMERIC"/>
+        <setColumnRemarks tableName="sharing_agreement"
+                          columnName="nominal_power_kw"
+                          remarks="A snapshot of the plant's nominal power at authoring time, in kW, recorded with the agreement and not read from the plant."/>
+        <rollback>
+            <setColumnRemarks tableName="sharing_agreement"
+                              columnName="nominal_power_kw"
+                              remarks="A deliberate snapshot of the plant's installed power at authoring time, not a join to plants.total_power: the plant's installed power today is not the power the agreement was authored against."/>
+            <renameColumn tableName="sharing_agreement"
+                          oldColumnName="nominal_power_kw"
+                          newColumnName="installed_power_kw"
+                          columnDataType="NUMERIC"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

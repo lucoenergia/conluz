@@ -58,7 +58,7 @@ class CreateSharingAgreementServiceImplTest {
         CreateSharingAgreement request = new CreateSharingAgreement.Builder()
                 .withName("name")
                 .withNotes("notes")
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedBy(UUID.randomUUID())
                 .build();
 
@@ -97,7 +97,7 @@ class CreateSharingAgreementServiceImplTest {
         return new CreateSharingAgreement.Builder()
                 .withName("name")
                 .withNotes("notes")
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedBy(UUID.randomUUID())
                 .build();
     }
@@ -106,13 +106,13 @@ class CreateSharingAgreementServiceImplTest {
     void create_buildsDraftAgreementUsingSuppliedPower() {
         UUID plantId = UUID.randomUUID();
         UUID createdBy = UUID.randomUUID();
-        Plant plant = PlantMother.random().withId(plantId).withTotalPower(7.25).build();
+        Plant plant = PlantMother.random().withId(plantId).withPeakPowerKWp(7.25).build();
         when(getPlantRepository.findById(PlantId.of(plantId))).thenReturn(Optional.of(plant));
         when(repository.create(any())).thenAnswer(invocation -> invocation.getArgument(0));
         CreateSharingAgreement request = new CreateSharingAgreement.Builder()
                 .withName("2024 winter distribution")
                 .withNotes("notes")
-                .withInstalledPowerKw(BigDecimal.valueOf(3.5))
+                .withNominalPowerKW(BigDecimal.valueOf(3.5))
                 .withCreatedBy(createdBy)
                 .build();
 
@@ -122,7 +122,7 @@ class CreateSharingAgreementServiceImplTest {
         assertEquals("2024 winter distribution", result.getName());
         assertEquals("notes", result.getNotes());
         assertEquals(SharingAgreementStatus.DRAFT, result.getStatus());
-        assertEquals(0, BigDecimal.valueOf(3.5).compareTo(result.getInstalledPowerKw()));
+        assertEquals(0, BigDecimal.valueOf(3.5).compareTo(result.getNominalPowerKW()));
         assertEquals(createdBy, result.getCreatedBy());
         assertNotNull(result.getId());
         assertEquals(NOW, result.getCreatedAt());

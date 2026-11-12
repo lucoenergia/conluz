@@ -53,9 +53,9 @@ public class UpdateSharingAgreementController {
 
     @PutMapping
     @Operation(
-            summary = "Replaces a sharing agreement's name, notes and installed power",
+            summary = "Replaces a sharing agreement's name, notes and nominal power",
             description = """
-                    This endpoint replaces the name, notes and installed power of a sharing agreement,
+                    This endpoint replaces the name, notes and nominal power of a sharing agreement,
                     regardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be
                     edited this way. All three fields must be provided; this is a full replacement of
                     the updatable fields, not a partial update. Its status, plant and creation metadata

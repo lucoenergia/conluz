@@ -10,7 +10,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SharingAgreementCapabilitiesResponse;
 
-@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "installedPowerKw", "createdAt", "createdBy", "updatedAt", "updatedBy", "file", "capabilities"})
+@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "nominalPowerKW", "createdAt", "createdBy", "updatedAt", "updatedBy", "file", "capabilities"})
 public class SharingAgreementResponse {
 
     @Schema(description = "Internal unique identifier of the sharing agreement", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -23,8 +23,8 @@ public class SharingAgreementResponse {
     private final String notes;
     @Schema(description = "Status of the agreement: DRAFT, PUBLISHED or SUPERSEDED", example = "PUBLISHED")
     private final SharingAgreementStatus status;
-    @Schema(description = "Snapshot of the plant's installed power at authoring time, in kW", example = "12.5")
-    private final BigDecimal installedPowerKw;
+    @Schema(description = "Snapshot of the plant's nominal power at authoring time, in kW.", example = "12.5")
+    private final BigDecimal nominalPowerKW;
     @Schema(description = "Date and time the agreement was created")
     private final Instant createdAt;
     @Schema(description = "Identifier of the user who created the agreement. Null means it was created by the system (a migration), not by a person", types = {"string", "null"})
@@ -46,7 +46,7 @@ public class SharingAgreementResponse {
         this.name = sharingAgreement.getName();
         this.notes = sharingAgreement.getNotes();
         this.status = sharingAgreement.getStatus();
-        this.installedPowerKw = sharingAgreement.getInstalledPowerKw();
+        this.nominalPowerKW = sharingAgreement.getNominalPowerKW();
         this.createdAt = sharingAgreement.getCreatedAt();
         this.createdBy = sharingAgreement.getCreatedBy();
         this.updatedAt = sharingAgreement.getUpdatedAt();
@@ -78,8 +78,8 @@ public class SharingAgreementResponse {
         return status;
     }
 
-    public BigDecimal getInstalledPowerKw() {
-        return installedPowerKw;
+    public BigDecimal getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public Instant getCreatedAt() {

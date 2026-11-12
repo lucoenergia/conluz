@@ -18,7 +18,7 @@ public class SharingAgreement {
     private final String name;
     private final String notes;
     private final SharingAgreementStatus status;
-    private final BigDecimal installedPowerKw;
+    private final BigDecimal nominalPowerKW;
     private final Instant createdAt;
     private final UUID createdBy;
     private final Instant updatedAt;
@@ -31,7 +31,7 @@ public class SharingAgreement {
         this.name = builder.name;
         this.notes = builder.notes;
         this.status = builder.status;
-        this.installedPowerKw = builder.installedPowerKw;
+        this.nominalPowerKW = builder.nominalPowerKW;
         this.createdAt = builder.createdAt;
         this.createdBy = builder.createdBy;
         this.updatedAt = builder.updatedAt;
@@ -59,8 +59,8 @@ public class SharingAgreement {
         return status;
     }
 
-    public BigDecimal getInstalledPowerKw() {
-        return installedPowerKw;
+    public BigDecimal getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public Instant getCreatedAt() {
@@ -96,7 +96,7 @@ public class SharingAgreement {
                 .withName(name)
                 .withNotes(notes)
                 .withStatus(status)
-                .withInstalledPowerKw(installedPowerKw)
+                .withNominalPowerKW(nominalPowerKW)
                 .withCreatedAt(createdAt)
                 .withCreatedBy(createdBy)
                 .withUpdatedAt(updatedAt)
@@ -150,7 +150,7 @@ public class SharingAgreement {
         private String name;
         private String notes;
         private SharingAgreementStatus status;
-        private BigDecimal installedPowerKw;
+        private BigDecimal nominalPowerKW;
         private Instant createdAt;
         private UUID createdBy;
         private Instant updatedAt;
@@ -182,8 +182,8 @@ public class SharingAgreement {
             return this;
         }
 
-        public Builder withInstalledPowerKw(BigDecimal installedPowerKw) {
-            this.installedPowerKw = installedPowerKw;
+        public Builder withNominalPowerKW(BigDecimal nominalPowerKW) {
+            this.nominalPowerKW = nominalPowerKW;
             return this;
         }
 

@@ -109,7 +109,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 .withPlantId(plant.getId())
                 .withName("Agreement " + UUID.randomUUID())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(admin.getId())
                 .build());
@@ -195,7 +195,8 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
         String agreements = plants + "/sharing-agreements";
         String anAgreement = agreements + "/{a}";
         Map<String, Object> plantBody = Map.of("name", "Plant", "address", "Calle Mayor 4", "supplyCode",
-                supply.getCode(), "providerCode", "NE=1", "inverterProvider", "HUAWEI", "totalPower", 10.0);
+                supply.getCode(), "providerCode", "NE=1", "inverterProvider", "HUAWEI", "peakPowerKWp", 10.0,
+                "nominalPowerKW", 10.0);
         Map<String, Object> coefficientIds = Map.of("coefficientIds", List.of(UUID.randomUUID()));
         assertEveryCallIsRefused(List.of(
                 call(403, HttpMethod.GET, "/api/v1/communities/{c}/plants"),
@@ -210,9 +211,9 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(404, HttpMethod.POST, plants + "/production/huawei/config/enable"),
                 call(404, HttpMethod.POST, plants + "/production/huawei/config/disable"),
                 call(404, HttpMethod.GET, agreements),
-                call(404, HttpMethod.POST, agreements).body(Map.of("name", "Agreement", "installedPowerKw", 10)),
+                call(404, HttpMethod.POST, agreements).body(Map.of("name", "Agreement", "nominalPowerKW", 10)),
                 call(404, HttpMethod.GET, anAgreement),
-                call(404, HttpMethod.PUT, anAgreement).body(Map.of("name", "Agreement", "installedPowerKw", 10)),
+                call(404, HttpMethod.PUT, anAgreement).body(Map.of("name", "Agreement", "nominalPowerKW", 10)),
                 call(404, HttpMethod.DELETE, anAgreement),
                 call(404, HttpMethod.POST, anAgreement + "/publish"),
                 call(404, HttpMethod.POST, anAgreement + "/revert-to-draft"),

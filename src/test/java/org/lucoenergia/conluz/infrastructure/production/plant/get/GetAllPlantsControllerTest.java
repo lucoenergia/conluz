@@ -81,7 +81,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[0].address").value(plantTwo.getAddress()))
                 .andExpect(jsonPath("$.items[0].description").value(plantTwo.getDescription()))
                 .andExpect(jsonPath("$.items[0].inverterProvider").value(plantTwo.getInverterProvider().name()))
-                .andExpect(jsonPath("$.items[0].totalPower").value(plantTwo.getTotalPower()))
+                .andExpect(jsonPath("$.items[0].peakPowerKWp").value(plantTwo.getPeakPowerKWp()))
                 .andExpect(jsonPath("$.items[0].connectionDate").value(plantTwo.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[0].supply.code").value(plantTwo.getSupply().getCode()))
                 .andExpect(jsonPath("$.items[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
@@ -92,7 +92,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[1].address").value(plantOne.getAddress()))
                 .andExpect(jsonPath("$.items[1].description").value(plantOne.getDescription()))
                 .andExpect(jsonPath("$.items[1].inverterProvider").value(plantOne.getInverterProvider().name()))
-                .andExpect(jsonPath("$.items[1].totalPower").value(plantOne.getTotalPower()))
+                .andExpect(jsonPath("$.items[1].peakPowerKWp").value(plantOne.getPeakPowerKWp()))
                 .andExpect(jsonPath("$.items[1].connectionDate").value(plantOne.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[1].supply.code").value(plantOne.getSupply().getCode()))
                 .andExpect(jsonPath("$.items[1].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
@@ -103,7 +103,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.items[2].address").value(plantThree.getAddress()))
                 .andExpect(jsonPath("$.items[2].description").value(plantThree.getDescription()))
                 .andExpect(jsonPath("$.items[2].inverterProvider").value(plantThree.getInverterProvider().name()))
-                .andExpect(jsonPath("$.items[2].totalPower").value(plantThree.getTotalPower()))
+                .andExpect(jsonPath("$.items[2].peakPowerKWp").value(plantThree.getPeakPowerKWp()))
                 .andExpect(jsonPath("$.items[2].connectionDate").value(plantThree.getConnectionDate().format(DateTimeFormatter.ISO_DATE)))
                 .andExpect(jsonPath("$.items[2].supply.code").value(plantThree.getSupply().getCode()))
                 .andExpect(jsonPath("$.items[2].community.id").value(DEFAULT_COMMUNITY_ID.toString()));
@@ -341,19 +341,19 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantOne = PlantMother.random(supplyOne)
                 .withProviderCode("TS-456789")
                 .withName("Plant One")
-                .withTotalPower(60D)
+                .withPeakPowerKWp(60D)
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
         Plant plantTwo = PlantMother.random(supplyThree)
                 .withProviderCode("TS-123456")
                 .withName("Plant Two")
-                .withTotalPower(60D)
+                .withPeakPowerKWp(60D)
                 .build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
                 .withProviderCode("TS-789456")
                 .withName("Plant Three")
-                .withTotalPower(30D)
+                .withPeakPowerKWp(30D)
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 
@@ -361,7 +361,7 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
 
         mockMvc.perform(get(URL)
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .queryParam("sort", "totalPower,asc")
+                        .queryParam("sort", "peakPowerKWp,asc")
                         .queryParam("sort", "providerCode,asc"))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -393,19 +393,19 @@ class GetAllPlantsControllerTest extends BaseControllerTest {
         Plant plantOne = PlantMother.random(supplyOne)
                 .withProviderCode("TS-456789")
                 .withName("Plant One")
-                .withTotalPower(60D)
+                .withPeakPowerKWp(60D)
                 .build();
         createPlantRepository.create(plantOne, SupplyId.of(supplyOne.getId()));
         Plant plantTwo = PlantMother.random(supplyThree)
                 .withProviderCode("TS-123456")
                 .withName("Plant Two")
-                .withTotalPower(60D)
+                .withPeakPowerKWp(60D)
                 .build();
         createPlantRepository.create(plantTwo, SupplyId.of(supplyThree.getId()));
         Plant plantThree = PlantMother.random(supplyTwo)
                 .withProviderCode("TS-789456")
                 .withName("Plant Three")
-                .withTotalPower(30D)
+                .withPeakPowerKWp(30D)
                 .build();
         createPlantRepository.create(plantThree, SupplyId.of(supplyTwo.getId()));
 

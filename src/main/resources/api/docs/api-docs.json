@@ -481,8 +481,14 @@
             "$ref" : "#/components/schemas/CommunityEnergyMetricsEnergyResponse",
             "description" : "The energy totals of the community: its plants' production, and the self-consumption and surplus of every supply of the community, summed."
           },
-          "installedPowerKWp" : {
-            "description" : "Installed power of every plant of the community, summed, in kWp.",
+          "nominalPowerKW" : {
+            "description" : "Power every plant of the community can export to the grid, summed, in kW.",
+            "example" : 160,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of every plant of the community, summed, in kWp.",
             "example" : 200,
             "format" : "double",
             "type" : "number"
@@ -525,7 +531,8 @@
           "co2Avoided",
           "coverage",
           "energy",
-          "installedPowerKWp",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "period",
           "plants",
           "selfConsumptionRatio",
@@ -675,8 +682,14 @@
       },
       "CommunityPlantEnergyResponse" : {
         "properties" : {
-          "installedPowerKWp" : {
-            "description" : "Installed power of the plant, in kWp.",
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "example" : 80,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
             "example" : 100,
             "format" : "double",
             "type" : "number"
@@ -705,7 +718,8 @@
           }
         },
         "required" : [
-          "installedPowerKWp",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "plant",
           "productionKWh",
           "productionShare"
@@ -1007,6 +1021,10 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "cil" : {
+            "description" : "The CIL (Codigo de la Instalacion de produccion a efectos de Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. 25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique across the platform. Omitted, empty or blank means no CIL.",
+            "type" : "string"
+          },
           "connectionDate" : {
             "format" : "date",
             "type" : "string"
@@ -1024,6 +1042,18 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
           "providerCode" : {
             "description" : "The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code.",
             "minLength" : 1,
@@ -1036,36 +1066,32 @@
           "supplyCode" : {
             "minLength" : 1,
             "type" : "string"
-          },
-          "totalPower" : {
-            "exclusiveMinimum" : 0,
-            "format" : "double",
-            "type" : "number"
           }
         },
         "required" : [
           "address",
           "inverterProvider",
           "name",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "providerCode",
-          "supplyCode",
-          "totalPower"
+          "supplyCode"
         ],
         "type" : "object"
       },
       "CreateSharingAgreementBody" : {
         "properties" : {
-          "installedPowerKw" : {
-            "description" : "Snapshot of the plant's installed power at authoring time, in kW",
-            "example" : 12.5,
-            "exclusiveMinimum" : 0,
-            "type" : "number"
-          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
             "minLength" : 1,
             "type" : "string"
+          },
+          "nominalPowerKW" : {
+            "description" : "Snapshot of the plant's nominal power at authoring time, in kW.",
+            "example" : 12.5,
+            "exclusiveMinimum" : 0,
+            "type" : "number"
           },
           "notes" : {
             "description" : "Free-text notes about the agreement",
@@ -1074,8 +1100,8 @@
           }
         },
         "required" : [
-          "installedPowerKw",
-          "name"
+          "name",
+          "nominalPowerKW"
         ],
         "type" : "object"
       },
@@ -1576,6 +1602,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -1808,6 +1836,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -3540,6 +3570,13 @@
             "$ref" : "#/components/schemas/PlantCapabilitiesResponse",
             "description" : "What the caller may do with this plant."
           },
+          "cil" : {
+            "description" : "The CIL (Codigo de la Instalacion de produccion a efectos de Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. 25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique across the platform. Null when the plant has none recorded.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "community" : {
             "$ref" : "#/components/schemas/PlantCommunityResponse",
             "description" : "The community that owns the plant."
@@ -3570,6 +3607,18 @@
           "name" : {
             "type" : "string"
           },
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "example" : 60,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
+            "example" : 100,
+            "format" : "double",
+            "type" : "number"
+          },
           "providerCode" : {
             "description" : "The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code.",
             "type" : "string"
@@ -3584,27 +3633,23 @@
           "supply" : {
             "$ref" : "#/components/schemas/SupplyReferenceResponse",
             "description" : "The supply this plant produces onto. A reference: the full supply, including its owner, is fetched from GET /supplies/{supplyId}, which not every caller who may list plants is allowed to call."
-          },
-          "totalPower" : {
-            "description" : "Installed power of the plant, in kWp.",
-            "example" : 100,
-            "format" : "double",
-            "type" : "number"
           }
         },
         "required" : [
           "address",
           "capabilities",
+          "cil",
           "community",
           "connectionDate",
           "description",
           "id",
           "inverterProvider",
           "name",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "providerCode",
           "regulatoryCode",
-          "supply",
-          "totalPower"
+          "supply"
         ],
         "type" : "object"
       },
@@ -4074,6 +4119,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -4253,6 +4300,8 @@
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SUPPLY_ALREADY_HAS_PLANT",
+              "PLANT_CIL_INVALID",
+              "PLANT_CIL_ALREADY_IN_USE",
               "HUAWEI_CONFIG_PASSWORD_REQUIRED",
               "SUPPLY_CUPS_NOT_NORMALIZABLE",
               "SUPPLY_CUPS_COLLISION",
@@ -4587,15 +4636,15 @@
             "format" : "uuid",
             "type" : "string"
           },
-          "installedPowerKw" : {
-            "description" : "Snapshot of the plant's installed power at authoring time, in kW",
-            "example" : 12.5,
-            "type" : "number"
-          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
             "type" : "string"
+          },
+          "nominalPowerKW" : {
+            "description" : "Snapshot of the plant's nominal power at authoring time, in kW.",
+            "example" : 12.5,
+            "type" : "number"
           },
           "notes" : {
             "description" : "Free-text notes about the agreement",
@@ -4644,8 +4693,8 @@
           "createdBy",
           "file",
           "id",
-          "installedPowerKw",
           "name",
+          "nominalPowerKW",
           "notes",
           "plantId",
           "status",
@@ -5553,6 +5602,10 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "cil" : {
+            "description" : "The CIL (Codigo de la Instalacion de produccion a efectos de Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. 25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique across the platform. Omitted, empty or blank means no CIL: the plant's CIL is cleared.",
+            "type" : "string"
+          },
           "connectionDate" : {
             "format" : "date",
             "type" : "string"
@@ -5570,6 +5623,18 @@
             "minLength" : 1,
             "type" : "string"
           },
+          "nominalPowerKW" : {
+            "description" : "Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
+          "peakPowerKWp" : {
+            "description" : "Peak power of the plant's modules, in kWp.",
+            "exclusiveMinimum" : 0,
+            "format" : "double",
+            "type" : "number"
+          },
           "providerCode" : {
             "description" : "The plant identifier assigned by the inverter provider (currently Huawei). Used verbatim as the station_code tag in InfluxDB: this is the join key between the PostgreSQL plant row and its time series. It is not a CUPS and not a CAU -- the regulator's code is regulatory_code.",
             "minLength" : 1,
@@ -5582,21 +5647,17 @@
           "supplyCode" : {
             "minLength" : 1,
             "type" : "string"
-          },
-          "totalPower" : {
-            "exclusiveMinimum" : 0,
-            "format" : "double",
-            "type" : "number"
           }
         },
         "required" : [
           "address",
           "inverterProvider",
           "name",
+          "nominalPowerKW",
+          "peakPowerKWp",
           "personalId",
           "providerCode",
-          "supplyCode",
-          "totalPower"
+          "supplyCode"
         ],
         "type" : "object"
       },
@@ -5616,17 +5677,17 @@
       },
       "UpdateSharingAgreementBody" : {
         "properties" : {
-          "installedPowerKw" : {
-            "description" : "Snapshot of the plant's installed power at authoring time, in kW",
-            "example" : 12.5,
-            "exclusiveMinimum" : 0,
-            "type" : "number"
-          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
             "minLength" : 1,
             "type" : "string"
+          },
+          "nominalPowerKW" : {
+            "description" : "Snapshot of the plant's nominal power at authoring time, in kW.",
+            "example" : 12.5,
+            "exclusiveMinimum" : 0,
+            "type" : "number"
           },
           "notes" : {
             "description" : "Free-text notes about the agreement",
@@ -5635,8 +5696,8 @@
           }
         },
         "required" : [
-          "installedPowerKw",
-          "name"
+          "name",
+          "nominalPowerKW"
         ],
         "type" : "object"
       },
@@ -9060,7 +9121,7 @@
     },
     "/api/v1/communities/{communityId}/energy-metrics" : {
       "get" : {
-        "description" : "Aggregates the distributor's records of the whole community over one period. Only\ncommunity totals are reported: no figure, identifier or code of a single supply or\nmember.\n\n- `energy.productionKWh`: what every plant of the community produced, as reported for\n  the plant's own supply.\n- `energy.selfConsumptionKWh` and `energy.surplusKWh`: summed over every **enabled**\n  supply of the community, whatever the membership status of its owner. A plant's own\n  supply counts with its self-consumption; its surplus is stored as 0, since it is\n  reported as production.\n- `selfConsumptionRatio` and `surplusRatio`: the shares of the assigned energy that\n  was used in the community and that went to the grid, on a 0-1 scale, computed\n  **once** from the summed self-consumption and surplus, so they add up to 1. Both\n  are `null` when both figures are zero or unknown, never `0`.\n- `installedPowerKWp`: the installed power of every plant of the community.\n- `surplusIncome.amountEur`: an **estimate** of what `energy.surplusKWh` earned at\n  OMIE day-ahead prices, the Spanish system's marginal price. Each hour's surplus is\n  priced at the mean of the prices stored for that hour (four quarter-hour prices, or a\n  single hourly one), summed unrounded and rounded once to cents. Market prices may be\n  zero or **negative** and are applied as they are, so the amount may be negative. No\n  taxes, fees, deviation costs or retailer margins are included.\n- `surplusIncome.unpricedSurplusKWh`: the surplus of the hours without a stored price,\n  which add nothing to the amount. Both are `null` exactly when `energy.surplusKWh` is.\n- `co2Avoided.amountKg`: an **estimate** of the CO₂ that `energy.productionKWh`\n  avoided, in kg CO₂e: what the same electricity would have emitted had it been bought\n  from a retailer without guarantees of origin, using the MITECO \"Mix sin GdO\" factors,\n  **not** the average grid mix. Each calendar year of the period, in the community's\n  time zone, uses its own factor, or the latest earlier one when its own is not\n  published yet; the products are summed unrounded and rounded once to 3 decimals.\n- `co2Avoided.factorYears`: the years of the factors applied, in ascending order. Both\n  are `null` when `energy.productionKWh` is, or when a year with production is earlier\n  than every available factor.\n- `plants`: every plant of the community with its installed power, its production\n  and its share of the community's production.\n\nA figure nothing was stored for is `null`, never `0`: a plant without any production\nrecord in the period has null production and share, and so do the energy totals\nwhen nothing was stored for any plant or supply.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period. They must be supplied together, and\n  a `startDate` that is not before the `endDate` is a bad request.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the\n  community's time zone, that the distributor has published for any supply of the\n  community, exactly as a membership's latest published month is resolved over the\n  member's supplies. An hourly record is published when it carries self-consumed\n  energy, zero included, and a month is published for a supply when at least\n  90% of the hours it could have published carry it. The search goes backwards\n  through the 24 complete months before the current one; the current month is never\n  a candidate. When no month in the search window is published, no period is\n  resolved. Combining it with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest record stored for any supply of the community to the end\n  of the hour of the latest.\n\nWhen no period can be resolved, the response is still successful, with null period\nbounds, null figures and ratios, no supply with data, and every plant listed with\nits installed power alone.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n   The refusal states the limit in `params`: `amount`, a whole number written as a\n   string, and `unit`, `MONTHS` or `DAYS` -- here `{\"amount\": \"24\", \"unit\": \"MONTHS\"}`.\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Coverage:**\n`coverage.supplyCount` is the number of enabled supplies of the community, and\n`coverage.suppliesWithData` how many of them have data for the period: their hourly\nrecords carrying self-consumed energy cover at least 90% of the hours the period\nspans, the same threshold a month is published by.\n\nReadable by any active member of the community, whatever their role. A platform\nadmin who is not a member is answered 403, and every other caller who may not read\nit 404.\n",
+        "description" : "Aggregates the distributor's records of the whole community over one period. Only\ncommunity totals are reported: no figure, identifier or code of a single supply or\nmember.\n\n- `energy.productionKWh`: what every plant of the community produced, as reported for\n  the plant's own supply.\n- `energy.selfConsumptionKWh` and `energy.surplusKWh`: summed over every **enabled**\n  supply of the community, whatever the membership status of its owner. A plant's own\n  supply counts with its self-consumption; its surplus is stored as 0, since it is\n  reported as production.\n- `selfConsumptionRatio` and `surplusRatio`: the shares of the assigned energy that\n  was used in the community and that went to the grid, on a 0-1 scale, computed\n  **once** from the summed self-consumption and surplus, so they add up to 1. Both\n  are `null` when both figures are zero or unknown, never `0`.\n- `peakPowerKWp` and `nominalPowerKW`: the peak power of the modules and the power\n  that can be exported to the grid, each summed over every plant of the community.\n- `surplusIncome.amountEur`: an **estimate** of what `energy.surplusKWh` earned at\n  OMIE day-ahead prices, the Spanish system's marginal price. Each hour's surplus is\n  priced at the mean of the prices stored for that hour (four quarter-hour prices, or a\n  single hourly one), summed unrounded and rounded once to cents. Market prices may be\n  zero or **negative** and are applied as they are, so the amount may be negative. No\n  taxes, fees, deviation costs or retailer margins are included.\n- `surplusIncome.unpricedSurplusKWh`: the surplus of the hours without a stored price,\n  which add nothing to the amount. Both are `null` exactly when `energy.surplusKWh` is.\n- `co2Avoided.amountKg`: an **estimate** of the CO₂ that `energy.productionKWh`\n  avoided, in kg CO₂e: what the same electricity would have emitted had it been bought\n  from a retailer without guarantees of origin, using the MITECO \"Mix sin GdO\" factors,\n  **not** the average grid mix. Each calendar year of the period, in the community's\n  time zone, uses its own factor, or the latest earlier one when its own is not\n  published yet; the products are summed unrounded and rounded once to 3 decimals.\n- `co2Avoided.factorYears`: the years of the factors applied, in ascending order. Both\n  are `null` when `energy.productionKWh` is, or when a year with production is earlier\n  than every available factor.\n- `plants`: every plant of the community with its peak and nominal power, its\n  production and its share of the community's production.\n\nA figure nothing was stored for is `null`, never `0`: a plant without any production\nrecord in the period has null production and share, and so do the energy totals\nwhen nothing was stored for any plant or supply.\n\n**Period:**\nThe period is resolved in exactly one of three ways, and the resolved bounds are\nalways reported in `period`, also when the caller supplied them, with an end after\nthe current hour clipped as described under **Period checks**.\n\n- `startDate` and `endDate`: an explicit period. They must be supplied together, and\n  a `startDate` that is not before the `endDate` is a bad request.\n- `period=LATEST_PUBLISHED_MONTH`: the most recent complete calendar month, in the\n  community's time zone, that the distributor has published for any supply of the\n  community, exactly as a membership's latest published month is resolved over the\n  member's supplies. An hourly record is published when it carries self-consumed\n  energy, zero included, and a month is published for a supply when at least\n  90% of the hours it could have published carry it. The search goes backwards\n  through the 24 complete months before the current one; the current month is never\n  a candidate. When no month in the search window is published, no period is\n  resolved. Combining it with `startDate` or `endDate` is a bad request.\n- Neither: from the earliest record stored for any supply of the community to the end\n  of the hour of the latest.\n\nWhen no period can be resolved, the response is still successful, with null period\nbounds, null figures and ratios, no supply with data, and every plant listed with\nits peak and nominal power alone.\n\n**Range bounds:** the period is half-open, `[startDate, endDate)`: `startDate` is\nincluded and `endDate` is not, so a record stamped exactly at `endDate` belongs to the\nnext period. A calendar day runs from `00:00` of that day to `00:00` of the following\nday, and a calendar month from `00:00` of its first day to `00:00` of the first day of\nthe next month, each bound with the offset in force at that instant -- for example\n`2026-08-01T00:00:00+02:00` to `2026-09-01T00:00:00+02:00` for August 2026 in\nEurope/Madrid.\n\n**Period checks:** a requested period is checked in this order, and the first rule it\nbreaks is answered 400 with that rule's code:\n\n1. `period` is not combined with `startDate` or `endDate`, on the operations that accept\n   `period` (`ENERGY_METRICS_PERIOD_CONFLICTING`).\n2. `startDate` and `endDate` are supplied together (`ENERGY_METRICS_PERIOD_INCOMPLETE`).\n   On the operations where both are required, a missing one is a bad request before any\n   of these checks.\n3. `startDate` is strictly before `endDate`: equal bounds make an empty period\n   (`ENERGY_METRICS_PERIOD_START_AFTER_END`).\n4. `startDate` is before the start of the current hour, read in the period's time zone\n   (`ENERGY_METRICS_PERIOD_START_IN_FUTURE`).\n5. `endDate` is no later than 24 calendar months after `startDate`, counted in the\n   period's time zone on the bounds as requested (`ENERGY_METRICS_PERIOD_TOO_LONG`).\n   The refusal states the limit in `params`: `amount`, a whole number written as a\n   string, and `unit`, `MONTHS` or `DAYS` -- here `{\"amount\": \"24\", \"unit\": \"MONTHS\"}`.\n\nA period that passes them and ends after the start of the current hour is then clipped\nto end there, before any data is read: no hour that has not fully happened is read or\ncounted as expected. Energy metrics report the clipped end in `period`, and a series\nemits no bucket starting at or after it.\n\n**Coverage:**\n`coverage.supplyCount` is the number of enabled supplies of the community, and\n`coverage.suppliesWithData` how many of them have data for the period: their hourly\nrecords carrying self-consumed energy cover at least 90% of the hours the period\nspans, the same threshold a month is published by.\n\nReadable by any active member of the community, whatever their role. A platform\nadmin who is not a member is answered 403, and every other caller who may not read\nit 404.\n",
         "operationId" : "getCommunityEnergyMetrics",
         "parameters" : [
           {
@@ -15987,7 +16048,7 @@
     },
     "/api/v1/plants" : {
       "post" : {
-        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
+        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nThe CIL is optional. It is upper-cased and stripped of all whitespace, and empty after that means\nno CIL. A CIL that is not then exactly 25 ASCII alphanumeric characters is answered 400 with\n`PLANT_CIL_INVALID`. A CIL identifies at most one plant across the platform: a CIL another plant\nholds is answered 409 with `PLANT_CIL_ALREADY_IN_USE`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
         "operationId" : "createPlant",
         "requestBody" : {
           "content" : {
@@ -16077,6 +16138,22 @@
             "content" : {
               "application/json" : {
                 "examples" : {
+                  "CIL already in use" : {
+                    "description" : "CIL already in use",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLANT_CIL_ALREADY_IN_USE",
+                          "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                          "params" : { }
+                        }
+                      ],
+                      "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
                   "Supply already has a plant" : {
                     "description" : "Supply already has a plant",
                     "value" : {
@@ -16101,7 +16178,7 @@
                 }
               }
             },
-            "description" : "The supply is already the supply of another plant. Nothing is written."
+            "description" : "The supply is already the supply of another plant, or another plant holds the CIL. Nothing is written."
           },
           "500" : {
             "content" : {
@@ -16421,7 +16498,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n",
+        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n\nThe CIL is replaced like every other field, so omitting it clears it. It is upper-cased and stripped\nof all whitespace, and empty after that means no CIL. A CIL that is not then exactly 25 ASCII\nalphanumeric characters is answered 400 with `PLANT_CIL_INVALID`. A CIL identifies at most one\nplant across the platform: a CIL another plant holds is answered 409 with\n`PLANT_CIL_ALREADY_IN_USE`, and nothing is updated; keeping the plant's own CIL is not a conflict.\n",
         "operationId" : "updatePlant",
         "parameters" : [
           {
@@ -16535,6 +16612,22 @@
             "content" : {
               "application/json" : {
                 "examples" : {
+                  "CIL already in use" : {
+                    "description" : "CIL already in use",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "PLANT_CIL_ALREADY_IN_USE",
+                          "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                          "params" : { }
+                        }
+                      ],
+                      "message" : "Another plant already holds this CIL, so no other plant can use it.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-29T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
                   "Supply already has a plant" : {
                     "description" : "Supply already has a plant",
                     "value" : {
@@ -16559,7 +16652,7 @@
                 }
               }
             },
-            "description" : "The supply is already the supply of another plant. Nothing is written."
+            "description" : "The supply is already the supply of another plant, or another plant holds the CIL. Nothing is written."
           },
           "500" : {
             "content" : {
@@ -18093,7 +18186,7 @@
         ]
       },
       "post" : {
-        "description" : "This endpoint creates a new DRAFT sharing agreement under the given plant. The\nagreement's installed power is supplied by the caller as a snapshot of the plant's\ninstalled power at authoring time (the frontend pre-fills it from the plant's\ncurrent total power, but it may be edited before submission).\n\n**Required: Community Admin**\n\nReturns 404 if the plant does not exist or the caller is not a member of its\ncommunity, to avoid leaking the plant's existence.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint creates a new DRAFT sharing agreement under the given plant. The\nagreement's nominal power is supplied by the caller as a snapshot of the plant's\nnominal power at authoring time (the frontend pre-fills it from the plant's\ncurrent nominal power, but it may be edited before submission).\n\n**Required: Community Admin**\n\nReturns 404 if the plant does not exist or the caller is not a member of its\ncommunity, to avoid leaking the plant's existence.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "createSharingAgreement",
         "parameters" : [
           {
@@ -18508,7 +18601,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint replaces the name, notes and installed power of a sharing agreement,\nregardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be\nedited this way. All three fields must be provided; this is a full replacement of\nthe updatable fields, not a partial update. Its status, plant and creation metadata\ncan never be changed through this endpoint. The acting user and the time of the\nedit are recorded as updatedBy/updatedAt on the returned agreement.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint replaces the name, notes and nominal power of a sharing agreement,\nregardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be\nedited this way. All three fields must be provided; this is a full replacement of\nthe updatable fields, not a partial update. Its status, plant and creation metadata\ncan never be changed through this endpoint. The acting user and the time of the\nedit are recorded as updatedBy/updatedAt on the returned agreement.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "updateSharingAgreement",
         "parameters" : [
           {
@@ -18646,7 +18739,7 @@
             "bearerToken" : [ ]
           }
         ],
-        "summary" : "Replaces a sharing agreement's name, notes and installed power",
+        "summary" : "Replaces a sharing agreement's name, notes and nominal power",
         "tags" : [
           "Sharing agreements"
         ]

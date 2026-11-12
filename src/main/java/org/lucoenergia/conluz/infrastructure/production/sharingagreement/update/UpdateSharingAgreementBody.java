@@ -9,7 +9,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSh
 import java.math.BigDecimal;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"name", "installedPowerKw"})
+@Schema(requiredProperties = {"name", "nominalPowerKW"})
 public class UpdateSharingAgreementBody {
 
     @Schema(description = "Human-readable label for the agreement", example = "Reparto 2025-2026")
@@ -17,10 +17,10 @@ public class UpdateSharingAgreementBody {
     private String name;
     @Schema(description = "Free-text notes about the agreement", example = "Adjusted after member B joined")
     private String notes;
-    @Schema(description = "Snapshot of the plant's installed power at authoring time, in kW", example = "12.5")
+    @Schema(description = "Snapshot of the plant's nominal power at authoring time, in kW.", example = "12.5")
     @NotNull
     @Positive
-    private BigDecimal installedPowerKw;
+    private BigDecimal nominalPowerKW;
 
     public String getName() {
         return name;
@@ -38,19 +38,19 @@ public class UpdateSharingAgreementBody {
         this.notes = notes;
     }
 
-    public BigDecimal getInstalledPowerKw() {
-        return installedPowerKw;
+    public BigDecimal getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
-    public void setInstalledPowerKw(BigDecimal installedPowerKw) {
-        this.installedPowerKw = installedPowerKw;
+    public void setNominalPowerKW(BigDecimal nominalPowerKW) {
+        this.nominalPowerKW = nominalPowerKW;
     }
 
     public UpdateSharingAgreement mapToUpdateSharingAgreement(UUID updatedBy) {
         return new UpdateSharingAgreement.Builder()
                 .withName(name)
                 .withNotes(notes)
-                .withInstalledPowerKw(installedPowerKw)
+                .withNominalPowerKW(nominalPowerKW)
                 .withUpdatedBy(updatedBy)
                 .build();
     }

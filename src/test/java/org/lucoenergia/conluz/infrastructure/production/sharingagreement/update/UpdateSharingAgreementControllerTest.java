@@ -1,9 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.update;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
@@ -42,11 +44,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -143,7 +147,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void returnsBadRequestWhenInstalledPowerKwIsMissing() throws Exception {
+    void returnsBadRequestWhenNominalPowerKWIsMissing() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
 
         mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
@@ -152,6 +156,48 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                         .content("{\"name\":\"New name\"}"))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1"})
+    @DisplayName("AC14 a nominal power that is not above 0 is refused with 400, and nothing is updated")
+    void returnsBadRequestWhenNominalPowerKWIsNotPositive(String nominalPowerKW) throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        BigDecimal before = draftAgreement.getNominalPowerKW();
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("New name", nominalPowerKW)))
+                .andExpect(status().isBadRequest());
+
+        SharingAgreementEntity persisted = sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow();
+        assertEquals(before, persisted.getNominalPowerKW());
+    }
+
+    @Test
+    @DisplayName("AC13 AC14 the agreement's nominal power is stored as given, whatever the plant's own nominal "
+            + "power, and read back by getSharingAgreementById and getSharingAgreements")
+    void theNominalPowerIsStoredAsGivenAndReadBack() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        // Deliberately different from plantA's nominalPowerKW, which is below 1: the agreement's value is its own
+        BigDecimal nominalPowerKW = new BigDecimal("60.5");
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("New name", nominalPowerKW.toPlainString())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nominalPowerKW").value(nominalPowerKW.doubleValue()));
+
+        mockMvc.perform(get(url(plantA.getId(), draftAgreement.getId())).header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nominalPowerKW").value(nominalPowerKW.doubleValue()));
+        mockMvc.perform(get("/api/v1/plants/" + plantA.getId() + "/sharing-agreements")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == '" + draftAgreement.getId() + "')].nominalPowerKW")
+                        .value(contains(nominalPowerKW.doubleValue())));
     }
 
     @ParameterizedTest
@@ -167,12 +213,12 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("New name"))
-                .andExpect(jsonPath("$.installedPowerKw").value(5.5))
+                .andExpect(jsonPath("$.nominalPowerKW").value(5.5))
                 .andExpect(jsonPath("$.status").value(status.name()));
 
         SharingAgreementEntity persisted = sharingAgreementRepository.findById(agreement.getId()).orElseThrow();
         assertEquals(status, persisted.getStatus());
-        assertEquals(0, BigDecimal.valueOf(5.5).compareTo(persisted.getInstalledPowerKw()));
+        assertEquals(0, BigDecimal.valueOf(5.5).compareTo(persisted.getNominalPowerKW()));
     }
 
     @Test
@@ -190,7 +236,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.id").value(draftAgreement.getId().toString()))
                 .andExpect(jsonPath("$.plantId").value(plantA.getId().toString()))
                 .andExpect(jsonPath("$.name").value("Updated name"))
-                .andExpect(jsonPath("$.installedPowerKw").value(9.75))
+                .andExpect(jsonPath("$.nominalPowerKW").value(9.75))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.updatedAt").exists())
                 .andExpect(jsonPath("$.updatedBy").exists())
@@ -313,8 +359,8 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .build());
     }
 
-    private String body(String name, String installedPowerKw) {
-        return "{\"name\":\"" + name + "\",\"installedPowerKw\":" + installedPowerKw + "}";
+    private String body(String name, String nominalPowerKW) {
+        return "{\"name\":\"" + name + "\",\"nominalPowerKW\":" + nominalPowerKW + "}";
     }
 
     private String url(UUID plantId, UUID agreementId) {

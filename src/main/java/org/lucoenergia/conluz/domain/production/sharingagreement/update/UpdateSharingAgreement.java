@@ -12,13 +12,13 @@ public class UpdateSharingAgreement {
 
     private final String name;
     private final String notes;
-    private final BigDecimal installedPowerKw;
+    private final BigDecimal nominalPowerKW;
     private final UUID updatedBy;
 
     private UpdateSharingAgreement(Builder builder) {
         this.name = builder.name;
         this.notes = builder.notes;
-        this.installedPowerKw = builder.installedPowerKw;
+        this.nominalPowerKW = builder.nominalPowerKW;
         this.updatedBy = builder.updatedBy;
     }
 
@@ -30,8 +30,8 @@ public class UpdateSharingAgreement {
         return notes;
     }
 
-    public BigDecimal getInstalledPowerKw() {
-        return installedPowerKw;
+    public BigDecimal getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public UUID getUpdatedBy() {
@@ -41,7 +41,7 @@ public class UpdateSharingAgreement {
     public static class Builder {
         private String name;
         private String notes;
-        private BigDecimal installedPowerKw;
+        private BigDecimal nominalPowerKW;
         private UUID updatedBy;
 
         public Builder withName(String name) {
@@ -54,8 +54,8 @@ public class UpdateSharingAgreement {
             return this;
         }
 
-        public Builder withInstalledPowerKw(BigDecimal installedPowerKw) {
-            this.installedPowerKw = installedPowerKw;
+        public Builder withNominalPowerKW(BigDecimal nominalPowerKW) {
+            this.nominalPowerKW = nominalPowerKW;
             return this;
         }
 

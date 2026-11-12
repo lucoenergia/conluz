@@ -88,4 +88,10 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/convert_blacklisted_token_timestamps_to_timestamptz.xml" relativeToChangelogFile="true" />
     <include file="changelogs/reword_sharing_agreement_created_by_remark.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_unique_constraint_to_plants_supply_id.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/rename_plants_total_power_to_peak_power_kwp.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_nominal_power_kw_to_plants.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/backfill_plants_nominal_power_kw.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_not_null_constraint_to_plants_nominal_power_kw.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/rename_sharing_agreement_installed_power_kw_to_nominal_power_kw.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_cil_to_plants.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -229,13 +229,13 @@ class DeleteUserServiceRulesTest extends BaseIntegrationTest {
                 .withPlantId(plant.getId())
                 .withName("Agreement " + UUID.randomUUID())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.TEN)
+                .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(editor.getId())
                 .build());
         updateSharingAgreementRepository.update(plant.getId(), agreement.getId(), new UpdateSharingAgreement.Builder()
                 .withName(agreement.getName())
-                .withInstalledPowerKw(BigDecimal.ONE)
+                .withNominalPowerKW(BigDecimal.ONE)
                 .withUpdatedBy(editor.getId())
                 .build());
         SharingAgreementFile file = saveSharingAgreementFileRepository.save(new SharingAgreementFile.Builder()

@@ -128,8 +128,8 @@ public class CommunityEnergyTestFixture {
         setMembershipEnabledRepository.setEnabled(communityId, UserId.of(c.getId()), CommunityRole.COMMUNITY_MEMBER,
                 false);
 
-        Plant north = createPlant(createSupply(a, communityId), "North", 100.0);
-        Plant south = createPlant(createSupply(a, communityId), "South", 50.5);
+        Plant north = createPlant(createSupply(a, communityId), "North", 100.0, 80.0);
+        Plant south = createPlant(createSupply(a, communityId), "South", 50.5, 50.5);
         List<Supply> supplies = List.of(createSupply(a, communityId), createSupply(b, communityId),
                 createSupply(c, communityId));
         Supply disabled = createSupply(b, communityId);
@@ -220,9 +220,16 @@ public class CommunityEnergyTestFixture {
                 UserId.of(owner.getId()), communityId);
     }
 
-    private Plant createPlant(Supply supply, String name, double totalPower) {
-        return createPlantRepository.create(PlantMother.random(supply).withName(name).withTotalPower(totalPower)
-                .build(), SupplyId.of(supply.getId()));
+    /**
+     * A plant of the community, on a supply of its own owned by a new member.
+     */
+    public Plant createPlant(UUID communityId, String name, double peakPowerKWp, double nominalPowerKW) {
+        return createPlant(createSupply(createMember(communityId), communityId), name, peakPowerKWp, nominalPowerKW);
+    }
+
+    private Plant createPlant(Supply supply, String name, double peakPowerKWp, double nominalPowerKW) {
+        return createPlantRepository.create(PlantMother.random(supply).withName(name).withPeakPowerKWp(peakPowerKWp)
+                .withNominalPowerKW(nominalPowerKW).build(), SupplyId.of(supply.getId()));
     }
 
     private void track(String cups) {

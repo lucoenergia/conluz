@@ -67,6 +67,11 @@ public class CreatePlantController {
 
                     A supply is the supply of at most one plant: when the supply already has one, the request is
                     answered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.
+
+                    The CIL is optional. It is upper-cased and stripped of all whitespace, and empty after that means
+                    no CIL. A CIL that is not then exactly 25 ASCII alphanumeric characters is answered 400 with
+                    `PLANT_CIL_INVALID`. A CIL identifies at most one plant across the platform: a CIL another plant
+                    holds is answered 409 with `PLANT_CIL_ALREADY_IN_USE`, and nothing is created.
                     
                     In case of failure, the server returns an appropriate error status code along with a descriptiv
                     error message, aiding the client in diagnosing and addressing the issue.
@@ -83,11 +88,12 @@ public class CreatePlantController {
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "The supply is already the supply of another plant. Nothing is written.",
+                    description = "The supply is already the supply of another plant, or another plant holds the "
+                            + "CIL. Nothing is written.",
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = RestError.class),
-                            examples = @ExampleObject(
+                            examples = {@ExampleObject(
                                     name = "Supply already has a plant",
                                     value = """
                                             {
@@ -106,7 +112,24 @@ public class CreatePlantController {
                                                ]
                                             }
                                             """
-                            )
+                            ), @ExampleObject(
+                                    name = "CIL already in use",
+                                    value = """
+                                            {
+                                               "timestamp": "2026-10-29T10:10:25.534035352+01:00",
+                                               "status": 409,
+                                               "message": "Another plant already holds this CIL, so no other plant can use it.",
+                                               "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
+                                               "errors": [
+                                                 {
+                                                   "message": "Another plant already holds this CIL, so no other plant can use it.",
+                                                   "code": "PLANT_CIL_ALREADY_IN_USE",
+                                                   "params": {}
+                                                 }
+                                               ]
+                                            }
+                                            """
+                            )}
                     )
             )
     })

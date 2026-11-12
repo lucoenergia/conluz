@@ -7,7 +7,7 @@ import java.util.UUID;
 public interface UpdateSharingAgreementService {
 
     /**
-     * Replaces the descriptive fields (name, notes, installed power) of a sharing agreement,
+     * Replaces the descriptive fields (name, notes, nominal power) of a sharing agreement,
      * regardless of its status. Never touches {@code status}, {@code plantId}, {@code createdAt}
      * or {@code createdBy}.
      */

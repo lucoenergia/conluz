@@ -158,10 +158,12 @@ Table "plants" {
   "address" text [not null]
   "description" text
   "inverter_provider" text [not null]
-  "total_power" doubleprecision [not null]
+  "peak_power_kwp" doubleprecision [not null, note: '''Peak power of the plant\'s modules, in kWp.''']
   "connection_date" date
   "supply_id" uuid [unique, not null]
   "regulatory_code" text [unique, note: '''The identifier assigned by the regulator. In Spain this is the CAU (Codigo de Autoconsumo). It is not the provider\'s station code (provider_code) and not a CUPS.''']
+  "nominal_power_kw" doubleprecision [not null, note: 'Power the plant can export to the grid, in kW, as capped by its inverters and grid connection.']
+  "cil" "character varying(25)" [unique, note: 'The CIL of the plant: the settlement code of the production installation assigned by the distribution company, 25 alphanumeric characters, upper-cased and without whitespace.']
 }
 
 Table "sharing_agreement" {
@@ -170,7 +172,7 @@ Table "sharing_agreement" {
   "name" text [not null, note: 'Human-readable label for the agreement.']
   "notes" text [note: 'Free-text notes about the agreement. Optional.']
   "status" text [not null, note: 'DRAFT, PUBLISHED or SUPERSEDED. TEXT + CHECK rather than a native PostgreSQL ENUM: a native enum cannot have a value removed, and extending it (ALTER TYPE ... ADD VALUE) has historically been restricted inside transactions -- a poor fit for Liquibase and for a value set that will change. TEXT + CHECK is trivially alterable and reads identically.']
-  "installed_power_kw" numeric [note: '''A deliberate snapshot of the plant\'s installed power at authoring time, not a join to plants.total_power: the plant\'s installed power today is not the power the agreement was authored against.''']
+  "nominal_power_kw" numeric [note: '''A snapshot of the plant\'s nominal power at authoring time, in kW, recorded with the agreement and not read from the plant.''']
   "created_at" timestamp [not null]
   "created_by" uuid [note: '''The user who created the agreement. NULL means the agreement was created by the system (a migration), not by a person, or that the creator\'s account has been deleted. Not filled with a synthetic \'system\' user: such a row could not authenticate and would appear in member listings.''']
   "updated_at" timestamp [note: 'When the agreement was last edited. NULL means it has never been edited since creation.']

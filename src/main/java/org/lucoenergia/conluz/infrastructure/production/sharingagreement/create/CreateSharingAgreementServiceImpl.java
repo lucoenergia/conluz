@@ -52,7 +52,7 @@ public class CreateSharingAgreementServiceImpl implements CreateSharingAgreement
                 .withName(request.getName())
                 .withNotes(request.getNotes())
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(request.getInstalledPowerKw())
+                .withNominalPowerKW(request.getNominalPowerKW())
                 .withCreatedAt(clock.instant())
                 .withCreatedBy(request.getCreatedBy())
                 .build();

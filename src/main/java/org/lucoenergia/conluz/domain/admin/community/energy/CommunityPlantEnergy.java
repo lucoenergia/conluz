@@ -3,20 +3,22 @@ package org.lucoenergia.conluz.domain.admin.community.energy;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PlantReference;
 
 /**
- * One plant of a community over the period of its energy metrics: its installed power, its
+ * One plant of a community over the period of its energy metrics: its peak and nominal power, its
  * production and its share of the community's production.
  */
 public class CommunityPlantEnergy {
 
     private final PlantReference plant;
-    private final double installedPowerKWp;
+    private final double peakPowerKWp;
+    private final double nominalPowerKW;
     private final Double productionKWh;
     private final Double productionShare;
 
-    CommunityPlantEnergy(PlantReference plant, double installedPowerKWp, Double productionKWh,
+    CommunityPlantEnergy(PlantReference plant, double peakPowerKWp, double nominalPowerKW, Double productionKWh,
                          Double productionShare) {
         this.plant = plant;
-        this.installedPowerKWp = installedPowerKWp;
+        this.peakPowerKWp = peakPowerKWp;
+        this.nominalPowerKW = nominalPowerKW;
         this.productionKWh = productionKWh;
         this.productionShare = productionShare;
     }
@@ -26,10 +28,17 @@ public class CommunityPlantEnergy {
     }
 
     /**
-     * The plant's installed power, in kWp.
+     * The peak power of the plant's modules, in kWp.
      */
-    public double getInstalledPowerKWp() {
-        return installedPowerKWp;
+    public double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    /**
+     * The power the plant can export to the grid, in kW.
+     */
+    public double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     /**

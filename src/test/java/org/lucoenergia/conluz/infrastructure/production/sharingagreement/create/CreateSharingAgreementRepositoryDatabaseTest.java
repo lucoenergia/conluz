@@ -65,7 +65,7 @@ class CreateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
                 .withName("2024 winter distribution")
                 .withNotes("initial")
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.valueOf(12.5))
+                .withNominalPowerKW(BigDecimal.valueOf(12.5))
                 .withCreatedAt(Instant.now())
                 .withCreatedBy(createdBy)
                 .build();
@@ -76,7 +76,7 @@ class CreateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertEquals(plant.getId(), result.getPlantId());
         assertEquals("2024 winter distribution", result.getName());
         assertEquals(SharingAgreementStatus.DRAFT, result.getStatus());
-        assertEquals(0, BigDecimal.valueOf(12.5).compareTo(result.getInstalledPowerKw()));
+        assertEquals(0, BigDecimal.valueOf(12.5).compareTo(result.getNominalPowerKW()));
         assertEquals(createdBy, result.getCreatedBy());
         assertTrue(sharingAgreementRepository.findById(agreementId).isPresent());
     }
@@ -89,7 +89,7 @@ class CreateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
                 .withPlantId(plant.getId())
                 .withName("2024 winter distribution")
                 .withStatus(SharingAgreementStatus.DRAFT)
-                .withInstalledPowerKw(BigDecimal.valueOf(12.5))
+                .withNominalPowerKW(BigDecimal.valueOf(12.5))
                 .withCreatedAt(Instant.now())
                 .build();
 

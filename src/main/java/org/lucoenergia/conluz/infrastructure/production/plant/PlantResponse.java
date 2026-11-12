@@ -9,8 +9,9 @@ import org.lucoenergia.conluz.infrastructure.shared.web.reference.SupplyReferenc
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Schema(requiredProperties = {"id", "providerCode", "regulatoryCode", "supply", "name", "address",
-        "description", "inverterProvider", "totalPower", "connectionDate", "community", "capabilities"})
+@Schema(requiredProperties = {"id", "providerCode", "regulatoryCode", "cil", "supply", "name", "address",
+        "description", "inverterProvider", "peakPowerKWp", "nominalPowerKW", "connectionDate", "community",
+        "capabilities"})
 public class PlantResponse {
 
     private final UUID id;
@@ -23,6 +24,12 @@ public class PlantResponse {
             "(Codigo de Autoconsumo). It is not the provider's station code (provider_code) and " +
             "not a CUPS.", types = {"string", "null"})
     private final String regulatoryCode;
+    @Schema(description = "The CIL (Codigo de la Instalacion de produccion a efectos de " +
+            "Liquidacion): the Spanish settlement code of the plant, assigned by the distribution company. " +
+            "25 alphanumeric characters, normalised to upper case with all whitespace removed, and unique " +
+            "across the platform. Null when the plant has none recorded.",
+            types = {"string", "null"})
+    private final String cil;
     @Schema(description = "The supply this plant produces onto. A reference: the full supply, "
             + "including its owner, is fetched from GET /supplies/{supplyId}, which not every "
             + "caller who may list plants is allowed to call.")
@@ -32,8 +39,11 @@ public class PlantResponse {
     @Schema(types = {"string", "null"})
     private final String description;
     private final InverterProvider inverterProvider;
-    @Schema(description = "Installed power of the plant, in kWp.", example = "100.0")
-    private final Double totalPower;
+    @Schema(description = "Peak power of the plant's modules, in kWp.", example = "100.0")
+    private final Double peakPowerKWp;
+    @Schema(description = "Power the plant can export to the grid, in kW, as capped by its inverters " +
+            "and grid connection.", example = "60.0")
+    private final Double nominalPowerKW;
     @Schema(types = {"string", "null"})
     private final LocalDate connectionDate;
     @Schema(description = "The community that owns the plant.")
@@ -46,13 +56,15 @@ public class PlantResponse {
         this.id = plant.getId();
         this.providerCode = plant.getProviderCode();
         this.regulatoryCode = plant.getRegulatoryCode();
+        this.cil = plant.getCil();
         this.supply = new SupplyReferenceResponse(plant.getSupply().getId(), plant.getSupply().getCode(),
                 plant.getSupply().getName());
         this.name = plant.getName();
         this.address = plant.getAddress();
         this.description = plant.getDescription();
         this.inverterProvider = plant.getInverterProvider();
-        this.totalPower = plant.getTotalPower();
+        this.peakPowerKWp = plant.getPeakPowerKWp();
+        this.nominalPowerKW = plant.getNominalPowerKW();
         this.connectionDate = plant.getConnectionDate();
         this.community = new PlantCommunityResponse(plant.getCommunity().getId());
         this.capabilities = capabilities;
@@ -68,6 +80,10 @@ public class PlantResponse {
 
     public String getRegulatoryCode() {
         return regulatoryCode;
+    }
+
+    public String getCil() {
+        return cil;
     }
 
     public SupplyReferenceResponse getSupply() {
@@ -90,8 +106,12 @@ public class PlantResponse {
         return inverterProvider;
     }
 
-    public Double getTotalPower() {
-        return totalPower;
+    public Double getPeakPowerKWp() {
+        return peakPowerKWp;
+    }
+
+    public Double getNominalPowerKW() {
+        return nominalPowerKW;
     }
 
     public LocalDate getConnectionDate() {
