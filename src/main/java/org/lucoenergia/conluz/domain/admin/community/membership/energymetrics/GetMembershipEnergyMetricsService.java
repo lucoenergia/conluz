@@ -10,8 +10,8 @@ public interface GetMembershipEnergyMetricsService {
     /**
      * Adds up the energy metrics of every supply the member owns in the community over one period.
      *
-     * <p>The period is resolved in one of three ways: the explicit {@code startDate} and
-     * {@code endDate}, both inclusive; the {@code referencePeriod}; or, when neither is supplied,
+     * <p>The period is resolved in one of three ways: the explicit {@code startDate}, inclusive,
+     * and {@code endDate}, exclusive; the {@code referencePeriod}; or, when neither is supplied,
      * from the earliest to the latest record stored for any of the member's supplies. Supplying a
      * reference period together with a date, exactly one date, or a start after the end raises
      * {@link org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException}.</p>
