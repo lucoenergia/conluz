@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Supplies`, `Memberships`, `Communities`, `Plants`; operations `getSupplyEnergyMetrics`, `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getMembershipEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`, `getPlantDailyEnergySeries`, `getPlantMonthlyEnergySeries` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #561 |
+| **Last reviewed against code** | #570 |
 
 ## Purpose
 
@@ -94,7 +94,7 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
 - **Rule:** A requested period whose `endDate` is later than `startDate` plus 24 calendar months,
   counted in the period's time zone, MUST be rejected. The limit MUST be evaluated on the requested
   bounds, before EPR-002 clips the end. The refusal MUST carry the limit it enforces, as an `amount`
-  of 24 and a `unit` of months.
+  of 24 and a `unit` of `MONTHS`.
 - **Rationale:** A cost guard: every request reads the hourly measurement or its pre-aggregates over
   the whole period. Months before the Datadis sync window (by default, the current month and the 12
   before it) are no longer re-aggregated, so a longer range adds cost without adding fresher data. Evaluating it before clipping keeps the
@@ -102,7 +102,7 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
   because it depends on the operation (EPR-005), so a client can state it without a table of its
   own that would drift from the server's.
 - **Source:** #409; #546 added the limit to the refusal; #554 added the community energy operations; #561 added
-  the plant energy operations
+  the plant energy operations; #570 named the unit as the refusal carries it
 
 ### EPR-005 — A requested period of an hourly series is at most 31 calendar days long
 

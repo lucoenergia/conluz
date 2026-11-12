@@ -4,15 +4,16 @@
 | --- | --- |
 | **Prefix** | `API` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot (`src/main/resources/api/docs/api-docs.json`) → every request body schema |
+| **Contract** | OpenAPI snapshot (`src/main/resources/api/docs/api-docs.json`) → every request body schema; operations `getInstantProduction`, `getHourlyProduction`, `getDailyProduction`, `getMonthlyProduction`, `getYearlyProduction`, `getDatadisHourlyProduction`, `getDatadisDailyProduction`, `getDatadisMonthlyProduction`, `getDatadisYearlyProduction`, `getSupplyHourlyProduction`, `getSupplyDailyProduction`, `getSupplyMonthlyProduction` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #549 |
+| **Last reviewed against code** | #570 |
 
 ## Purpose
 
 Rules that hold for the published contract as a whole rather than for one capability: what the generated
 OpenAPI document must say about the requests every endpoint accepts. The rules of each capability decide
-the bounds; this spec decides how they reach the contract.
+the bounds; this spec decides how they reach the contract. It also records which operations the contract
+marks deprecated, and what it tells a client about them.
 
 ## Glossary
 
@@ -35,6 +36,20 @@ the bounds; this spec decides how they reach the contract.
   One mechanism, rather than a bound restated per field, keeps every future constraint published without anyone
   having to remember it. Operation parameters are left out: the mechanism only sees model properties.
 - **Source:** #549
+
+### API-002 — The old production reads are deprecated, each naming its replacement
+
+- **Status:** Active
+- **Rule:** The old production read operations (`getInstantProduction`, `getHourlyProduction`,
+  `getDailyProduction`, `getMonthlyProduction`, `getYearlyProduction`, `getDatadisHourlyProduction`,
+  `getDatadisDailyProduction`, `getDatadisMonthlyProduction`, `getDatadisYearlyProduction`,
+  `getSupplyHourlyProduction`, `getSupplyDailyProduction`, `getSupplyMonthlyProduction`) MUST be marked deprecated
+  in the contract, each naming its replacement, with no change to their behaviour.
+- **Rationale:** Clients must learn from the contract that these reads are superseded, and by what. They do not
+  follow the period and value conventions (EPR, EVL), and their defects made them easy to misuse, as the plant
+  detail did until lucoenergia/conluz-web#406. The production syncs and the Huawei configuration are still in use
+  and are not deprecated. Removing the reads is a separate decision, after a release cycle.
+- **Source:** #570
 
 ## Impossible states
 
