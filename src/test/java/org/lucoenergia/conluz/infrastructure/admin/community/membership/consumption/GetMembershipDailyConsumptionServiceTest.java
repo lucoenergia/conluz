@@ -112,7 +112,7 @@ class GetMembershipDailyConsumptionServiceTest {
      * and is not counted.
      */
     @Test
-    @DisplayName("MCS-002 AC1 a day counts and sums only the supplies that stored a record that day")
+    @DisplayName("MCS-002 AC1 a day counts and sums only the supplies with data that day")
     void aDayCountsAndSumsOnlyTheSuppliesThatStoredARecord() {
         givenMembership();
         givenSupplies(first, second);

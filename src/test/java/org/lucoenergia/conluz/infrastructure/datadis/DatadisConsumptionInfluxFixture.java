@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
@@ -137,6 +138,18 @@ public class DatadisConsumptionInfluxFixture {
         List<Instant> times = Stream.iterate(month.atDay(1).atStartOfDay(zone).toInstant(),
                         time -> time.isBefore(end), time -> time.plus(Duration.ofHours(1)))
                 .filter(time -> !skipped.contains(time.atZone(zone).getHour()))
+                .toList();
+        writeAt(cups, times, 0f, 0f, 0f);
+    }
+
+    /**
+     * As {@link #writePublishedZeros(String, YearMonth, ZoneId, Integer...)}, for every hour of the
+     * local days from {@code first} to {@code last}, both included.
+     */
+    public void writePublishedZeros(String cups, LocalDate first, LocalDate last, ZoneId zone) {
+        Instant end = last.plusDays(1).atStartOfDay(zone).toInstant();
+        List<Instant> times = Stream.iterate(first.atStartOfDay(zone).toInstant(),
+                        time -> time.isBefore(end), time -> time.plus(Duration.ofHours(1)))
                 .toList();
         writeAt(cups, times, 0f, 0f, 0f);
     }

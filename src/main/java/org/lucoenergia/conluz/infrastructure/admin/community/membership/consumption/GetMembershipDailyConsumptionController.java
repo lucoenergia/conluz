@@ -44,8 +44,8 @@ public class GetMembershipDailyConsumptionController {
             summary = "Retrieves the daily consumption of every supply of a membership, added up per day.",
             description = """
                     For each day of the requested period, the energy and the estimated savings of
-                    **every** supply the member owns in this community that stored a record that day,
-                    added up. Each energy figure sums the unrounded per-supply daily totals and is
+                    the supplies the member owns in this community that have data that day, added
+                    up. Each energy figure sums the unrounded per-supply daily totals and is
                     rounded once, to 3 decimals, on the result; the savings are likewise summed
                     unrounded and rounded once, to cents. A figure can therefore differ from adding
                     up the rounded figures of the per-supply daily series. Supplies in the member's
@@ -59,7 +59,7 @@ public class GetMembershipDailyConsumptionController {
                     **Every day is emitted:**
                     A bucket is returned for every local calendar day of the community's time zone
                     that overlaps the period, in chronological order, whether or not any supply
-                    stored a record that day, so the series has a regular time axis. A day runs
+                    has data that day, so the series has a regular time axis. A day runs
                     from its local midnight to the next one, so the days on which daylight saving
                     time starts and ends cover 23 and 25 hours. The first and the last day are cut
                     to the period: a period starting at 12:00 counts only that day's hours from
@@ -69,24 +69,32 @@ public class GetMembershipDailyConsumptionController {
 
                     """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
 
+                    **Supplies with data:**
+                    Datadis publishes a month's self-consumption around the 10th of the following
+                    month; until then the supply's records carry consumption but no
+                    self-consumption. A supply has data on a day only when its records carrying
+                    self-consumption cover at least 90 % of the day's hours inside the period. A
+                    supply below that does not contribute to the day at all, so an unpublished day is
+                    never summed as zero self-consumption.
+
                     **Completeness:**
                     `supplyCount` is the number of supplies the member **currently** owns in the
-                    community, and `suppliesWithData` how many of them stored at least one hourly
-                    record that day, within the period. A day with `suppliesWithData` below
+                    community, and `suppliesWithData` how many of them have data that day, as
+                    defined above. A day with `suppliesWithData` below
                     `supplyCount` is incomplete. The model records no date a supply joined its
                     community, so the count is the same for every day, and the days before a supply
                     started reporting show as incomplete. The aggregated energy metrics measure
                     their `suppliesWithData` over the whole period, so the two are not comparable.
 
                     **Gaps and measured zeros:**
-                    The energy figures add up only the supplies that stored a record that day; a
-                    day on which no supply stored one reports zero energy. `savingsEur` is an
+                    The energy figures add up only the supplies with data that day; a day on which
+                    no supply has data reports zero energy. `savingsEur` is an
                     **estimate** of what the day's self-consumed energy was worth, pricing the
                     **energy term before taxes** only, exactly as the per-supply series does. It is
-                    `null` when no supply stored a record that day (`suppliesWithData` is 0), and
-                    only then: a day with nothing stored is a different statement from a day that
-                    saved nothing, which reports `0.00` -- as does a day whose stored records carry
-                    no self-consumption, a measured zero. This differs from the per-supply series,
+                    `null` when no supply has data that day (`suppliesWithData` is 0), and only
+                    then: a day without data is a different statement from a day that saved
+                    nothing, which reports `0.00` -- as does a day whose published self-consumption
+                    is zero, a measured zero. This differs from the per-supply series,
                     which reports `0.00` for every bucket it emits. `tariffSource` says where the
                     prices came from -- `ESTIMATE` or `REAL_TARIFF` -- and a single estimated supply
                     makes the whole day an estimate; it is `null` exactly when `savingsEur` is.
