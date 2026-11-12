@@ -61,8 +61,8 @@ public interface GetDatadisConsumptionService {
      * <p>The period obeys the same rules as the daily series' and is clipped the same way, with a
      * cap of its own: {@code EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH}. One bucket is returned
      * for every hour that starts inside the clipped period, in chronological order, whether or not
-     * the supply stored a record for it: an hour without one comes with zero energy, no obtain
-     * method and nothing saved. Each hour is priced with the same tariff resolution as a day of the
+     * the supply has data for it: an hour without a record carrying self-consumption comes with zero
+     * energy, no obtain method and nothing saved, even when its consumption is known. Each hour is priced with the same tariff resolution as a day of the
      * daily series, over the hour clipped to the period's end.
      *
      * @param supplyId the supply ID for which to retrieve consumption data

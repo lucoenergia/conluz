@@ -82,10 +82,12 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         return new EnergyMetricsPeriod(startDate, effectiveEndDate).hoursStartingIn(zone).stream()
                 .map(hour -> {
                     DatadisHourlyConsumption stored = storedHours.get(hour);
-                    DatadisConsumption consumption = stored != null
+                    // An hour whose record carries no self-consumption is a gap, as an hour without
+                    // any record is, even when its consumption is known.
+                    boolean publishedData = stored != null && stored.getPublishedHours() > 0;
+                    DatadisConsumption consumption = publishedData
                             ? stored.getConsumption()
                             : nothingStored(supply, hour, zone);
-                    boolean publishedData = stored != null && stored.getPublishedHours() > 0;
                     return priceHour(supply, consumption, publishedData, hour, zone, rangeToExclusive);
                 })
                 .toList();
@@ -208,9 +210,9 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     }
 
     /**
-     * An hour for which the supply stored no record, reported as the store reports an hour with no
-     * record between two that have one: zero energy and no obtain method, labelled with the local
-     * date and time the hour starts at.
+     * An hour without data -- no record, or a record without self-consumption -- reported as the
+     * store reports an hour with no record between two that have one: zero energy and no obtain
+     * method, labelled with the local date and time the hour starts at.
      */
     private static DatadisConsumption nothingStored(Supply supply, Instant hour, ZoneId zone) {
         ZonedDateTime localStart = hour.atZone(zone);
