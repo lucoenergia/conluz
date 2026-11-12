@@ -63,9 +63,17 @@ public class GetSupplyHourlyConsumptionController {
 
                     **Every hour:** one bucket is returned for every hour that starts inside the period,
                     in chronological order: 24 for a whole local day, 23 on the day the clocks go forward
-                    and 25 on the day they go back. An hour with no stored record is returned with zero
-                    energy and a null `obtainMethod` rather than omitted; an hour whose records carry no
-                    energy has its `obtainMethod` set.
+                    and 25 on the day they go back.
+
+                    **Hours without data:** Datadis publishes a month's self-consumption around the
+                    10th of the following month; until then the supply's records carry consumption
+                    but no self-consumption. An hour has data only when its record carries
+                    self-consumption. An hour without data -- without self-consumption, or without
+                    any record -- is returned with zero energy, a null `obtainMethod` and savings of
+                    `0.00` rather than omitted, even when its consumption is already known, so that
+                    no false self-consumption or savings is shown; its consumption appears once its
+                    self-consumption is published. An hour whose published record carries no energy
+                    has its `obtainMethod` set.
 
                     Every energy figure is in kWh, rounded to 3 decimals.
 
@@ -86,12 +94,8 @@ public class GetSupplyHourlyConsumptionController {
                     only: the power term, access tolls, charges and electricity tax are all excluded, and
                     VAT is applied only where the resolved tariff carries a rate. `tariffSource` says
                     where the prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`
-                    for the supply's contracted tariff. An hour with no self-consumption, and an hour with
-                    no stored record at all, reports `0.00`.
-
-                    Datadis publishes a month's self-consumption around the 10th of the following
-                    month, so the current month has no self-consumption data yet and its savings
-                    come back as zero.
+                    for the supply's contracted tariff. An hour whose published self-consumption is
+                    zero, and an hour without data, reports `0.00`.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyHourlyConsumption",

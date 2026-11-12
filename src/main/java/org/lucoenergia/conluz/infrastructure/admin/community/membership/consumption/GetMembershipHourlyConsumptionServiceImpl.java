@@ -31,9 +31,10 @@ import java.util.UUID;
  * service -- so each supply's hour is exactly the bucket the per-supply series reports, energy and
  * savings alike -- and folds them hour by hour.
  *
- * <p>A supply contributes to an hour only when it stored a record that hour. The per-supply series
- * emits every hour, with zeros and no {@code obtainMethod} where nothing was stored, and every stored
- * record carries one, so it is null exactly when the supply stored nothing that hour.
+ * <p>A supply contributes to an hour only when it has data that hour: its record carries
+ * self-consumption, as the per-supply series reports on each bucket. Datadis publishes a month's
+ * self-consumption some days after the month ends; until then the supply's records carry
+ * consumption but no self-consumption, which is not a measured zero.
  *
  * <p>The hours are not taken from the records: every whole hour of the community's time zone that
  * starts inside the period is emitted. They are matched to the per-supply hours by the instant they
@@ -88,7 +89,7 @@ public class GetMembershipHourlyConsumptionServiceImpl implements GetMembershipH
             SupplyId supplyId = SupplyId.of(supply.getId());
             for (SupplyHourlyConsumptionBucket hour : getDatadisConsumptionService.getHourlySeriesBySupply(
                     supplyId, period.getStartDate(), period.getEndDate())) {
-                if (!storedARecord(hour.getBucket())) {
+                if (!hour.getBucket().hasPublishedData()) {
                     continue;
                 }
                 contributionsByHour
@@ -105,11 +106,4 @@ public class GetMembershipHourlyConsumptionServiceImpl implements GetMembershipH
                 .toList();
     }
 
-    /**
-     * Whether the supply stored a record that hour: the only signal the per-supply series gives,
-     * since it reports an hour with nothing stored as zeros.
-     */
-    private static boolean storedARecord(SupplyConsumptionBucket bucket) {
-        return bucket.getConsumption().getObtainMethod() != null;
-    }
 }

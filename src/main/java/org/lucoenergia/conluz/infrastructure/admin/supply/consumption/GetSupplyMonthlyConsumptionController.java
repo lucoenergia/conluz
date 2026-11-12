@@ -57,14 +57,15 @@ public class GetSupplyMonthlyConsumptionController {
                     Data is aggregated by month within the specified date range. Every energy figure
                     is in kWh, rounded to 3 decimals.
 
-                    **Source and freshness:** each month is read from a monthly total pre-aggregated
-                    from the supply's hourly records. That total is rewritten once a day for every
-                    month in the Datadis sync window (by default, the current month and the 12 before
-                    it), and on demand through
-                    `POST /api/v1/communities/{communityId}/consumption/datadis/sync/monthly`. Nothing
-                    else refreshes it: in particular, synchronising the hourly records does not. Until
-                    the next refresh, a month can therefore lag the energy metrics, which sum the
-                    hourly records when they are read.
+                    **Source:** each month is summed from the supply's hourly records when the series
+                    is read, so it is as fresh as the energy metrics.
+
+                    **Months with data only:** Datadis publishes a month's self-consumption around the
+                    10th of the following month; until then the supply's records carry consumption
+                    but no self-consumption. A month is returned only when the records carrying
+                    self-consumption cover at least 90 % of the month's hours inside the period. A
+                    month below that is omitted, as is a month without any record, so an unpublished
+                    month never reads as zero self-consumption.
 
                     **Time zone:** each month covers the local calendar month of the time zone the
                     application is configured with, not the UTC one, so its total includes the first
@@ -72,17 +73,14 @@ public class GetSupplyMonthlyConsumptionController {
 
                     """ + EnergyPeriodApiDocs.RANGE_BOUNDS + """
 
-                    The bounds select pre-aggregated points by the instant each one is stamped at,
-                    which is local midnight on the first day of its month. Pass them with the zone's offset to
-                    select the months intended: local `2023-01-01T00:00:00+01:00` is
-                    `2022-12-31T23:00:00Z`, so a bound expressed in UTC can select one month too few
-                    or too many.
+                    A month is selected if and only if its local midnight on the first day falls
+                    inside the half-open bounds. Pass them with the zone's offset to select the months
+                    intended: local `2023-01-01T00:00:00+01:00` is `2022-12-31T23:00:00Z`, so a bound
+                    expressed in UTC can select one month too few or too many.
 
-                    **Whole months only.** A month is included if and only if its day-1 timestamp
-                    falls inside the half-open bounds, and once included it always carries the whole
-                    month's energy and the whole month's savings -- bounds falling mid-month never
-                    trim it. A request ending on the 15th therefore still returns that month in
-                    full.
+                    **Months cut by the end bound.** A month the end bound falls inside covers only
+                    its hours before that bound, energy and savings alike: a request ending on the
+                    15th returns that month's first half.
 
                     **Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed
                     energy was worth. It prices the **energy term before taxes** only: the power
@@ -90,12 +88,8 @@ public class GetSupplyMonthlyConsumptionController {
                     applied only where the resolved tariff carries a rate. `tariffSource` says where
                     the prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`
                     for the supply's contracted tariff -- and a single estimated stretch of the
-                    bucket makes the whole amount an estimate. A bucket with no self-consumption,
-                    and a bucket with no stored record at all, reports `0.00`.
-
-                    Datadis publishes a month's self-consumption around the 10th of the following
-                    month, so the current month has no self-consumption data yet and its savings
-                    come back as zero.
+                    bucket makes the whole amount an estimate. A month whose published
+                    self-consumption is zero reports `0.00`.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyMonthlyConsumption",

@@ -30,10 +30,11 @@ import java.util.UUID;
  * per-supply service -- so each supply's day is exactly the bucket the per-supply series reports,
  * edge days clipped, energy and savings alike -- and folds them day by day.
  *
- * <p>A supply contributes to a day only when it stored at least one record that day. The per-supply
- * series emits every day, with zeros where nothing was stored, and tells the two apart only by
- * {@code obtainMethod}: it is the last stored value of the day, and every stored hourly record
- * carries one, so it is null exactly when the supply stored nothing that day.
+ * <p>A supply contributes to a day only when it has data that day: its records carrying
+ * self-consumption reach the publication threshold of the day's hours inside the period, as the
+ * per-supply series reports on each bucket. Datadis publishes a month's self-consumption some days
+ * after the month ends; until then the supply's records carry consumption but no self-consumption,
+ * which is not a measured zero.
  *
  * <p>The days are not taken from the records: every local day of the community's time zone that
  * overlaps the period is emitted. The per-supply series labels its days in the supply's zone; both
@@ -90,7 +91,7 @@ public class GetMembershipDailyConsumptionServiceImpl implements GetMembershipDa
             SupplyId supplyId = SupplyId.of(supply.getId());
             for (SupplyConsumptionBucket bucket : getDatadisConsumptionService.getDailySeriesBySupply(
                     supplyId, period.getStartDate(), period.getEndDate())) {
-                if (!storedARecord(bucket)) {
+                if (!bucket.hasPublishedData()) {
                     continue;
                 }
                 contributionsByDay
@@ -105,14 +106,6 @@ public class GetMembershipDailyConsumptionServiceImpl implements GetMembershipDa
                 .map(day -> MembershipDailyConsumptionBucket.of(day, supplies.size(),
                         contributionsByDay.getOrDefault(day, Map.of())))
                 .toList();
-    }
-
-    /**
-     * Whether the supply stored at least one record that day: the only signal the per-supply series
-     * gives, since it reports a day with nothing stored as zeros.
-     */
-    private static boolean storedARecord(SupplyConsumptionBucket bucket) {
-        return bucket.getConsumption().getObtainMethod() != null;
     }
 
     /**

@@ -44,8 +44,8 @@ public class GetMembershipHourlyConsumptionController {
             summary = "Retrieves the hourly consumption of every supply of a membership, added up per hour.",
             description = """
                     For each hour of the requested period, the energy and the estimated savings of
-                    **every** supply the member owns in this community that stored a record that hour,
-                    added up. Each energy figure sums the unrounded per-supply hourly figures and is
+                    the supplies the member owns in this community that have data that hour, added
+                    up. Each energy figure sums the unrounded per-supply hourly figures and is
                     rounded once, to 3 decimals, on the result; the savings are likewise summed
                     unrounded and rounded once, to cents. A figure can therefore differ from adding
                     up the rounded figures of the per-supply hourly series. Supplies in the member's
@@ -60,7 +60,7 @@ public class GetMembershipHourlyConsumptionController {
 
                     **Every hour is emitted:**
                     A bucket is returned for every whole hour that starts inside the period, in
-                    chronological order, whether or not any supply stored a record that hour, so the
+                    chronological order, whether or not any supply has data that hour, so the
                     series has a regular time axis: 24 for a whole local day of the community's time
                     zone, 23 on the day the clocks go forward and 25 on the day they go back. A period
                     starting in the middle of an hour starts with the next whole hour; an `endDate` in
@@ -73,9 +73,16 @@ public class GetMembershipHourlyConsumptionController {
                     `date` and `time` are the local date and time the hour starts at; on the day the
                     clocks go back, two consecutive hours carry the same ones.
 
+                    **Supplies with data:**
+                    Datadis publishes a month's self-consumption around the 10th of the following
+                    month; until then the supply's records carry consumption but no
+                    self-consumption. A supply has data in an hour only when its record of that hour
+                    carries self-consumption. A supply without it does not contribute to the hour at
+                    all, so an unpublished hour is never summed as zero self-consumption.
+
                     **Completeness:**
                     `supplyCount` is the number of supplies the member **currently** owns in the
-                    community, and `suppliesWithData` how many of them stored a record that hour. An
+                    community, and `suppliesWithData` how many of them have data that hour. An
                     hour with `suppliesWithData` below `supplyCount` is incomplete. The model records
                     no date a supply joined its community, so the count is the same for every hour,
                     and the hours before a supply started reporting show as incomplete. The aggregated
@@ -83,14 +90,14 @@ public class GetMembershipHourlyConsumptionController {
                     are not comparable.
 
                     **Gaps and measured zeros:**
-                    The energy figures add up only the supplies that stored a record that hour; an
-                    hour in which no supply stored one reports zero energy. `savingsEur` is an
+                    The energy figures add up only the supplies with data that hour; an hour in which
+                    no supply has data reports zero energy. `savingsEur` is an
                     **estimate** of what the hour's self-consumed energy was worth, pricing the
                     **energy term before taxes** only, exactly as the per-supply series does. It is
-                    `null` when no supply stored a record that hour (`suppliesWithData` is 0), and
-                    only then: an hour with nothing stored is a different statement from an hour that
-                    saved nothing, which reports `0.00` -- as does an hour whose stored records carry
-                    no self-consumption, a measured zero. This differs from the per-supply series,
+                    `null` when no supply has data that hour (`suppliesWithData` is 0), and only
+                    then: an hour without data is a different statement from an hour that saved
+                    nothing, which reports `0.00` -- as does an hour whose published self-consumption
+                    is zero, a measured zero. This differs from the per-supply series,
                     which reports `0.00` for every bucket it emits. `tariffSource` says where the
                     prices came from -- `ESTIMATE` or `REAL_TARIFF` -- and a single estimated supply
                     makes the whole hour an estimate; it is `null` exactly when `savingsEur` is.

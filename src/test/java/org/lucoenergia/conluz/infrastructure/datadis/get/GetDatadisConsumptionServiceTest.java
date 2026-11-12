@@ -15,9 +15,13 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
 import org.lucoenergia.conluz.domain.consumption.SupplyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.SupplyHourlyConsumptionBucket;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
@@ -34,11 +38,17 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -79,11 +89,14 @@ class GetDatadisConsumptionServiceTest {
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
 
+    private final SupplySavingsCalculator calculator = new SupplySavingsCalculatorImpl(aggregateRepository,
+            tariffResolver, zoneResolver, CONFIGURED_ESTIMATE);
+
     private final GetDatadisConsumptionService service = new GetDatadisConsumptionServiceImpl(
             consumptionRepository,
             getSupplyRepository,
-            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
-                    CONFIGURED_ESTIMATE),
+            calculator,
+            new PublishedMonthlyConsumptionReaderImpl(aggregateRepository, calculator),
             zoneResolver,
             CLOCK);
 
@@ -93,6 +106,67 @@ class GetDatadisConsumptionServiceTest {
     void givenTheSupplyExistsInMadrid() {
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
         when(zoneResolver.resolveZoneIdForSupply(supply.getId())).thenReturn(ZONE);
+    }
+
+    /**
+     * The range ends at 10:00 on 6 February, so that day has ten hours inside it. On the 5th every
+     * hour carries self-consumption; on the 6th nine of the ten do -- exactly 90 % -- and on the 7th,
+     * read with the same ten-hour range, eight. The 7th is a gap even though its consumption is
+     * known: no energy, no obtain method and nothing saved.
+     */
+    @Test
+    @DisplayName("SCS-003 ENM-001 a day has data at exactly 90 % of its hours inside the range and is a gap below it")
+    void aDayBelowThePublicationThresholdIsAGap() {
+        givenASingleSegmentAt("0.15");
+        when(consumptionRepository.getDailyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
+                .thenReturn(List.of(day("2024/02/05", 4.0, 24), day("2024/02/06", 2.0, 9)))
+                .thenReturn(List.of(day("2024/02/07", 2.0, 8)));
+
+        List<SupplyConsumptionBucket> series = service.getDailySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-05T00:00+01:00"), madridOffset("2024-02-06T10:00+01:00"));
+        List<SupplyConsumptionBucket> belowThreshold = service.getDailySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-07T00:00+01:00"), madridOffset("2024-02-07T10:00+01:00"));
+
+        assertTrue(series.get(0).hasPublishedData());
+        assertTrue(series.get(1).hasPublishedData());
+        assertEquals("Real", series.get(1).getConsumption().getObtainMethod());
+        assertEquals(List.of("0.6", "0.3"), amountsOf(series));
+        SupplyConsumptionBucket gap = belowThreshold.get(0);
+        assertFalse(gap.hasPublishedData());
+        assertNull(gap.getConsumption().getObtainMethod());
+        assertEquals("2024/02/07", gap.getConsumption().getDate());
+        assertEquals(0f, gap.getConsumption().getConsumptionKWh());
+        assertEquals(0f, gap.getConsumption().getSelfConsumptionEnergyKWh());
+        assertEquals(0, BigDecimal.ZERO.compareTo(gap.getSavings().getAmountEur()));
+    }
+
+    /**
+     * An hour whose record carries consumption but no self-consumption is a gap, exactly as an hour
+     * without any record: no energy, no obtain method and nothing saved. The hour beside it, whose
+     * self-consumption is published, keeps its figures.
+     */
+    @Test
+    @DisplayName("SCS-001 an hour whose record carries no self-consumption is a gap even with consumption known")
+    void anHourWithoutPublishedSelfConsumptionIsAGap() {
+        givenASingleSegmentAt("0.15");
+        DatadisHourlyConsumption published = hour("2024-02-05T10:00+01:00", 1.0);
+        DatadisHourlyConsumption unpublished = new DatadisHourlyConsumption(
+                madridOffset("2024-02-05T11:00+01:00").toInstant(),
+                hour("2024-02-05T11:00+01:00", 3.0).getConsumption(), 0);
+        unpublished.getConsumption().setConsumptionKWh(5f);
+        givenStoredHours(published, unpublished);
+
+        List<SupplyHourlyConsumptionBucket> series = service.getHourlySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-05T10:00+01:00"), madridOffset("2024-02-05T12:00+01:00"));
+
+        assertTrue(series.get(0).getBucket().hasPublishedData());
+        assertEquals("Real", series.get(0).getBucket().getConsumption().getObtainMethod());
+        SupplyConsumptionBucket gap = series.get(1).getBucket();
+        assertFalse(gap.hasPublishedData());
+        assertNull(gap.getConsumption().getObtainMethod());
+        assertEquals(0f, gap.getConsumption().getConsumptionKWh());
+        assertEquals(0f, gap.getConsumption().getSelfConsumptionEnergyKWh());
+        assertEquals(0, BigDecimal.ZERO.compareTo(gap.getSavings().getAmountEur()));
     }
 
     /**
@@ -165,25 +239,24 @@ class GetDatadisConsumptionServiceTest {
     }
 
     /**
-     * A monthly bucket is a pre-aggregate carrying the whole month's energy: the request selects it
-     * by the single instant it is stamped at and never trims it. Its priced interval must therefore
-     * be the whole local month too, mid-month bounds included -- clipping would value a fraction of
-     * the month against the full month's energy.
+     * A monthly bucket totals the hourly records of its hours inside the period, so a month the
+     * period ends inside is priced over exactly those hours: its last segment stops at the end of
+     * the period, not at the end of the month.
      */
     @Test
-    void aMonthlyBucketIsPricedOverTheWholeMonthEvenWithMidMonthBounds() {
+    void aMonthlyBucketIsPricedOnlyOverItsHoursInsideThePeriod() {
         givenSegments(
                 segment("2024-02-01", "2024-02-15", "0.10"),
                 segment("2024-02-15", "2024-03-01", "0.20"));
         givenMonthlyBuckets(bucket("2024/02/01", 100.0));
 
         service.getMonthlySeriesBySupply(SupplyId.of(supply.getId()),
-                madridOffset("2024-02-10T00:00+01:00"), madridOffset("2024-02-20T23:59:59+01:00"));
+                madridOffset("2024-02-01T00:00+01:00"), madridOffset("2024-02-20T23:59:59+01:00"));
 
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
                 eq(madrid("2024-02-01T00:00+01:00")), eq(madrid("2024-02-15T00:00+01:00")));
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
-                eq(madrid("2024-02-15T00:00+01:00")), eq(madrid("2024-03-01T00:00+01:00")));
+                eq(madrid("2024-02-15T00:00+01:00")), eq(madrid("2024-02-20T23:59:59+01:00")));
     }
 
     /**
@@ -268,9 +341,9 @@ class GetDatadisConsumptionServiceTest {
         givenASingleSegmentAt(SupplyId.of(supply.getId()), "0.15");
         givenASingleSegmentAt(SupplyId.of(otherSupply.getId()), "0.30");
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(eq(supply), any(), any()))
-                .thenReturn(List.of(bucket("2024/02/05", 4.0), bucket("2024/02/06", 2.0)));
+                .thenReturn(List.of(publishedDay(bucket("2024/02/05", 4.0)), publishedDay(bucket("2024/02/06", 2.0))));
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(eq(otherSupply), any(), any()))
-                .thenReturn(List.of(bucket("2024/02/05", 4.0), bucket("2024/02/06", 2.0)));
+                .thenReturn(List.of(publishedDay(bucket("2024/02/05", 4.0)), publishedDay(bucket("2024/02/06", 2.0))));
 
         OffsetDateTime from = madridOffset("2024-02-05T00:00+01:00");
         OffsetDateTime to = madridOffset("2024-02-06T23:59:59+01:00");
@@ -387,7 +460,22 @@ class GetDatadisConsumptionServiceTest {
 
     private void givenDailyBuckets(DatadisConsumption... buckets) {
         when(consumptionRepository.getDailyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
-                .thenReturn(List.of(buckets));
+                .thenReturn(Arrays.stream(buckets).map(GetDatadisConsumptionServiceTest::publishedDay).toList());
+    }
+
+    /**
+     * A day whose every hour carries self-consumption.
+     */
+    private static DatadisDailyConsumption publishedDay(DatadisConsumption consumption) {
+        return new DatadisDailyConsumption(consumption, 25);
+    }
+
+    /** A day carrying {@code selfConsumptionKWh}, of whose records {@code publishedHours} carry it. */
+    private DatadisDailyConsumption day(String date, double selfConsumptionKWh, long publishedHours) {
+        DatadisConsumption consumption = bucket(date, selfConsumptionKWh);
+        consumption.setConsumptionKWh(7f);
+        consumption.setObtainMethod("Real");
+        return new DatadisDailyConsumption(consumption, publishedHours);
     }
 
     private void givenStoredHours(DatadisHourlyConsumption... hours) {
@@ -400,12 +488,22 @@ class GetDatadisConsumptionServiceTest {
         DatadisConsumption consumption = bucket(start.toLocalDate().toString().replace('-', '/'), selfConsumptionKWh);
         consumption.setTime(start.toLocalTime().toString());
         consumption.setObtainMethod("Real");
-        return new DatadisHourlyConsumption(start.toInstant(), consumption);
+        return new DatadisHourlyConsumption(start.toInstant(), consumption, 1);
     }
 
+    /**
+     * The supply's hourly records, read per local day, hold each bucket's self-consumption on the
+     * first day of its month, with every hour of that month carrying self-consumption.
+     */
     private void givenMonthlyBuckets(DatadisConsumption... buckets) {
-        when(consumptionRepository.getMonthlyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
-                .thenReturn(List.of(buckets));
+        List<DailyPublishedAggregate> days = Arrays.stream(buckets)
+                .map(bucket -> new DailyPublishedAggregate(DateConverter.convertStringToLocalDate(bucket.getDate()),
+                        bucket.getConsumptionKWh(), bucket.getSelfConsumptionEnergyKWh(),
+                        bucket.getSurplusEnergyKWh(), 745, "Real"))
+                .toList();
+        when(aggregateRepository.aggregateByLocalDay(anyCollection(), any(Instant.class), any(Instant.class),
+                eq(ZONE)))
+                .thenReturn(Map.of(supply.getCode(), days));
     }
 
     private void givenASingleSegmentAt(String pricePerKwh) {

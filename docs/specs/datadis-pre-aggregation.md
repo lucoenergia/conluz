@@ -4,17 +4,18 @@
 | --- | --- |
 | **Prefix** | `DCA` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → read by `getMembershipMonthlyConsumption`, among others; rebuilt on demand by `syncMonthlyDatadisConsumptions`, `syncYearlyDatadisConsumptions`, `syncMonthlyDatadisProduction`, `syncYearlyDatadisProduction` |
+| **Contract** | OpenAPI snapshot → read by `getSupplyYearlyConsumption`, among others, but no longer by the monthly consumption series (#569); rebuilt on demand by `syncMonthlyDatadisConsumptions`, `syncYearlyDatadisConsumptions`, `syncMonthlyDatadisProduction`, `syncYearlyDatadisProduction` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #524 |
+| **Last reviewed against code** | #569 |
 
 ## Purpose
 
 The monthly and yearly totals the scheduled jobs pre-compute, per supply, from the hourly records
 the daily Datadis sync stores, so that monthly and yearly series need not sum the hourly records on
-every request. The spec covers both pre-aggregated series, consumption and production. Both come
-from Datadis consumption data: the production pre-aggregates sum the hourly production the sync
-derives from the surplus of plant supplies. This spec covers only how fresh those totals are kept;
+every request. The membership and supply monthly consumption series do sum the hourly records when
+they are read, since #569. The spec covers both pre-aggregated series, consumption and production.
+Both come from Datadis consumption data: the production pre-aggregates sum the hourly production the
+sync derives from the surplus of plant supplies. This spec covers only how fresh those totals are kept;
 the rest of the capability is specified lazily, as issues touch it.
 
 ## Glossary

@@ -48,9 +48,9 @@ class GetCommunityDailyEnergySeriesServiceTest {
     void aDaySumsTheSuppliesReachingTheThresholdAndADayWithoutAnyIsAGap() {
         EnergyMetricsPeriod period = period("2026-05-10T00:00:00+02:00", "2026-05-13T00:00:00+02:00");
         givenScope(period);
-        givenDays(first, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 10d, 1d, 24),
-                new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 7d, 1d, 21));
-        givenDays(second, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 5d, 2d, 22));
+        givenDays(first, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 0d, 10d, 1d, 24, null),
+                new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 0d, 7d, 1d, 21, null));
+        givenDays(second, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 0d, 5d, 2d, 22, null));
         givenDays(third, period);
 
         List<CommunityEnergySeriesBucket> series = service.getDailySeries(COMMUNITY_ID, period.getStartDate(),
@@ -75,8 +75,8 @@ class GetCommunityDailyEnergySeriesServiceTest {
     void aDayThePeriodStartsInsideIsJudgedOnItsHoursInsideThePeriod() {
         EnergyMetricsPeriod period = period("2026-05-10T14:00:00+02:00", "2026-05-11T00:00:00+02:00");
         givenScope(period);
-        givenDays(first, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 1d, 0d, 9));
-        givenDays(second, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 1d, 0d, 8));
+        givenDays(first, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 0d, 1d, 0d, 9, null));
+        givenDays(second, period, new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 0d, 1d, 0d, 8, null));
         givenDays(third, period);
 
         List<CommunityEnergySeriesBucket> series = service.getDailySeries(COMMUNITY_ID, period.getStartDate(),
@@ -94,8 +94,8 @@ class GetCommunityDailyEnergySeriesServiceTest {
     void theDayTheClocksGoBackIsJudgedOnItsTwentyFiveHours() {
         EnergyMetricsPeriod period = period("2026-10-25T00:00:00+02:00", "2026-10-26T00:00:00+01:00");
         givenScope(period);
-        givenDays(first, period, new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 1d, 0d, 23));
-        givenDays(second, period, new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 1d, 0d, 22));
+        givenDays(first, period, new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 0d, 1d, 0d, 23, null));
+        givenDays(second, period, new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 0d, 1d, 0d, 22, null));
         givenDays(third, period);
 
         assertEquals(1, service.getDailySeries(COMMUNITY_ID, period.getStartDate(), period.getEndDate())

@@ -16,12 +16,10 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,9 +95,6 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxFixture influxFixture;
     @Autowired
     private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
-    @Autowired
-    @Qualifier("getDatadisConsumptionRepositoryInflux")
-    private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -115,8 +110,10 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
     @DisplayName("EVL-001 AC1 AC2 AC5 the membership monthly series rounds every energy figure to 3 decimals and stores nothing rounded")
     void theMonthlySeriesRoundsEveryEnergyFigure() throws Exception {
         TwoSupplyMembership membership = twoSupplyMembership();
+        publishFebruary(membership);
         write(membership.first(), firstRecord(membership.first().getCode()));
         write(membership.second(), secondRecord(membership.second().getCode()));
+        // Only to show that the stored pre-aggregate keeps the unrounded sums; the series does not read it.
         aggregateFebruary(membership);
 
         String body = requestMonthly(membership)
@@ -128,9 +125,9 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
         assertKWh(body, "/0/selfConsumptionKWh", SELF_CONSUMPTION);
         assertKWh(body, "/0/surplusKWh", SURPLUS);
         assertKWh(body, "/0/assignedProductionKWh", ASSIGNED_PRODUCTION);
-        assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, membership.first(),
+        assertMonthlyAggregateUnchanged(influxFixture, membership.first(),
                 FIRST_GRID_IMPORT, FIRST_SELF_CONSUMPTION, FIRST_SURPLUS, FIRST_GENERATION);
-        assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, membership.second(),
+        assertMonthlyAggregateUnchanged(influxFixture, membership.second(),
                 SECOND_GRID_IMPORT, SECOND_SELF_CONSUMPTION, SECOND_SURPLUS, SECOND_GENERATION);
     }
 
@@ -143,9 +140,9 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
     @DisplayName("EVL-002 AC3 the membership monthly series rounds the unrounded sum across supplies, once, and prices it unrounded")
     void theMonthlySeriesRoundsTheUnroundedSumAcrossSupplies() throws Exception {
         TwoSupplyMembership membership = twoSupplyMembership();
+        publishFebruary(membership);
         write(membership.first(), firstRecord(membership.first().getCode()));
         write(membership.second(), secondRecord(membership.second().getCode()));
-        aggregateFebruary(membership);
 
         String body = requestMonthly(membership)
                 .andExpect(status().isOk())
@@ -199,23 +196,19 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
 
     /**
      * February 2024, published at every hour for both supplies, with several hourly records each
-     * carrying four decimals, aggregated after the last of them and read through both operations over the month's local bounds.
+     * carrying four decimals, read through both operations over the month's local bounds.
      */
     @Test
     @DisplayName("EVL-001 EVL-002 EVL-004 AC4 the membership monthly series and energy metrics report the same figures for a month")
     void theMonthlySeriesAndTheEnergyMetricsAgreeOnAMonth() throws Exception {
         TwoSupplyMembership membership = twoSupplyMembership();
-        // Every hour of the month published as zero first, so the records below land in a complete
-        // month; a record written later at the same instant replaces the zero.
-        influxFixture.writePublishedZeros(membership.first().getCode(), FEBRUARY, ZONE);
-        influxFixture.writePublishedZeros(membership.second().getCode(), FEBRUARY, ZONE);
+        publishFebruary(membership);
         write(membership.first(), firstRecord(membership.first().getCode()), secondRecord(membership.first().getCode()),
                 hourlyRecord(membership.first().getCode(), "2024/02/01", "01:00", 1.0005f, 0.3337f, 2.1119f),
                 hourlyRecord(membership.first().getCode(), "2024/02/29", "24:00", 0.0007f, 0.0049f, 0.0001f));
         write(membership.second(), firstRecord(membership.second().getCode()),
                 hourlyRecord(membership.second().getCode(), "2024/02/15", "08:00", 3.4567f, 1.2345f, 0.9876f),
                 hourlyRecord(membership.second().getCode(), "2024/02/20", "20:00", 0.1111f, 0.2229f, 0.0004f));
-        aggregateFebruary(membership);
 
         String monthly = requestMonthly(membership)
                 .andExpect(status().isOk())
@@ -262,6 +255,17 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
         if (!writtenCups.contains(supply.getCode())) {
             writtenCups.add(supply.getCode());
         }
+    }
+
+    /**
+     * Every hour of February published as zero for both supplies, so the records written afterwards
+     * land in a month with data; a record written later at the same instant replaces the zero.
+     */
+    private void publishFebruary(TwoSupplyMembership membership) {
+        influxFixture.writePublishedZeros(membership.first().getCode(), FEBRUARY, ZONE);
+        influxFixture.writePublishedZeros(membership.second().getCode(), FEBRUARY, ZONE);
+        writtenCups.add(membership.first().getCode());
+        writtenCups.add(membership.second().getCode());
     }
 
     /**

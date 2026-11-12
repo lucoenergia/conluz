@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.consumption.datadis.get;
 import jakarta.validation.constraints.NotNull;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 
 import java.time.Month;
@@ -19,15 +20,16 @@ public interface GetDatadisConsumptionRepository {
      * <p>Days are the local calendar days of the supply's time zone, so a day lasts 23 or 25 hours
      * across a daylight saving transition. The bounds are used as given, without being rounded to a
      * day boundary, so bounds that fall mid-day yield a partial first and last day. A day with no
-     * stored record is returned with zero energy rather than omitted.
+     * stored record is returned with zero energy rather than omitted. Each day comes with the number
+     * of its records carrying self-consumption.
      *
      * @param supply the supply for which the consumption data is retrieved, must not be null
      * @param startDate the start date of the range, inclusive, must not be null
      * @param endDate the end date of the range, exclusive, must not be null
-     * @return a list of {@code DatadisConsumption} objects representing daily consumption data within the specified date range
+     * @return the days of the range, in chronological order
      */
-    List<DatadisConsumption> getDailyConsumptionsByRangeOfDates(@NotNull Supply supply,
-                                                                @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
+    List<DatadisDailyConsumption> getDailyConsumptionsByRangeOfDates(@NotNull Supply supply,
+                                                                     @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
 
     /**
      * Retrieves a list of hourly consumption data within a specified date range for the given supply.
@@ -47,7 +49,8 @@ public interface GetDatadisConsumptionRepository {
      * <p>An hour is returned for every whole hour the store groups between the bounds in which the
      * supply has at least one record anywhere in the period; an hour without a record of its own
      * comes back with zero energy and no obtain method. A period in which the supply has no record
-     * at all returns nothing.
+     * at all returns nothing. Each hour comes with the number of its records carrying
+     * self-consumption.
      *
      * @param supply the supply for which the consumption data is retrieved, must not be null
      * @param startDate the start of the period, inclusive, must not be null
@@ -57,22 +60,6 @@ public interface GetDatadisConsumptionRepository {
     List<DatadisHourlyConsumption> getHourlyConsumptionsByPeriod(@NotNull Supply supply,
                                                                  @NotNull OffsetDateTime startDate,
                                                                  @NotNull OffsetDateTime endDate);
-
-    /**
-     * Retrieves a list of monthly consumption data within a specified date range for the given supply.
-     *
-     * <p>Reads the pre-aggregated monthly measurement, whose points are stamped at local midnight on
-     * the first day of each local calendar month and total that month as the supply's calendar sees
-     * it. The bounds select those points by instant, so a bound expressed in UTC can select one month
-     * too few or too many.
-     *
-     * @param supply the supply for which the consumption data is retrieved, must not be null
-     * @param startDate the start date of the range, inclusive, must not be null
-     * @param endDate the end date of the range, exclusive, must not be null
-     * @return a list of {@code DatadisConsumption} objects representing monthly consumption data within the specified date range
-     */
-    List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(@NotNull Supply supply,
-                                                                   @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
 
     /**
      * Retrieves a list of yearly consumption data within a specified date range for the given supply.

@@ -112,7 +112,7 @@ class GetMembershipDailyConsumptionServiceTest {
      * and is not counted.
      */
     @Test
-    @DisplayName("MCS-002 AC1 a day counts and sums only the supplies that stored a record that day")
+    @DisplayName("MCS-002 AC1 a day counts and sums only the supplies with data that day")
     void aDayCountsAndSumsOnlyTheSuppliesThatStoredARecord() {
         givenMembership();
         givenSupplies(first, second);
@@ -333,7 +333,7 @@ class GetMembershipDailyConsumptionServiceTest {
         consumption.setSelfConsumptionEnergyKWh(selfConsumptionKWh);
         consumption.setObtainMethod(obtainMethod);
         return SupplyConsumptionBucket.of(consumption,
-                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE));
+                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE), obtainMethod != null);
     }
 
     private static void assertDays(List<MembershipDailyConsumptionBucket> series, String... expected) {

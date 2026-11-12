@@ -98,11 +98,11 @@ public final class RoundingNoiseDataset {
      * Asserts the supply's February pre-aggregate still carries the unrounded sums of the figures
      * written: 0.3456, not the 0.346 a response reports.
      */
-    public static void assertMonthlyAggregateUnchanged(GetDatadisConsumptionRepository repository, Supply supply,
+    public static void assertMonthlyAggregateUnchanged(DatadisConsumptionInfluxFixture fixture, Supply supply,
                                                        float gridImport, float selfConsumption, float surplus,
                                                        float generation) {
-        List<DatadisConsumption> stored = repository.getMonthlyConsumptionsByRangeOfDates(supply,
-                OffsetDateTime.parse(MONTH_START), OffsetDateTime.parse(MONTH_END));
+        List<DatadisConsumption> stored = fixture.readMonthlyAggregates(supply.getCode(),
+                OffsetDateTime.parse(MONTH_START).toInstant(), OffsetDateTime.parse(MONTH_END).toInstant());
         assertEquals(1, stored.size(), () -> "stored monthly records: " + stored);
         assertFigures(stored.get(0), gridImport, selfConsumption, surplus, generation);
     }

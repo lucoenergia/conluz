@@ -99,6 +99,8 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
+        publish(first, LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 10));
+        publish(second, LocalDate.of(2024, 1, 11), LocalDate.of(2024, 1, 11));
         write(first, "2024/01/10", "13:00", 6f, 1f, 0.5f);
         write(first, "2024/01/10", "14:00", 4f, 1f, 0.5f);
         write(second, "2024/01/11", "13:00", 3f, 1f, 0f);
@@ -132,6 +134,8 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
+        publish(first, LocalDate.of(2024, 1, 11), LocalDate.of(2024, 1, 11));
+        publish(second, LocalDate.of(2024, 1, 11), LocalDate.of(2024, 1, 11));
         write(first, "2024/01/11", "13:00", 0f, 0f, 0f);
         write(second, "2024/01/11", "16:00", 0f, 0f, 0f);
 
@@ -161,6 +165,9 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
+        LocalDate day = LocalDate.of(2024, 2, 10);
+        publish(first, day, day);
+        publish(second, day, day);
         influxFixture.write(List.of(RoundingNoiseDataset.firstRecord(first.getCode())));
         influxFixture.write(List.of(RoundingNoiseDataset.secondRecord(second.getCode())));
         remember(first);
@@ -213,6 +220,8 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
+        publish(first, LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 12));
+        publish(second, LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 12));
         for (String day : List.of("2024/01/10", "2024/01/11", "2024/01/12")) {
             write(first, day, "10:00", 1.125f, 0.375f, 0.0625f);
             write(first, day, "14:00", 2.25f, 1.5f, 0.75f);
@@ -251,6 +260,8 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
+        publish(first, LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 10));
+        publish(second, LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 10));
         write(first, "2024/01/10", "12:00", 5f, 5f, 0f);
         write(first, "2024/01/10", "13:00", 1f, 1f, 0f);
         write(second, "2024/01/10", "14:00", 2f, 2f, 0f);
@@ -278,6 +289,8 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
         User member = persistMember(community);
         Supply first = persistSupply(member, community);
         Supply second = persistSupply(member, community);
+        publish(first, LocalDate.of(2024, 1, 10), LocalDate.of(2024, 1, 11));
+        publish(second, LocalDate.of(2024, 1, 11), LocalDate.of(2024, 1, 11));
         write(first, "2024/01/10", "13:00", 7f, 0f, 0f);
         write(first, "2024/01/11", "10:00", 1f, 0f, 0f);
         write(second, "2024/01/11", "11:00", 2f, 0f, 0f);
@@ -551,6 +564,17 @@ class GetMembershipDailyConsumptionControllerTest extends BaseControllerTest {
      */
     private void writeAt(Supply supply, List<Instant> times, Float gridImportKWh, Float selfConsumptionKWh) {
         influxFixture.writeAt(supply.getCode(), times, gridImportKWh, selfConsumptionKWh, 0f);
+        remember(supply);
+    }
+
+    /**
+     * Publishes the supply's days from {@code first} to {@code last}: a record carrying zero at every
+     * hour of them, so the supply has data on those days and only the records written afterwards add
+     * anything. Written before them, since a record written later at the same instant replaces these
+     * fields.
+     */
+    private void publish(Supply supply, LocalDate first, LocalDate last) {
+        influxFixture.writePublishedZeros(supply.getCode(), first, last, ZONE);
         remember(supply);
     }
 

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
@@ -175,7 +176,7 @@ class GetDatadisConsumptionRepositoryInfluxLocalCalendarTest extends BaseIntegra
         flush();
 
         List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supplyA,
-                OffsetDateTime.parse("2023-02-10T00:00:00+01:00"), OffsetDateTime.parse("2023-02-13T00:00:00+01:00"));
+                OffsetDateTime.parse("2023-02-10T00:00:00+01:00"), OffsetDateTime.parse("2023-02-13T00:00:00+01:00")).stream().map(DatadisDailyConsumption::getConsumption).toList();
         Map<String, Float> days = byDate(result);
 
         assertEquals(1.0f, days.get("2023/02/10"), 0.0f, "The record on startDate must be included");
@@ -201,7 +202,7 @@ class GetDatadisConsumptionRepositoryInfluxLocalCalendarTest extends BaseIntegra
 
         List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supplyA,
                 OffsetDateTime.parse("2023-04-01T00:00:00+02:00"),
-                OffsetDateTime.parse("2023-04-30T23:59:59+02:00"));
+                OffsetDateTime.parse("2023-04-30T23:59:59+02:00")).stream().map(DatadisDailyConsumption::getConsumption).toList();
 
         assertEquals(30, result.size());
         assertEquals("2023/04/01", result.get(0).getDate());
@@ -281,7 +282,7 @@ class GetDatadisConsumptionRepositoryInfluxLocalCalendarTest extends BaseIntegra
 
     private Map<String, Float> consumptionByDate(Supply supply, String startDate, String endDate) {
         return byDate(repository.getDailyConsumptionsByRangeOfDates(supply,
-                OffsetDateTime.parse(startDate), OffsetDateTime.parse(endDate)));
+                OffsetDateTime.parse(startDate), OffsetDateTime.parse(endDate)).stream().map(DatadisDailyConsumption::getConsumption).toList());
     }
 
     /**

@@ -29,6 +29,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import java.time.Month;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset;
@@ -348,12 +350,13 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
     }
 
     /**
-     * A monthly bucket is never trimmed by the bounds: an `endDate` in the middle of February still
-     * returns the whole month, so its savings must be the whole month's 0.50 kWh at 0.15, not the
-     * fraction of the month the request happens to end in.
+     * A month the period ends inside totals only its hours before the end: up to midday on the 15th,
+     * February holds 0.25 of its 0.50 kWh, worth 0.0375 at 0.15, presented as 0.04. Its savings are
+     * priced over the same hours as its energy.
      */
     @Test
-    void testAMonthSelectedByMidMonthBoundsStillCarriesItsWholeSavings() throws Exception {
+    @DisplayName("SCS-002 a month the period ends inside carries only its energy and savings before the end")
+    void testAMonthCutByTheEndBoundCarriesOnlyItsHoursInsideThePeriod() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
 
         User user = createUserRepository.create(UserMother.randomUser());
@@ -368,13 +371,13 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[1].date").value("2024/02/01"))
-                .andExpect(jsonPath("$[1].selfConsumptionKWh").value(closeTo(0.50, TOLERANCE)))
-                .andExpect(jsonPath("$[1].savingsEur").value(closeTo(0.08, TOLERANCE)))
-                .andExpect(content().string(containsString("\"savingsEur\":0.08")));
+                .andExpect(jsonPath("$[1].selfConsumptionKWh").value(closeTo(0.25, TOLERANCE)))
+                .andExpect(jsonPath("$[1].savingsEur").value(closeTo(0.04, TOLERANCE)))
+                .andExpect(content().string(containsString("\"savingsEur\":0.04")));
     }
 
     /**
-     * Two supplies with a pre-aggregate for the same month: the series must carry the requested
+     * Two supplies with records in the same month: the series must carry the requested
      * supply's own energy and savings.
      */
     @Test
@@ -406,8 +409,11 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode("ES" + RandomStringUtils.random(20, false, true)).build(),
                 UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        // February published at every hour first, so the two records land in a month with data.
+        influxFixture.writePublishedZeros(supply.getCode(), YearMonth.of(2024, 2), ZoneId.of("Europe/Madrid"));
         influxFixture.write(List.of(RoundingNoiseDataset.firstRecord(supply.getCode()),
                 RoundingNoiseDataset.secondRecord(supply.getCode())));
+        // Only to show that the stored pre-aggregate keeps the unrounded sums; the series does not read it.
         monthlyAggregationRepository.aggregateMonthlyConsumption(supply, Month.FEBRUARY, 2024);
         try {
             String body = mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/monthly")
@@ -424,7 +430,7 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
             assertKWh(body, "/0/assignedProductionKWh", RoundingNoiseDataset.ASSIGNED_PRODUCTION);
             RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
             // The pre-aggregate keeps the unrounded float sums: 0.3456, not the 0.346 reported.
-            RoundingNoiseDataset.assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, supply,
+            RoundingNoiseDataset.assertMonthlyAggregateUnchanged(influxFixture, supply,
                     (float) RoundingNoiseDataset.gridImportSum(), (float) RoundingNoiseDataset.selfConsumptionSum(),
                     (float) RoundingNoiseDataset.surplusSum(),
                     (float) ((double) RoundingNoiseDataset.FIRST_GENERATION + RoundingNoiseDataset.SECOND_GENERATION));

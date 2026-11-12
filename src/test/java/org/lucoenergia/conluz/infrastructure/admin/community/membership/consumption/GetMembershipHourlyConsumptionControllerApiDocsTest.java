@@ -112,8 +112,9 @@ class GetMembershipHourlyConsumptionControllerApiDocsTest extends BaseController
                 "23 on the day the clocks go forward and 25 on the day they go back",
                 "It is unique within the series and is the key to identify an hour by",
                 "the number of supplies the member currently owns in the community",
-                "how many of them stored a record that hour",
-                "It is `null` when no supply stored a record that hour (`suppliesWithData` is 0), and only then",
+                "how many of them have data that hour",
+                "its record of that hour carries self-consumption",
+                "It is `null` when no supply has data that hour (`suppliesWithData` is 0), and only then",
                 "reports `0.00`",
                 "it is `null` exactly when `savingsEur` is",
                 "Platform admins are not granted access")) {

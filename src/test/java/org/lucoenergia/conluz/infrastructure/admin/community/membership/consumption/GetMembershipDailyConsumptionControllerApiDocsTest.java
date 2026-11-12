@@ -101,8 +101,9 @@ class GetMembershipDailyConsumptionControllerApiDocsTest extends BaseControllerT
                 "cover 23 and 25 hours",
                 "a period starting at 12:00 counts only that day's hours from 12:00",
                 "the number of supplies the member currently owns in the community",
-                "how many of them stored at least one hourly record that day",
-                "It is `null` when no supply stored a record that day (`suppliesWithData` is 0), and only then",
+                "how many of them have data that day",
+                "at least 90 % of the day's hours inside the period",
+                "It is `null` when no supply has data that day (`suppliesWithData` is 0), and only then",
                 "reports `0.00`",
                 "it is `null` exactly when `savingsEur` is",
                 "Platform admins are not granted access")) {

@@ -23,9 +23,13 @@ public interface GetDatadisConsumptionService {
      * request, so bounds falling mid-day yield a partial bucket whose savings cover exactly the
      * hours its energy fields cover.
      *
+     * <p>A day has data when the supply's records carrying self-consumption reach the publication
+     * threshold of the day's hours inside the range; a day without data is returned as a gap, with
+     * zero energy, no obtain method and nothing saved.
+     *
      * @param supplyId the supply ID for which to retrieve consumption data
      * @param startDate the start date of the range, inclusive
-     * @param endDate the end date of the range, inclusive
+     * @param endDate the end date of the range, exclusive
      * @return a list of daily consumption buckets with their estimated savings
      */
     List<SupplyConsumptionBucket> getDailySeriesBySupply(@NotNull SupplyId supplyId,
@@ -33,19 +37,18 @@ public interface GetDatadisConsumptionService {
                                                           @NotNull OffsetDateTime endDate);
 
     /**
-     * Retrieves the monthly consumption series for a supply, each bucket priced over its
-     * <strong>whole</strong> local calendar month.
+     * Retrieves the monthly consumption series for a supply, summed from its hourly records.
      *
-     * <p>The interval is deliberately <em>not</em> intersected with the requested range, unlike the
-     * daily series. A monthly bucket is a pre-aggregate stamped at local midnight of day 1: the
-     * range selects it by that single instant, and once selected it carries the entire month's
-     * energy whatever the bounds are. Pricing a clipped interval would value a fraction of the
-     * month against the whole month's energy.
+     * <p>A month is selected when its local midnight on day 1 falls inside the period, clipped to
+     * the start of the current hour, and returned only when the supply's records carrying
+     * self-consumption reach the publication threshold of the month's hours inside the period: a
+     * month whose self-consumption is not yet published is omitted rather than reported as zero.
+     * Each month totals, and is priced over, its hours inside the period.
      *
      * @param supplyId the supply ID for which to retrieve consumption data
-     * @param startDate the start date of the range, inclusive
-     * @param endDate the end date of the range, inclusive
-     * @return a list of monthly consumption buckets with their estimated savings
+     * @param startDate the start of the period, inclusive
+     * @param endDate the end of the period, exclusive
+     * @return the months with published data, in chronological order, with their estimated savings
      */
     List<SupplyConsumptionBucket> getMonthlySeriesBySupply(@NotNull SupplyId supplyId,
                                                             @NotNull OffsetDateTime startDate,
@@ -58,8 +61,8 @@ public interface GetDatadisConsumptionService {
      * <p>The period obeys the same rules as the daily series' and is clipped the same way, with a
      * cap of its own: {@code EnergyMetricsPeriodValidator.MAX_HOURLY_LENGTH}. One bucket is returned
      * for every hour that starts inside the clipped period, in chronological order, whether or not
-     * the supply stored a record for it: an hour without one comes with zero energy, no obtain
-     * method and nothing saved. Each hour is priced with the same tariff resolution as a day of the
+     * the supply has data for it: an hour without a record carrying self-consumption comes with zero
+     * energy, no obtain method and nothing saved, even when its consumption is known. Each hour is priced with the same tariff resolution as a day of the
      * daily series, over the hour clipped to the period's end.
      *
      * @param supplyId the supply ID for which to retrieve consumption data

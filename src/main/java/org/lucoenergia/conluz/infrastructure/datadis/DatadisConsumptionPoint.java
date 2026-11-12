@@ -23,6 +23,12 @@ public class DatadisConsumptionPoint {
     private Double generationEnergyKWh;
     @Column(name = "self_consumption_energy_kwh")
     private Double selfConsumptionEnergyKWh;
+    /**
+     * The number of records in the group carrying self-consumption, zero included. Only the grouped
+     * reads select it; it is null on a point read as stored.
+     */
+    @Column(name = "published_hours")
+    private Double publishedHours;
 
     public Instant getTime() {
         return time;
@@ -50,5 +56,9 @@ public class DatadisConsumptionPoint {
 
     public Double getSelfConsumptionEnergyKWh() {
         return selfConsumptionEnergyKWh;
+    }
+
+    public Double getPublishedHours() {
+        return publishedHours;
     }
 }

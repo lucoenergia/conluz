@@ -4,6 +4,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.Query;
+import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
@@ -139,6 +141,68 @@ public class DatadisConsumptionInfluxFixture {
                 .filter(time -> !skipped.contains(time.atZone(zone).getHour()))
                 .toList();
         writeAt(cups, times, 0f, 0f, 0f);
+    }
+
+    /**
+     * As {@link #writePublishedZeros(String, YearMonth, ZoneId, Integer...)}, for every hour of the
+     * local days from {@code first} to {@code last}, both included.
+     */
+    public void writePublishedZeros(String cups, LocalDate first, LocalDate last, ZoneId zone) {
+        Instant end = last.plusDays(1).atStartOfDay(zone).toInstant();
+        List<Instant> times = Stream.iterate(first.atStartOfDay(zone).toInstant(),
+                        time -> time.isBefore(end), time -> time.plus(Duration.ofHours(1)))
+                .toList();
+        writeAt(cups, times, 0f, 0f, 0f);
+    }
+
+    /**
+     * Writes a monthly pre-aggregate point for the CUPS directly, stamped at local midnight of the
+     * month's first day as the production aggregation stamps it, without summing any hourly record:
+     * a month aggregated from data that has changed since.
+     */
+    public void writeMonthlyAggregate(String cups, YearMonth month, ZoneId zone, double consumptionKWh,
+                                      double selfConsumptionEnergyKWh, double surplusEnergyKWh) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
+            batchPoints.point(Point.measurement(DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT)
+                    .time(month.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli(), TimeUnit.MILLISECONDS)
+                    .tag("cups", cups)
+                    .addField("consumption_kwh", consumptionKWh)
+                    .addField("self_consumption_energy_kwh", selfConsumptionEnergyKWh)
+                    .addField("surplus_energy_kwh", surplusEnergyKWh)
+                    .addField("generation_energy_kwh", 0.0)
+                    .addField("obtain_method", "Real")
+                    .build());
+            connection.write(batchPoints);
+        }
+    }
+
+    /**
+     * Reads the monthly pre-aggregates of the CUPS stamped from {@code from}, included, to
+     * {@code toExclusive}, with each figure as the {@code Float} the hourly records are stored as.
+     */
+    public List<DatadisConsumption> readMonthlyAggregates(String cups, Instant from, Instant toExclusive) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            List<DatadisConsumptionMonthlyPoint> points = new InfluxDBResultMapper().toPOJO(
+                    connection.query(new Query(String.format(
+                            "SELECT * FROM \"%s\" WHERE \"cups\" = '%s' AND time >= '%s' AND time < '%s'",
+                            DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT, cups, from, toExclusive))),
+                    DatadisConsumptionMonthlyPoint.class);
+            return points.stream().map(point -> {
+                DatadisConsumption consumption = new DatadisConsumption();
+                consumption.setCups(point.getCups());
+                consumption.setConsumptionKWh(asFloat(point.getConsumptionKWh()));
+                consumption.setSelfConsumptionEnergyKWh(asFloat(point.getSelfConsumptionEnergyKWh()));
+                consumption.setSurplusEnergyKWh(asFloat(point.getSurplusEnergyKWh()));
+                consumption.setGenerationEnergyKWh(asFloat(point.getGenerationEnergyKWh()));
+                consumption.setObtainMethod(point.getObtainMethod());
+                return consumption;
+            }).toList();
+        }
+    }
+
+    private static Float asFloat(Double value) {
+        return value == null ? null : value.floatValue();
     }
 
     /**

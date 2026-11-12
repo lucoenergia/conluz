@@ -560,7 +560,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 Instant.parse("2026-10-23T22:00:00Z"), Instant.parse("2026-10-26T23:00:00Z"), madrid);
 
         assertEquals(2, days.size(), "a day without records is absent: " + days);
-        assertEquals(new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 12.5, 6.25, 25), days.get(0));
+        assertEquals(new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 25.0, 12.5, 6.25, 25, "Real"), days.get(0));
         assertEquals(LocalDate.of(2026, 10, 26), days.get(1).day());
         assertEquals(2.0, days.get(1).selfConsumptionKWh(), 1e-6);
         assertEquals(4.0, days.get(1).surplusKWh(), 1e-6);
@@ -599,9 +599,9 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 List.of(first, second, silent), may10, may10.plusSeconds(2 * 86_400), madrid);
 
         assertEquals(2, days.size(), "a supply without records is absent: " + days);
-        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 2.0, 1.0, 2)),
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 2.0, 2.0, 1.0, 2, "Real")),
                 days.get(first.getCode()));
-        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 3.0, 0.0, 1)),
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 1.0, 3.0, 0.0, 1, "Real")),
                 days.get(second.getCode()));
     }
 

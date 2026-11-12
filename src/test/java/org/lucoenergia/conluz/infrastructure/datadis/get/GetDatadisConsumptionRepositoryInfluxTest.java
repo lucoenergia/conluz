@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxLoader;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
         OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
 
-        List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate);
+        List<DatadisConsumption> result = repository.getDailyConsumptionsByRangeOfDates(supply, startDate, endDate).stream().map(DatadisDailyConsumption::getConsumption).toList();
 
         assertNotNull(result);
         assertFalse(result.isEmpty());
@@ -199,54 +200,6 @@ class GetDatadisConsumptionRepositoryInfluxTest extends BaseIntegrationTest {
         assertEquals("ES0031406912345678JN0F", day2Hour1.getCups());
         assertEquals("2023/04/02", day2Hour1.getDate(), "Date should be April 2, 2023");
         assertEquals(0.44f, day2Hour1.getConsumptionKWh(), 0.01f, "First hour of April 2 consumption should be 0.44 kWh");
-    }
-
-    @Test
-    void testGetMonthlyConsumptionsByRangeOfDates() {
-        User user = UserMother.randomUser();
-        Supply supply = SupplyMother.random(user)
-                .withCode("ES0031406912345678JN0F")
-                .build();
-
-        OffsetDateTime startDate = OffsetDateTime.parse("2023-04-01T00:00:00Z");
-        OffsetDateTime endDate = OffsetDateTime.parse("2023-04-30T23:59:59Z");
-
-        List<DatadisConsumption> result = repository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, endDate);
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-
-        // The loader now populates monthly aggregated data
-        // Query for April 2023 returns 1 monthly aggregated result
-        assertEquals(1, result.size());
-
-        // Verify April 2023 monthly data
-        DatadisConsumption monthData = result.get(0);
-        assertNotNull(monthData);
-        assertEquals("ES0031406912345678JN0F", monthData.getCups());
-
-        // Verify date and time are present
-        // April 2023 monthly data timestamp is April 1, 2023 00:00:00 UTC
-        // In Europe/Madrid timezone (UTC+2 in April), this becomes 2023-04-01T02:00:00
-        assertNotNull(monthData.getDate());
-        assertEquals("2023/04/01", monthData.getDate(), "Date should be April 1, 2023 in Europe/Madrid timezone");
-        assertNotNull(monthData.getTime());
-        assertEquals("02:00", monthData.getTime(), "Time should be 02:00 in Europe/Madrid timezone (UTC+2)");
-
-        assertNotNull(monthData.getConsumptionKWh());
-        assertTrue(monthData.getConsumptionKWh() > 0, "Consumption should be greater than 0");
-
-        // Verify surplus and self-consumption energy are not null and >= 0
-        assertNotNull(monthData.getSurplusEnergyKWh());
-        assertTrue(monthData.getSurplusEnergyKWh() >= 0, "Surplus energy should be >= 0");
-        assertNotNull(monthData.getSelfConsumptionEnergyKWh());
-        assertTrue(monthData.getSelfConsumptionEnergyKWh() >= 0, "Self-consumption energy should be >= 0");
-
-        // Expected values for April 2023 from CONSUMPTION_BY_MONTH:
-        // April 2023: 330.2 kWh consumption, 65.0 kWh surplus, 135.0 kWh self-consumption
-        assertEquals(330.2f, monthData.getConsumptionKWh(), 0.01f, "April 2023 consumption should match monthly aggregated value");
-        assertEquals(65.0f, monthData.getSurplusEnergyKWh(), 0.01f, "April 2023 surplus should match monthly aggregated value");
-        assertEquals(135.0f, monthData.getSelfConsumptionEnergyKWh(), 0.01f, "April 2023 self-consumption should match monthly aggregated value");
     }
 
     @Test

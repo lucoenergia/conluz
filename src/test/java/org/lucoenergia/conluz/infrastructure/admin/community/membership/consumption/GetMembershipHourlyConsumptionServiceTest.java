@@ -107,7 +107,7 @@ class GetMembershipHourlyConsumptionServiceTest {
      * counted.
      */
     @Test
-    @DisplayName("MCS-003 AC1 an hour counts and sums only the supplies that stored a record that hour")
+    @DisplayName("MCS-003 AC1 an hour counts and sums only the supplies with data that hour")
     void anHourCountsAndSumsOnlyTheSuppliesThatStoredARecord() {
         givenMembership();
         givenSupplies(first, second);
@@ -303,7 +303,7 @@ class GetMembershipHourlyConsumptionServiceTest {
         consumption.setSelfConsumptionEnergyKWh(selfConsumptionKWh);
         consumption.setObtainMethod(obtainMethod);
         return SupplyHourlyConsumptionBucket.of(start, SupplyConsumptionBucket.of(consumption,
-                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE)));
+                SupplySavings.of(new BigDecimal(savingsEur), TariffSource.ESTIMATE, PRICE), obtainMethod != null));
     }
 
     private static void assertHours(List<MembershipHourlyConsumptionBucket> series, String... expected) {

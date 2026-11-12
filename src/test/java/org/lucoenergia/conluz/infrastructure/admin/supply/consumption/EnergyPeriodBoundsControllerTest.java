@@ -18,7 +18,6 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -28,7 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
-import java.time.Month;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -80,8 +79,6 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
-    @Autowired
-    private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
     @Autowired
@@ -169,6 +166,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-001 AC1 the supply daily series over a day is one bucket without the record at the next midnight")
     void supplyDailySeriesOverADay() throws Exception {
+        publishDays(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 11));
         givenRecordsAroundTheDay();
 
         request(supplyPath("/consumption/daily"), DAY_START, DAY_END)
@@ -211,7 +209,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-001 AC2 the supply monthly series over August returns August only")
     void supplyMonthlySeriesOverAugustReturnsAugustOnly() throws Exception {
-        givenMonthlyAggregatesForJulyAugustAndSeptember();
+        givenPublishedJulyAugustAndSeptember();
 
         request(supplyPath("/consumption/monthly"), AUGUST_START, AUGUST_END)
                 .andExpect(status().isOk())
@@ -223,7 +221,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-001 AC2 the membership monthly series over August returns August only")
     void membershipMonthlySeriesOverAugustReturnsAugustOnly() throws Exception {
-        givenMonthlyAggregatesForJulyAugustAndSeptember();
+        givenPublishedJulyAugustAndSeptember();
 
         request(membershipPath("/consumption/monthly"), AUGUST_START, AUGUST_END)
                 .andExpect(status().isOk())
@@ -296,6 +294,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-002 AC4 the supply daily series emits no bucket after the day of the current hour")
     void theSupplyDailySeriesEmitsNoBucketAfterTheDayOfTheCurrentHour() throws Exception {
+        publishDays(LocalDate.of(2026, 10, 24), LocalDate.of(2026, 10, 26));
         givenRecordsAroundTheCurrentHour();
 
         request(supplyPath("/consumption/daily"), "2026-10-24T00:00:00+02:00", FUTURE_END)
@@ -309,7 +308,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-002 AC4 the supply monthly series emits no month starting after the current hour")
     void theSupplyMonthlySeriesEmitsNoMonthStartingAfterTheCurrentHour() throws Exception {
-        givenMonthlyAggregatesForSeptemberOctoberAndNovember();
+        givenPublishedSeptemberOctoberAndNovember();
 
         request(supplyPath("/consumption/monthly"), "2026-09-01T00:00:00+02:00", "2026-12-01T00:00:00+01:00")
                 .andExpect(status().isOk())
@@ -321,7 +320,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-002 AC4 the membership monthly series emits no month starting after the current hour")
     void theMembershipMonthlySeriesEmitsNoMonthStartingAfterTheCurrentHour() throws Exception {
-        givenMonthlyAggregatesForSeptemberOctoberAndNovember();
+        givenPublishedSeptemberOctoberAndNovember();
 
         request(membershipPath("/consumption/monthly"), "2026-09-01T00:00:00+02:00", "2026-12-01T00:00:00+01:00")
                 .andExpect(status().isOk())
@@ -450,16 +449,14 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * One record per month, aggregated by the production aggregation into a pre-aggregate stamped at
-     * local midnight of day 1: 1 kWh in July, 2 in August, 4 in September.
+     * July, August and September published at every hour, then one record per month carrying grid
+     * import: 1 kWh in July, 2 in August, 4 in September.
      */
-    private void givenMonthlyAggregatesForJulyAugustAndSeptember() {
+    private void givenPublishedJulyAugustAndSeptember() {
+        publish(YearMonth.of(2026, 7), YearMonth.of(2026, 8), YearMonth.of(2026, 9));
         writeAt(OffsetDateTime.parse("2026-07-15T12:00:00+02:00"), 1f);
         writeAt(OffsetDateTime.parse("2026-08-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 4f);
-        for (Month month : List.of(Month.JULY, Month.AUGUST, Month.SEPTEMBER)) {
-            monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
-        }
     }
 
     /**
@@ -475,16 +472,32 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * Pre-aggregates for September, October and November: November's is stamped at local midnight
-     * of 1 November, after the current hour.
+     * September, October and November published at every hour, with one record each: November starts
+     * at local midnight of 1 November, after the current hour.
      */
-    private void givenMonthlyAggregatesForSeptemberOctoberAndNovember() {
+    private void givenPublishedSeptemberOctoberAndNovember() {
+        publish(YearMonth.of(2026, 9), YearMonth.of(2026, 10), YearMonth.of(2026, 11));
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 1f);
         writeAt(OffsetDateTime.parse("2026-10-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-11-15T12:00:00+01:00"), 4f);
-        for (Month month : List.of(Month.SEPTEMBER, Month.OCTOBER, Month.NOVEMBER)) {
-            monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
+    }
+
+    /**
+     * A published zero at every hour of each month, written before the records it is meant to hold:
+     * a record written later at the same instant replaces these fields.
+     */
+    private void publish(YearMonth... months) {
+        for (YearMonth month : months) {
+            influxFixture.writePublishedZeros(supply.getCode(), month, ZoneId.of("Europe/Madrid"));
         }
+    }
+
+    /**
+     * A published zero at every hour of the local days from {@code first} to {@code last}, written
+     * before the records it is meant to hold.
+     */
+    private void publishDays(LocalDate first, LocalDate last) {
+        influxFixture.writePublishedZeros(supply.getCode(), first, last, ZoneId.of("Europe/Madrid"));
     }
 
     private void writeAt(OffsetDateTime time, float gridImportKWh) {

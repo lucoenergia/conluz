@@ -109,8 +109,8 @@ class GetCommunityMonthlyEnergySeriesServiceTest {
                 .thenReturn(new CommunityEnergyScope(List.of(first, second), ZONE, period));
         when(aggregateRepository.aggregateByLocalDay(List.of(first, second), period.getStartDate().toInstant(),
                 period.getEndDate().toInstant(), ZONE)).thenReturn(Map.of(
-                first.getCode(), List.of(new DailyPublishedAggregate(LocalDate.of(2026, 9, 1), 1d, 0d, 216)),
-                second.getCode(), List.of(new DailyPublishedAggregate(LocalDate.of(2026, 9, 1), 1d, 0d, 215))));
+                first.getCode(), List.of(new DailyPublishedAggregate(LocalDate.of(2026, 9, 1), 0d, 1d, 0d, 216, null)),
+                second.getCode(), List.of(new DailyPublishedAggregate(LocalDate.of(2026, 9, 1), 0d, 1d, 0d, 215, null))));
 
         List<CommunityEnergySeriesBucket> series = service.getMonthlySeries(COMMUNITY_ID, period.getStartDate(),
                 period.getEndDate());
@@ -130,15 +130,15 @@ class GetCommunityMonthlyEnergySeriesServiceTest {
      */
     private static List<DailyPublishedAggregate> days(Object... monthsHoursAndTotals) {
         List<DailyPublishedAggregate> days = new ArrayList<>();
-        days.add(new DailyPublishedAggregate(LocalDate.of(2026, 7, 20), 100d, 100d, 24));
+        days.add(new DailyPublishedAggregate(LocalDate.of(2026, 7, 20), 0d, 100d, 100d, 24, null));
         for (int i = 0; i < monthsHoursAndTotals.length; i += 4) {
             YearMonth month = (YearMonth) monthsHoursAndTotals[i];
             int hours = (Integer) monthsHoursAndTotals[i + 1];
             double selfConsumptionKWh = (Double) monthsHoursAndTotals[i + 2];
             double surplusKWh = (Double) monthsHoursAndTotals[i + 3];
             for (int day = 0; hours > 0; day++, hours -= 24) {
-                days.add(new DailyPublishedAggregate(month.atDay(day + 1), day == 0 ? selfConsumptionKWh : 0d,
-                        day == 0 ? surplusKWh : 0d, Math.min(24, hours)));
+                days.add(new DailyPublishedAggregate(month.atDay(day + 1), 0d, day == 0 ? selfConsumptionKWh : 0d,
+                        day == 0 ? surplusKWh : 0d, Math.min(24, hours), null));
             }
         }
         return days;

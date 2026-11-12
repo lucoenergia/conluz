@@ -16,7 +16,6 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -25,7 +24,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Month;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,6 +69,8 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
     private static final String MONTH_START = "2024-02-01T00:00:00+01:00";
     private static final String MONTH_END = "2024-02-29T23:00:00+01:00";
     private static final float GENERATION = 9.999f;
+    private static final YearMonth FEBRUARY = YearMonth.of(2024, 2);
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     private static final List<String> NEW_FIELDS =
             List.of("gridImportKWh", "selfConsumptionKWh", "surplusKWh", "assignedProductionKWh");
@@ -85,8 +87,6 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
-    @Autowired
-    private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -180,10 +180,12 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
         createMembershipRepository.create(community.getId(), member.getId(), CommunityRole.COMMUNITY_MEMBER);
         Supply first = createSupply(member, community);
         Supply second = createSupply(member, community);
+        // Every hour of February published as zero first, so both supplies have data on the day and in
+        // the month; the records below replace the zeros of their hours.
+        influxFixture.writePublishedZeros(first.getCode(), FEBRUARY, ZONE);
+        influxFixture.writePublishedZeros(second.getCode(), FEBRUARY, ZONE);
         write(first, record(first, "11:00", 0.1000f, 0.1111f), record(first, "12:00", 0.0234f, 0.1111f));
         write(second, record(second, "11:00", 0.0300f, 0.0500f), record(second, "12:00", 0.0314f, 0.0612f));
-        monthlyAggregationRepository.aggregateMonthlyConsumption(first, Month.FEBRUARY, 2024);
-        monthlyAggregationRepository.aggregateMonthlyConsumption(second, Month.FEBRUARY, 2024);
         return new Membership(community, member, first, second);
     }
 

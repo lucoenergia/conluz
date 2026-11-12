@@ -14,6 +14,7 @@ import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
+import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionMonthlyPoint;
@@ -251,7 +252,7 @@ class DatadisMonthlyAggregationRepositoryInfluxTest extends BaseIntegrationTest 
         List<DatadisConsumption> dailyTotals = getDatadisConsumptionRepository.getDailyConsumptionsByRangeOfDates(
                 aSupply,
                 OffsetDateTime.parse("2023-01-01T00:00:00+01:00"),
-                OffsetDateTime.parse("2023-01-31T23:59:59+01:00"));
+                OffsetDateTime.parse("2023-01-31T23:59:59+01:00")).stream().map(DatadisDailyConsumption::getConsumption).toList();
 
         assertEquals(31, dailyTotals.size(), "January has 31 local days");
 

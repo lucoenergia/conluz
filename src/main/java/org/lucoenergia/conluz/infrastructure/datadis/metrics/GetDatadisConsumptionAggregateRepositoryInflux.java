@@ -48,6 +48,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     private static final String COLUMN_SURPLUS_ENERGY_KWH = "surplus_energy_kwh";
     private static final String COLUMN_HOURS_WITH_DATA = "hours_with_data";
     private static final String COLUMN_PUBLISHED_HOURS = "published_hours";
+    private static final String COLUMN_OBTAIN_METHOD = "obtain_method";
     private static final String TAG_CUPS = "cups";
 
     private final InfluxDbConnectionManager influxDbConnectionManager;
@@ -204,13 +205,16 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
             // holds its 23 or 25 hours; fill(none) leaves out the days without any record. A group
             // starting before the interval only totals the records inside it, as the WHERE bounds
             // them. Grouping by cups as well returns one series per supply. tz() comes after fill(),
-            // as InfluxQL requires.
+            // as InfluxQL requires. LAST is a selector mixed with the aggregates, as in the per-supply
+            // grouped reads: it picks the day's last obtain method.
             Query query = new Query(String.format(
                     """
                             SELECT
+                                SUM("consumption_kwh") AS "consumption_kwh",
                                 SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
                                 SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
-                                COUNT("self_consumption_energy_kwh") AS "published_hours"
+                                COUNT("self_consumption_energy_kwh") AS "published_hours",
+                                LAST("obtain_method") AS "obtain_method"
                             FROM "%s"
                             WHERE (%s)
                                 AND time >= '%s'
@@ -303,9 +307,11 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                 .map(row -> new DailyPublishedAggregate(
                         dateConverter.convertMillisecondsToInstant(((Number) row.get(timeIndex)).longValue())
                                 .atZone(zone).toLocalDate(),
+                        readDouble(series, row, COLUMN_CONSUMPTION_KWH),
                         readDouble(series, row, COLUMN_SELF_CONSUMPTION_ENERGY_KWH),
                         readDouble(series, row, COLUMN_SURPLUS_ENERGY_KWH),
-                        (long) readDouble(series, row, COLUMN_PUBLISHED_HOURS)))
+                        (long) readDouble(series, row, COLUMN_PUBLISHED_HOURS),
+                        readString(series, row, COLUMN_OBTAIN_METHOD)))
                 .toList();
     }
 
@@ -386,5 +392,13 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
         }
         Object value = row.get(index);
         return value instanceof Number number ? number.doubleValue() : 0d;
+    }
+
+    private String readString(QueryResult.Series series, List<Object> row, String column) {
+        int index = series.getColumns().indexOf(column);
+        if (index < 0 || index >= row.size()) {
+            return null;
+        }
+        return row.get(index) instanceof String value ? value : null;
     }
 }
