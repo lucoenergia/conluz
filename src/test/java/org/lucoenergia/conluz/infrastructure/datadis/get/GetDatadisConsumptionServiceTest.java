@@ -44,6 +44,9 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
@@ -103,6 +106,67 @@ class GetDatadisConsumptionServiceTest {
     void givenTheSupplyExistsInMadrid() {
         when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
         when(zoneResolver.resolveZoneIdForSupply(supply.getId())).thenReturn(ZONE);
+    }
+
+    /**
+     * The range ends at 10:00 on 6 February, so that day has ten hours inside it. On the 5th every
+     * hour carries self-consumption; on the 6th nine of the ten do -- exactly 90 % -- and on the 7th,
+     * read with the same ten-hour range, eight. The 7th is a gap even though its consumption is
+     * known: no energy, no obtain method and nothing saved.
+     */
+    @Test
+    @DisplayName("SCS-003 ENM-001 a day has data at exactly 90 % of its hours inside the range and is a gap below it")
+    void aDayBelowThePublicationThresholdIsAGap() {
+        givenASingleSegmentAt("0.15");
+        when(consumptionRepository.getDailyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
+                .thenReturn(List.of(day("2024/02/05", 4.0, 24), day("2024/02/06", 2.0, 9)))
+                .thenReturn(List.of(day("2024/02/07", 2.0, 8)));
+
+        List<SupplyConsumptionBucket> series = service.getDailySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-05T00:00+01:00"), madridOffset("2024-02-06T10:00+01:00"));
+        List<SupplyConsumptionBucket> belowThreshold = service.getDailySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-07T00:00+01:00"), madridOffset("2024-02-07T10:00+01:00"));
+
+        assertTrue(series.get(0).hasPublishedData());
+        assertTrue(series.get(1).hasPublishedData());
+        assertEquals("Real", series.get(1).getConsumption().getObtainMethod());
+        assertEquals(List.of("0.6", "0.3"), amountsOf(series));
+        SupplyConsumptionBucket gap = belowThreshold.get(0);
+        assertFalse(gap.hasPublishedData());
+        assertNull(gap.getConsumption().getObtainMethod());
+        assertEquals("2024/02/07", gap.getConsumption().getDate());
+        assertEquals(0f, gap.getConsumption().getConsumptionKWh());
+        assertEquals(0f, gap.getConsumption().getSelfConsumptionEnergyKWh());
+        assertEquals(0, BigDecimal.ZERO.compareTo(gap.getSavings().getAmountEur()));
+    }
+
+    /**
+     * An hour whose record carries consumption but no self-consumption is a gap, exactly as an hour
+     * without any record: no energy, no obtain method and nothing saved. The hour beside it, whose
+     * self-consumption is published, keeps its figures.
+     */
+    @Test
+    @DisplayName("SCS-001 an hour whose record carries no self-consumption is a gap even with consumption known")
+    void anHourWithoutPublishedSelfConsumptionIsAGap() {
+        givenASingleSegmentAt("0.15");
+        DatadisHourlyConsumption published = hour("2024-02-05T10:00+01:00", 1.0);
+        DatadisHourlyConsumption unpublished = new DatadisHourlyConsumption(
+                madridOffset("2024-02-05T11:00+01:00").toInstant(),
+                hour("2024-02-05T11:00+01:00", 3.0).getConsumption(), 0);
+        unpublished.getConsumption().setConsumptionKWh(5f);
+        givenStoredHours(published, unpublished);
+
+        List<SupplyHourlyConsumptionBucket> series = service.getHourlySeriesBySupply(SupplyId.of(supply.getId()),
+                madridOffset("2024-02-05T10:00+01:00"), madridOffset("2024-02-05T12:00+01:00"));
+
+        assertTrue(series.get(0).getBucket().hasPublishedData());
+        assertEquals("Real", series.get(0).getBucket().getConsumption().getObtainMethod());
+        SupplyConsumptionBucket gap = series.get(1).getBucket();
+        assertFalse(gap.hasPublishedData());
+        assertNull(gap.getConsumption().getObtainMethod());
+        assertEquals(0f, gap.getConsumption().getConsumptionKWh());
+        assertEquals(0f, gap.getConsumption().getSelfConsumptionEnergyKWh());
+        assertEquals(0, BigDecimal.ZERO.compareTo(gap.getSavings().getAmountEur()));
     }
 
     /**
@@ -404,6 +468,14 @@ class GetDatadisConsumptionServiceTest {
      */
     private static DatadisDailyConsumption publishedDay(DatadisConsumption consumption) {
         return new DatadisDailyConsumption(consumption, 25);
+    }
+
+    /** A day carrying {@code selfConsumptionKWh}, of whose records {@code publishedHours} carry it. */
+    private DatadisDailyConsumption day(String date, double selfConsumptionKWh, long publishedHours) {
+        DatadisConsumption consumption = bucket(date, selfConsumptionKWh);
+        consumption.setConsumptionKWh(7f);
+        consumption.setObtainMethod("Real");
+        return new DatadisDailyConsumption(consumption, publishedHours);
     }
 
     private void givenStoredHours(DatadisHourlyConsumption... hours) {
