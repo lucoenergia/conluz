@@ -10,7 +10,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
@@ -42,7 +41,7 @@ public final class HuaweiJobTestSupport {
 
     public static ZoneResolver zoneResolver(ZoneId zone) {
         ZoneResolver zoneResolver = Mockito.mock(ZoneResolver.class);
-        when(zoneResolver.resolveZoneId(any(UUID.class))).thenReturn(zone);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(zone);
         return zoneResolver;
     }
 }

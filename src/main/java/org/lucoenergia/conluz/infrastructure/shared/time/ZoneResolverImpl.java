@@ -22,7 +22,7 @@ public class ZoneResolverImpl implements ZoneResolver {
     }
 
     @Override
-    public ZoneId resolveZoneId(UUID plantId) {
+    public ZoneId resolveApplicationZoneId() {
         return timeConfiguration.getZoneId();
     }
 

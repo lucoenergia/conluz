@@ -121,7 +121,7 @@ class CoefficientActivationServiceImplTest {
     void setValidFrom_doesNotThrow_whenAgreementIsPublishedOrSuperseded(SharingAgreementStatus status) {
         UUID agreementId = UUID.randomUUID();
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, status));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId);
 
         List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of());
@@ -150,7 +150,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient pending = coefficient(coefficientId, agreementId, supplyId, null, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, pending);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, null)).thenReturn(Optional.empty());
         stubSave();
@@ -175,7 +175,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, predecessorAgreementId, supplyId, predecessorValidFrom, null);
 
         when(getSharingAgreementService.findById(targetAgreementId)).thenReturn(agreement(targetAgreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(targetAgreementId, pending);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, null)).thenReturn(Optional.of(predecessor));
         stubSave();
@@ -203,7 +203,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId, predecessorValidFrom, originalValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, originalValidFrom))
                 .thenReturn(Optional.of(predecessor));
@@ -233,7 +233,7 @@ class CoefficientActivationServiceImplTest {
                 LocalDate.now(CLOCK).minusDays(40).atStartOfDay(UTC).toInstant(), originalValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, superseded);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, originalValidFrom))
                 .thenReturn(Optional.of(predecessor));
@@ -257,7 +257,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId, predecessorValidFrom, originalValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, originalValidFrom))
                 .thenReturn(Optional.of(predecessor));
@@ -284,7 +284,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient predecessor = coefficient(predecessorId, agreementId, supplyId, predecessorValidFrom, originalValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, originalValidFrom))
                 .thenReturn(Optional.of(predecessor));
@@ -306,7 +306,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, originalValidFrom, ownValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, originalValidFrom))
                 .thenReturn(Optional.empty());
@@ -333,7 +333,7 @@ class CoefficientActivationServiceImplTest {
                 LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant(), ownValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, ownValidFrom))
                 .thenReturn(Optional.of(predecessor));
@@ -358,7 +358,7 @@ class CoefficientActivationServiceImplTest {
                 LocalDate.now(CLOCK).minusDays(30).atStartOfDay(UTC).toInstant(), ownValidFrom);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, ownValidFrom))
                 .thenReturn(Optional.of(predecessor));
@@ -379,7 +379,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, ownValidFrom, ownValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, ownValidFrom))
                 .thenReturn(Optional.empty());
@@ -402,7 +402,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient pending = coefficient(coefficientId, agreementId, supplyId, null, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, pending);
 
         LocalDate tomorrow = LocalDate.now(CLOCK).plusDays(1);
@@ -423,7 +423,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient active = coefficient(coefficientId, agreementId, supplyId, validFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
 
         List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
@@ -440,7 +440,7 @@ class CoefficientActivationServiceImplTest {
         UUID unknownId = UUID.randomUUID();
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId); // empty -- the id belongs to no coefficient of this agreement
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
@@ -458,7 +458,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient pending = coefficient(validId, agreementId, supplyId, null, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, pending);
         when(getCoefficientRepository.findPredecessor(eq(PLANT_ID), eq(supplyId), eq(validId), any()))
                 .thenReturn(Optional.empty());
@@ -485,7 +485,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient open = coefficient(coefficientId, agreementId, supplyId, validFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, open);
         stubSave();
 
@@ -505,7 +505,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient pending = coefficient(coefficientId, agreementId, supplyId, null, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, pending);
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
@@ -525,7 +525,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient open = coefficient(coefficientId, agreementId, supplyId, validFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, open);
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
@@ -544,7 +544,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, coefficientId, validFrom))
                 .thenReturn(Optional.empty());
@@ -570,7 +570,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient successor = coefficient(successorId, agreementId, supplyId, currentValidTo, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, coefficientId, validFrom))
                 .thenReturn(Optional.of(successor));
@@ -597,7 +597,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient next = coefficient(nextId, UUID.randomUUID(), supplyId, nextValidFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, coefficientId, validFrom))
                 .thenReturn(Optional.of(next));
@@ -622,7 +622,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient next = coefficient(nextId, UUID.randomUUID(), supplyId, nextValidFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, coefficientId, validFrom))
                 .thenReturn(Optional.of(next));
@@ -644,7 +644,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, currentValidTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, coefficientId, validFrom))
                 .thenReturn(Optional.empty());
@@ -670,7 +670,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient next = coefficient(nextId, UUID.randomUUID(), supplyId, nextValidFrom, null);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
         when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, coefficientId, validFrom))
                 .thenReturn(Optional.of(next));
@@ -691,7 +691,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient closed = coefficient(coefficientId, agreementId, supplyId, validFrom, validTo);
 
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, closed);
 
         LocalDate sameDate = validTo.atZone(UTC).toLocalDate();
@@ -726,7 +726,7 @@ class CoefficientActivationServiceImplTest {
         SupplyPartitionCoefficient p2 = coefficient(predecessor2, predecessorAgreementB, supply2, Instant.EPOCH, null);
 
         when(getSharingAgreementService.findById(targetAgreementId)).thenReturn(agreement(targetAgreementId, SharingAgreementStatus.PUBLISHED));
-        when(zoneResolver.resolveZoneId(PLANT_ID)).thenReturn(UTC);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(targetAgreementId, c1, c2, c3);
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supply1, coefficient1, null)).thenReturn(Optional.of(p1));
         when(getCoefficientRepository.findPredecessor(PLANT_ID, supply2, coefficient2, null)).thenReturn(Optional.of(p2));
@@ -797,7 +797,7 @@ class CoefficientActivationServiceImplTest {
         ZoneResolver resolver = org.mockito.Mockito.mock(ZoneResolver.class);
 
         when(agreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
-        when(resolver.resolveZoneId(PLANT_ID)).thenReturn(zoneId);
+        when(resolver.resolveApplicationZoneId()).thenReturn(zoneId);
         when(coefficientRepository.findAllByIdAndSharingAgreementId(anyList(), eq(agreementId))).thenReturn(List.of(pending));
         when(coefficientRepository.findPredecessor(PLANT_ID, supplyId, coefficientId, null)).thenReturn(Optional.empty());
         ArgumentCaptor<SupplyPartitionCoefficient> captor = ArgumentCaptor.forClass(SupplyPartitionCoefficient.class);

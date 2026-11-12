@@ -56,7 +56,7 @@ public class HuaweiProductionYearlyAggregationRepositoryInflux implements Huawei
 
         LOGGER.info("Aggregating yearly production for plant: {}, year: {}", plant.getProviderCode(), year);
 
-        final ZoneId zoneId = zoneResolver.resolveZoneId(plant.getId());
+        final ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
         final Instant startOfYear = LocalDate.of(year, 1, 1).atStartOfDay(zoneId).toInstant();
         final Instant startOfNextYear = LocalDate.of(year + 1, 1, 1).atStartOfDay(zoneId).toInstant();
         final String startDate = dateConverter.convertToString(startOfYear);

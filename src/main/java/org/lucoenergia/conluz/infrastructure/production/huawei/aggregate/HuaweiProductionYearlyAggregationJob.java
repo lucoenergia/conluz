@@ -73,7 +73,7 @@ public class HuaweiProductionYearlyAggregationJob implements Job {
             return;
         }
         try {
-            LocalDate today = LocalDate.now(clock.withZone(zoneResolver.resolveZoneId(config.getPlantId())));
+            LocalDate today = LocalDate.now(clock.withZone(zoneResolver.resolveApplicationZoneId()));
             for (int year : syncWindow.years(today)) {
                 LOGGER.info("Aggregating data for plant: {}, year: {}", config.getPlantId(), year);
                 aggregationService.aggregatePlantYearlyProduction(config.getPlantId(), year);
