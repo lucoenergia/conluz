@@ -62,22 +62,6 @@ public interface GetDatadisConsumptionRepository {
                                                                  @NotNull OffsetDateTime endDate);
 
     /**
-     * Retrieves a list of monthly consumption data within a specified date range for the given supply.
-     *
-     * <p>Reads the pre-aggregated monthly measurement, whose points are stamped at local midnight on
-     * the first day of each local calendar month and total that month as the supply's calendar sees
-     * it. The bounds select those points by instant, so a bound expressed in UTC can select one month
-     * too few or too many.
-     *
-     * @param supply the supply for which the consumption data is retrieved, must not be null
-     * @param startDate the start date of the range, inclusive, must not be null
-     * @param endDate the end date of the range, exclusive, must not be null
-     * @return a list of {@code DatadisConsumption} objects representing monthly consumption data within the specified date range
-     */
-    List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(@NotNull Supply supply,
-                                                                   @NotNull OffsetDateTime startDate, @NotNull OffsetDateTime endDate);
-
-    /**
      * Retrieves a list of yearly consumption data within a specified date range for the given supply.
      *
      * <p>Reads the pre-aggregated yearly measurement, whose points are stamped at local midnight on

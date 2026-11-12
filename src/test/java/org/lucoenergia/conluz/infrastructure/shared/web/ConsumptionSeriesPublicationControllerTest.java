@@ -18,12 +18,10 @@ import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,9 +78,6 @@ class ConsumptionSeriesPublicationControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxFixture influxFixture;
     @Autowired
     private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
-    @Autowired
-    @Qualifier("getDatadisConsumptionRepositoryInflux")
-    private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -303,8 +298,8 @@ class ConsumptionSeriesPublicationControllerTest extends BaseControllerTest {
         List<DatadisConsumption> aggregates = new ArrayList<>();
         for (Supply supply : List.of(membership.first(), membership.second())) {
             monthlyAggregationRepository.aggregateMonthlyConsumption(supply, march.getMonth(), march.getYear());
-            List<DatadisConsumption> stored = getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(
-                    supply, OffsetDateTime.parse(start), OffsetDateTime.parse(end));
+            List<DatadisConsumption> stored = influxFixture.readMonthlyAggregates(supply.getCode(),
+                    OffsetDateTime.parse(start).toInstant(), OffsetDateTime.parse(end).toInstant());
             assertEquals(1, stored.size(), stored::toString);
             aggregates.add(stored.get(0));
 

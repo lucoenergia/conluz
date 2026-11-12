@@ -4,6 +4,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.Query;
+import org.influxdb.impl.InfluxDBResultMapper;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.persist.PersistDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
@@ -174,6 +175,34 @@ public class DatadisConsumptionInfluxFixture {
                     .build());
             connection.write(batchPoints);
         }
+    }
+
+    /**
+     * Reads the monthly pre-aggregates of the CUPS stamped from {@code from}, included, to
+     * {@code toExclusive}, with each figure as the {@code Float} the hourly records are stored as.
+     */
+    public List<DatadisConsumption> readMonthlyAggregates(String cups, Instant from, Instant toExclusive) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+            List<DatadisConsumptionMonthlyPoint> points = new InfluxDBResultMapper().toPOJO(
+                    connection.query(new Query(String.format(
+                            "SELECT * FROM \"%s\" WHERE \"cups\" = '%s' AND time >= '%s' AND time < '%s'",
+                            DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT, cups, from, toExclusive))),
+                    DatadisConsumptionMonthlyPoint.class);
+            return points.stream().map(point -> {
+                DatadisConsumption consumption = new DatadisConsumption();
+                consumption.setCups(point.getCups());
+                consumption.setConsumptionKWh(asFloat(point.getConsumptionKWh()));
+                consumption.setSelfConsumptionEnergyKWh(asFloat(point.getSelfConsumptionEnergyKWh()));
+                consumption.setSurplusEnergyKWh(asFloat(point.getSurplusEnergyKWh()));
+                consumption.setGenerationEnergyKWh(asFloat(point.getGenerationEnergyKWh()));
+                consumption.setObtainMethod(point.getObtainMethod());
+                return consumption;
+            }).toList();
+        }
+    }
+
+    private static Float asFloat(Double value) {
+        return value == null ? null : value.floatValue();
     }
 
     /**

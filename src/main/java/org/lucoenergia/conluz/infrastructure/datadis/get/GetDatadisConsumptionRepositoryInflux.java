@@ -10,7 +10,6 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
-import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionMonthlyPoint;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionYearlyPoint;
 import org.lucoenergia.conluz.infrastructure.datadis.config.DatadisConfigEntity;
@@ -104,25 +103,6 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                 .map(point -> new DatadisHourlyConsumption(point.getTime(), toConsumption(point),
                         publishedHoursOf(point)))
                 .toList();
-    }
-
-    @Override
-    public List<DatadisConsumption> getMonthlyConsumptionsByRangeOfDates(Supply supply, OffsetDateTime startDate, OffsetDateTime endDate) {
-        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
-
-            Query query = new Query(String.format(
-                    "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time < '%s'",
-                    DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT,
-                    supply.getCode(),
-                    dateConverter.convertToString(startDate),
-                    dateConverter.convertToString(endDate)));
-
-            QueryResult queryResult = connection.query(query);
-
-            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
-            List<DatadisConsumptionMonthlyPoint> consumptionPoints = resultMapper.toPOJO(queryResult, DatadisConsumptionMonthlyPoint.class);
-            return mapMonthlyToConsumption(consumptionPoints);
-        }
     }
 
     @Override
@@ -251,23 +231,6 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
         consumption.setObtainMethod(consumptionPoint.getObtainMethod());
         return consumption;
-    }
-
-    private List<DatadisConsumption> mapMonthlyToConsumption(List<DatadisConsumptionMonthlyPoint> consumptionPoints) {
-        return consumptionPoints.stream()
-                .map(consumptionPoint -> {
-                    DatadisConsumption consumption = new DatadisConsumption();
-                    consumption.setCups(consumptionPoint.getCups());
-                    consumption.setDate(dateConverter.convertFromInstantToStringDate(consumptionPoint.getTime()));
-                    consumption.setTime(dateConverter.convertFromInstantToStringTime(consumptionPoint.getTime()));
-                    consumption.setConsumptionKWh(parseToFloat(consumptionPoint.getConsumptionKWh()));
-                    consumption.setSelfConsumptionEnergyKWh(parseToFloat(consumptionPoint.getSelfConsumptionEnergyKWh()));
-                    consumption.setSurplusEnergyKWh(parseToFloat(consumptionPoint.getSurplusEnergyKWh()));
-                    consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
-                    consumption.setObtainMethod(consumptionPoint.getObtainMethod());
-                    return consumption;
-                })
-                .toList();
     }
 
     private List<DatadisConsumption> mapYearlyToConsumption(List<DatadisConsumptionYearlyPoint> consumptionPoints) {

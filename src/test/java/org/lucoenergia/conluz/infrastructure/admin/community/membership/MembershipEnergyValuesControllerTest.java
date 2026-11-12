@@ -16,12 +16,10 @@ import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,9 +95,6 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxFixture influxFixture;
     @Autowired
     private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
-    @Autowired
-    @Qualifier("getDatadisConsumptionRepositoryInflux")
-    private GetDatadisConsumptionRepository getDatadisConsumptionRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -130,9 +125,9 @@ class MembershipEnergyValuesControllerTest extends BaseControllerTest {
         assertKWh(body, "/0/selfConsumptionKWh", SELF_CONSUMPTION);
         assertKWh(body, "/0/surplusKWh", SURPLUS);
         assertKWh(body, "/0/assignedProductionKWh", ASSIGNED_PRODUCTION);
-        assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, membership.first(),
+        assertMonthlyAggregateUnchanged(influxFixture, membership.first(),
                 FIRST_GRID_IMPORT, FIRST_SELF_CONSUMPTION, FIRST_SURPLUS, FIRST_GENERATION);
-        assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, membership.second(),
+        assertMonthlyAggregateUnchanged(influxFixture, membership.second(),
                 SECOND_GRID_IMPORT, SECOND_SELF_CONSUMPTION, SECOND_SURPLUS, SECOND_GENERATION);
     }
 

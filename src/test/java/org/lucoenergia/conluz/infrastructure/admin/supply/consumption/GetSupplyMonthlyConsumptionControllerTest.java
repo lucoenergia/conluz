@@ -430,7 +430,7 @@ class GetSupplyMonthlyConsumptionControllerTest extends BaseControllerTest {
             assertKWh(body, "/0/assignedProductionKWh", RoundingNoiseDataset.ASSIGNED_PRODUCTION);
             RoundingNoiseDataset.assertHourlyRecordsUnchanged(getDatadisConsumptionRepository, supply);
             // The pre-aggregate keeps the unrounded float sums: 0.3456, not the 0.346 reported.
-            RoundingNoiseDataset.assertMonthlyAggregateUnchanged(getDatadisConsumptionRepository, supply,
+            RoundingNoiseDataset.assertMonthlyAggregateUnchanged(influxFixture, supply,
                     (float) RoundingNoiseDataset.gridImportSum(), (float) RoundingNoiseDataset.selfConsumptionSum(),
                     (float) RoundingNoiseDataset.surplusSum(),
                     (float) ((double) RoundingNoiseDataset.FIRST_GENERATION + RoundingNoiseDataset.SECOND_GENERATION));
