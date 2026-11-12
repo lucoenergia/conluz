@@ -79,9 +79,10 @@ covers only the rules #437, #411 and #567 touched.
 ### PLT-004 — A plant's CIL is normalised, and is 25 ASCII alphanumeric characters
 
 - **Status:** Active
-- **Rule:** A plant MAY have a CIL. On `createPlant` and `updatePlant` the CIL MUST be upper-cased and stripped of all
-  whitespace; empty after that means no CIL. A non-empty CIL that is not exactly 25 ASCII alphanumeric characters
-  MUST be refused with 400 `PLANT_CIL_INVALID` and nothing written.
+- **Rule:** A plant MAY have a CIL. On `createPlant` and `updatePlant` the CIL MUST be upper-cased and stripped of
+  every whitespace or Unicode space character (U+00A0 included), wherever it appears; empty after that means no CIL.
+  A non-empty CIL that is not exactly 25 ASCII alphanumeric characters MUST be refused with 400 `PLANT_CIL_INVALID`
+  and nothing written.
 - **Rationale:** The CIL is assigned by the distribution company and is 25 alphanumeric characters (REE SIMEL).
   Normalising lets a code pasted from a distributor document be compared reliably. Optional because existing plants
   and plants still being registered have none.
