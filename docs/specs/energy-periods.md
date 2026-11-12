@@ -111,14 +111,14 @@ Then the period ends at 2026-10-26T10:00+01:00, spans 10 hours and does not coun
   `startDate` plus 31 calendar days, counted in the period's time zone. The limit MUST be evaluated
   on the requested bounds, before EPR-002 clips the end. It replaces the limit of EPR-004 on the
   hourly series, and is answered with the same code, carrying the limit it enforces as an `amount`
-  of 31 and a `unit` of days.
+  of 31 and a `unit` of `DAYS`.
 - **Rationale:** A cost guard, like EPR-004: an hourly series returns one row per hour, 24 times as
   many as a daily one, so 24 months would be about 17,500 rows for a view that shows one day. 31
   calendar days still covers any whole month. Calendar days rather than 744 hours keep a month with
   the October change, which lasts 745 hours, within the limit. The refusal carries its own limit,
   not the one of EPR-004, because the code is shared.
 - **Source:** #545; #546 added the limit to the refusal; #554 added the community hourly energy series; #561
-  added the plant hourly energy series
+  added the plant hourly energy series; #570 corrected the unit's wording
 
 **Scenarios**
 
