@@ -10,11 +10,18 @@ import org.lucoenergia.conluz.infrastructure.shared.db.influxdb.InfluxLoader;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -69,6 +76,10 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
      *   <li>{@code 2023/04/14} -- 1.25 + 0.25 = 1.50 kWh, worth 0.225: again a half cent, 0.23.</li>
      * </ul>
      *
+     * <p>Every other hour of each day with a record is written as a published zero -- zero energy,
+     * self-consumption present -- so the supply has data on those days and the totals above are
+     * unchanged; 2023-04-13 stays without any record.
+     *
      * <p>Generated energy is written too, and its daily totals are deliberately different from the
      * self-consumed ones -- 12.00, 2.00, 0.50, nothing and 4.00 kWh -- so an assertion on one field
      * cannot pass by reading the other.
@@ -114,6 +125,7 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             BatchPoints batchPoints = influxDbConnectionManager.createBatchPoints();
 
+            publishedZerosAroundHourlyRecords().forEach(batchPoints::point);
             HOURLY_RECORDS.forEach(record -> batchPoints.point(
                     pointAt(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, record.cups(), record.localTime(),
                             record.consumptionKWh(), record.surplusEnergyKWh(), record.generationEnergyKWh(),
@@ -126,6 +138,31 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
 
             connection.write(batchPoints);
         }
+    }
+
+    /**
+     * A published zero at every hour of each local day holding one of the hourly records, except at
+     * the hours those records occupy.
+     */
+    private static List<Point> publishedZerosAroundHourlyRecords() {
+        Map<String, Set<Instant>> occupied = new HashMap<>();
+        Map<String, Set<LocalDate>> days = new HashMap<>();
+        for (HourlyRecord record : HOURLY_RECORDS) {
+            ZonedDateTime time = OffsetDateTime.parse(record.localTime()).atZoneSameInstant(ZONE);
+            occupied.computeIfAbsent(record.cups(), cups -> new HashSet<>()).add(time.toInstant());
+            days.computeIfAbsent(record.cups(), cups -> new TreeSet<>()).add(time.toLocalDate());
+        }
+        List<Point> points = new ArrayList<>();
+        days.forEach((cups, localDays) -> localDays.forEach(day -> {
+            for (ZonedDateTime hour = day.atStartOfDay(ZONE); hour.toLocalDate().equals(day);
+                 hour = hour.plusHours(1)) {
+                if (!occupied.get(cups).contains(hour.toInstant())) {
+                    points.add(pointAt(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, cups,
+                            hour.toOffsetDateTime().toString(), 0d, 0d, 0d, 0d));
+                }
+            }
+        }));
+        return points;
     }
 
     /**

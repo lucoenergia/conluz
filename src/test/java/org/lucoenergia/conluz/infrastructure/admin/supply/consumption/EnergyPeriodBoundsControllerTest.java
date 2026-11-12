@@ -27,6 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -165,6 +166,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-001 AC1 the supply daily series over a day is one bucket without the record at the next midnight")
     void supplyDailySeriesOverADay() throws Exception {
+        publishDays(LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 11));
         givenRecordsAroundTheDay();
 
         request(supplyPath("/consumption/daily"), DAY_START, DAY_END)
@@ -292,6 +294,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-002 AC4 the supply daily series emits no bucket after the day of the current hour")
     void theSupplyDailySeriesEmitsNoBucketAfterTheDayOfTheCurrentHour() throws Exception {
+        publishDays(LocalDate.of(2026, 10, 24), LocalDate.of(2026, 10, 26));
         givenRecordsAroundTheCurrentHour();
 
         request(supplyPath("/consumption/daily"), "2026-10-24T00:00:00+02:00", FUTURE_END)
@@ -487,6 +490,14 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
         for (YearMonth month : months) {
             influxFixture.writePublishedZeros(supply.getCode(), month, ZoneId.of("Europe/Madrid"));
         }
+    }
+
+    /**
+     * A published zero at every hour of the local days from {@code first} to {@code last}, written
+     * before the records it is meant to hold.
+     */
+    private void publishDays(LocalDate first, LocalDate last) {
+        influxFixture.writePublishedZeros(supply.getCode(), first, last, ZoneId.of("Europe/Madrid"));
     }
 
     private void writeAt(OffsetDateTime time, float gridImportKWh) {

@@ -153,7 +153,10 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      * reports the energy of exactly the hours this interval covers.
      *
      * <p>The supply has data that day when its records carrying self-consumption reach the
-     * {@link PublicationThreshold publication threshold} of the day's hours inside the range.
+     * {@link PublicationThreshold publication threshold} of the day's hours inside the range. A day
+     * without data is a gap, reported as a day without any record: zero energy, no obtain method and
+     * nothing saved, even when its consumption is known, so that no self-consumption is shown as zero
+     * before it is published.
      */
     private SupplyConsumptionBucket priceDay(Supply supply, DatadisDailyConsumption stored, ZoneId zone,
                                              Instant rangeFrom, Instant rangeToExclusive) {
@@ -165,7 +168,8 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         boolean publishedData = stored.getPublishedHours() > 0
                 && PublicationThreshold.isReached(stored.getPublishedHours(), possibleHours);
 
-        return price(supply, consumption, publishedData, from, toExclusive);
+        return price(supply, publishedData ? consumption : withoutData(consumption), publishedData, from,
+                toExclusive);
     }
 
     /**
@@ -214,6 +218,22 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         consumption.setCups(supply.getCode());
         consumption.setDate(DateTimeFormatter.ofPattern(DateConverter.DATE_FORMAT).format(localStart));
         consumption.setTime(DateTimeFormatter.ofPattern(DateConverter.TIME_FORMAT).format(localStart));
+        consumption.setConsumptionKWh(0f);
+        consumption.setSelfConsumptionEnergyKWh(0f);
+        consumption.setSurplusEnergyKWh(0f);
+        consumption.setGenerationEnergyKWh(0f);
+        return consumption;
+    }
+
+    /**
+     * The bucket as a gap: the same label, zero energy and no obtain method, as the store reports a
+     * bucket without any record.
+     */
+    private static DatadisConsumption withoutData(DatadisConsumption stored) {
+        DatadisConsumption consumption = new DatadisConsumption();
+        consumption.setCups(stored.getCups());
+        consumption.setDate(stored.getDate());
+        consumption.setTime(stored.getTime());
         consumption.setConsumptionKWh(0f);
         consumption.setSelfConsumptionEnergyKWh(0f);
         consumption.setSurplusEnergyKWh(0f);

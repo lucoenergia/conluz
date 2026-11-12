@@ -23,9 +23,13 @@ public interface GetDatadisConsumptionService {
      * request, so bounds falling mid-day yield a partial bucket whose savings cover exactly the
      * hours its energy fields cover.
      *
+     * <p>A day has data when the supply's records carrying self-consumption reach the publication
+     * threshold of the day's hours inside the range; a day without data is returned as a gap, with
+     * zero energy, no obtain method and nothing saved.
+     *
      * @param supplyId the supply ID for which to retrieve consumption data
      * @param startDate the start date of the range, inclusive
-     * @param endDate the end date of the range, inclusive
+     * @param endDate the end date of the range, exclusive
      * @return a list of daily consumption buckets with their estimated savings
      */
     List<SupplyConsumptionBucket> getDailySeriesBySupply(@NotNull SupplyId supplyId,

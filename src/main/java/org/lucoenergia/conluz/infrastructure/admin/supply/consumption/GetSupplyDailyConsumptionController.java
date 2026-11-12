@@ -67,8 +67,16 @@ public class GetSupplyDailyConsumptionController {
                     that fall in the middle of a local day produce a partial first and last bucket,
                     so a caller wanting whole local days passes both at local midnight, offset
                     included -- for example `2023-04-01T00:00:00+02:00` to
-                    `2023-05-01T00:00:00+02:00` for April 2023 in Europe/Madrid. A day with no stored
-                    record is returned with zero energy rather than omitted.
+                    `2023-05-01T00:00:00+02:00` for April 2023 in Europe/Madrid.
+
+                    **Days without data:** Datadis publishes a month's self-consumption around the
+                    10th of the following month; until then the supply's records carry consumption
+                    but no self-consumption. A day has data only
+                    when its records carrying self-consumption cover at least 90 % of the day's hours
+                    inside the range. A day without data -- below that, or without any record -- is
+                    returned with zero energy, a null `obtainMethod` and savings of `0.00`, even when
+                    its consumption is already known, so that no false self-consumption or savings is
+                    shown; its consumption appears once its self-consumption is published.
 
                     Each day is priced over its own local day, clipped to the requested bounds, so a
                     partial edge bucket's savings cover exactly the hours its energy fields cover.
@@ -79,12 +87,8 @@ public class GetSupplyDailyConsumptionController {
                     applied only where the resolved tariff carries a rate. `tariffSource` says where
                     the prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`
                     for the supply's contracted tariff -- and a single estimated stretch of the
-                    bucket makes the whole amount an estimate. A bucket with no self-consumption,
-                    and a bucket with no stored record at all, reports `0.00`.
-
-                    Datadis publishes a month's self-consumption around the 10th of the following
-                    month, so the current month has no self-consumption data yet and its savings
-                    come back as zero.
+                    bucket makes the whole amount an estimate. A day whose published
+                    self-consumption is zero, and a day without data, reports `0.00`.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "getSupplyDailyConsumption",

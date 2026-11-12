@@ -27,6 +27,8 @@ import java.util.UUID;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.RoundingNoiseDataset;
@@ -465,6 +467,9 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         Supply supply = createSupplyRepository.create(
                 SupplyMother.random(user).withCode("ES" + RandomStringUtils.random(20, false, true)).build(),
                 UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        // The day published at every hour first, so the two records land in a day with data.
+        LocalDate day = LocalDate.of(2024, 2, 10);
+        influxFixture.writePublishedZeros(supply.getCode(), day, day, ZoneId.of("Europe/Madrid"));
         influxFixture.write(List.of(RoundingNoiseDataset.firstRecord(supply.getCode()),
                 RoundingNoiseDataset.secondRecord(supply.getCode())));
         try {
