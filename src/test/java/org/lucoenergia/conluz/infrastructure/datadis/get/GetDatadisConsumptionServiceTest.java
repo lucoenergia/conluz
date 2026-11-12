@@ -19,6 +19,9 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
+import org.lucoenergia.conluz.infrastructure.shared.time.DateConverter;
+import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
+import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
@@ -37,10 +40,12 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -81,11 +86,14 @@ class GetDatadisConsumptionServiceTest {
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
 
+    private final SupplySavingsCalculator calculator = new SupplySavingsCalculatorImpl(aggregateRepository,
+            tariffResolver, zoneResolver, CONFIGURED_ESTIMATE);
+
     private final GetDatadisConsumptionService service = new GetDatadisConsumptionServiceImpl(
             consumptionRepository,
             getSupplyRepository,
-            new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
-                    CONFIGURED_ESTIMATE),
+            calculator,
+            new PublishedMonthlyConsumptionReaderImpl(aggregateRepository, calculator),
             zoneResolver,
             CLOCK);
 
@@ -167,25 +175,24 @@ class GetDatadisConsumptionServiceTest {
     }
 
     /**
-     * A monthly bucket is a pre-aggregate carrying the whole month's energy: the request selects it
-     * by the single instant it is stamped at and never trims it. Its priced interval must therefore
-     * be the whole local month too, mid-month bounds included -- clipping would value a fraction of
-     * the month against the full month's energy.
+     * A monthly bucket totals the hourly records of its hours inside the period, so a month the
+     * period ends inside is priced over exactly those hours: its last segment stops at the end of
+     * the period, not at the end of the month.
      */
     @Test
-    void aMonthlyBucketIsPricedOverTheWholeMonthEvenWithMidMonthBounds() {
+    void aMonthlyBucketIsPricedOnlyOverItsHoursInsideThePeriod() {
         givenSegments(
                 segment("2024-02-01", "2024-02-15", "0.10"),
                 segment("2024-02-15", "2024-03-01", "0.20"));
         givenMonthlyBuckets(bucket("2024/02/01", 100.0));
 
         service.getMonthlySeriesBySupply(SupplyId.of(supply.getId()),
-                madridOffset("2024-02-10T00:00+01:00"), madridOffset("2024-02-20T23:59:59+01:00"));
+                madridOffset("2024-02-01T00:00+01:00"), madridOffset("2024-02-20T23:59:59+01:00"));
 
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
                 eq(madrid("2024-02-01T00:00+01:00")), eq(madrid("2024-02-15T00:00+01:00")));
         verify(aggregateRepository).sumSelfConsumptionKWh(any(Supply.class),
-                eq(madrid("2024-02-15T00:00+01:00")), eq(madrid("2024-03-01T00:00+01:00")));
+                eq(madrid("2024-02-15T00:00+01:00")), eq(madrid("2024-02-20T23:59:59+01:00")));
     }
 
     /**
@@ -412,9 +419,19 @@ class GetDatadisConsumptionServiceTest {
         return new DatadisHourlyConsumption(start.toInstant(), consumption, 1);
     }
 
+    /**
+     * The supply's hourly records, read per local day, hold each bucket's self-consumption on the
+     * first day of its month, with every hour of that month carrying self-consumption.
+     */
     private void givenMonthlyBuckets(DatadisConsumption... buckets) {
-        when(consumptionRepository.getMonthlyConsumptionsByRangeOfDates(any(Supply.class), any(), any()))
-                .thenReturn(List.of(buckets));
+        List<DailyPublishedAggregate> days = Arrays.stream(buckets)
+                .map(bucket -> new DailyPublishedAggregate(DateConverter.convertStringToLocalDate(bucket.getDate()),
+                        bucket.getConsumptionKWh(), bucket.getSelfConsumptionEnergyKWh(),
+                        bucket.getSurplusEnergyKWh(), 745, "Real"))
+                .toList();
+        when(aggregateRepository.aggregateByLocalDay(anyCollection(), any(Instant.class), any(Instant.class),
+                eq(ZONE)))
+                .thenReturn(Map.of(supply.getCode(), days));
     }
 
     private void givenASingleSegmentAt(String pricePerKwh) {

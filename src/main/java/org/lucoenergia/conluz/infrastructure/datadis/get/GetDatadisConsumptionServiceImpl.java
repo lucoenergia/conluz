@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisEnergyValues;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionService;
+import org.lucoenergia.conluz.domain.consumption.datadis.get.PublishedMonthlyConsumptionReader;
 import org.lucoenergia.conluz.domain.consumption.savings.SupplySavingsCalculator;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
@@ -44,6 +45,7 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
     private final GetDatadisConsumptionRepository getDatadisConsumptionRepository;
     private final GetSupplyRepository getSupplyRepository;
     private final SupplySavingsCalculator supplySavingsCalculator;
+    private final PublishedMonthlyConsumptionReader publishedMonthlyConsumptionReader;
     private final ZoneResolver zoneResolver;
     private final Clock clock;
 
@@ -51,11 +53,13 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
             @Qualifier("getDatadisConsumptionRepositoryInflux") GetDatadisConsumptionRepository getDatadisConsumptionRepository,
             GetSupplyRepository getSupplyRepository,
             SupplySavingsCalculator supplySavingsCalculator,
+            PublishedMonthlyConsumptionReader publishedMonthlyConsumptionReader,
             ZoneResolver zoneResolver,
             Clock clock) {
         this.getDatadisConsumptionRepository = getDatadisConsumptionRepository;
         this.getSupplyRepository = getSupplyRepository;
         this.supplySavingsCalculator = supplySavingsCalculator;
+        this.publishedMonthlyConsumptionReader = publishedMonthlyConsumptionReader;
         this.zoneResolver = zoneResolver;
         this.clock = clock;
     }
@@ -118,10 +122,9 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         OffsetDateTime effectiveEndDate = effectiveEndDate(startDate, endDate, zone, EnergyMetricsPeriodValidator.MAX_LENGTH);
         Supply supply = getSupplyOrThrow(supplyId);
 
-        return getDatadisConsumptionRepository.getMonthlyConsumptionsByRangeOfDates(supply, startDate, effectiveEndDate)
-                .stream()
-                .map(consumption -> priceMonth(supply, consumption, zone))
-                .toList();
+        return publishedMonthlyConsumptionReader
+                .getPublishedMonths(List.of(supply), new EnergyMetricsPeriod(startDate, effectiveEndDate), zone)
+                .getOrDefault(supply.getId(), List.of());
     }
 
     /**
@@ -178,31 +181,6 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
         Instant toExclusive = earliest(hour.plus(1, ChronoUnit.HOURS), rangeToExclusive);
         return SupplyHourlyConsumptionBucket.of(hour.atZone(zone).toOffsetDateTime(),
                 price(supply, consumption, publishedData, hour, toExclusive));
-    }
-
-    /**
-     * Prices a monthly bucket over its <strong>whole</strong> local month, <strong>not</strong>
-     * clipped to the requested range.
-     *
-     * <p>A monthly bucket is a pre-aggregate point stamped at local midnight of day 1. The range
-     * selects it by that one instant and it then carries the entire month's energy, whatever the
-     * bounds are -- a request ending mid-month still returns the full month. Clipping the priced
-     * interval would therefore value a fraction of the month against the whole month's energy, and
-     * the savings would not match the energy shown beside them.
-     *
-     * <p>{@code withDayOfMonth(1)} rather than trusting the label's day: it costs nothing and keeps
-     * a point stamped at UTC midnight -- as pre-aggregates written before the local-calendar
-     * alignment were -- resolving to the month it belongs to.
-     */
-    private SupplyConsumptionBucket priceMonth(Supply supply, DatadisConsumption consumption, ZoneId zone) {
-        LocalDate firstDayOfMonth = DateConverter.convertStringToLocalDate(consumption.getDate())
-                .withDayOfMonth(1);
-
-        // The pre-aggregate keeps no count of the records carrying self-consumption: every stored
-        // point counts as data.
-        return price(supply, consumption, true,
-                firstDayOfMonth.atStartOfDay(zone).toInstant(),
-                firstDayOfMonth.plusMonths(1).atStartOfDay(zone).toInstant());
     }
 
     /**

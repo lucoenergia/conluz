@@ -16,7 +16,6 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -25,7 +24,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Month;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -89,8 +87,6 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
-    @Autowired
-    private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -190,8 +186,6 @@ class ConsumptionSeriesEnergyFieldsControllerTest extends BaseControllerTest {
         influxFixture.writePublishedZeros(second.getCode(), FEBRUARY, ZONE);
         write(first, record(first, "11:00", 0.1000f, 0.1111f), record(first, "12:00", 0.0234f, 0.1111f));
         write(second, record(second, "11:00", 0.0300f, 0.0500f), record(second, "12:00", 0.0314f, 0.0612f));
-        monthlyAggregationRepository.aggregateMonthlyConsumption(first, Month.FEBRUARY, 2024);
-        monthlyAggregationRepository.aggregateMonthlyConsumption(second, Month.FEBRUARY, 2024);
         return new Membership(community, member, first, second);
     }
 

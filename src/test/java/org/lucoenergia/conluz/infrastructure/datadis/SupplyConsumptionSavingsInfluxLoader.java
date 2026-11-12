@@ -11,6 +11,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +52,7 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
     private static final String FIELD_OBTAIN_METHOD = "obtain_method";
     private static final String TAG_CUPS = "cups";
     private static final String OBTAIN_METHOD = "Real";
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     /**
      * Hourly records, by local Madrid time. Daily totals of self-consumption, and the amount each
@@ -85,9 +89,12 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
             new HourlyRecord(OTHER_CUPS_WITH_SAVINGS, "2023-04-11T10:00+02:00", 3.00d, 0.00d, 4.00d, 2.00d));
 
     /**
-     * Monthly pre-aggregates, each stamped at local midnight of the first of its month, which is
-     * where the aggregation job puts them. Worth, at 0.15 EUR/kWh: 15.00, 0.08 (a half cent again),
-     * 0.00 and 1.20 for the supply with savings; 3.00 for the other one.
+     * Monthly totals. Each is written as the pre-aggregate the aggregation job would store, stamped
+     * at local midnight of the first of its month, and as the hourly records it sums: every hour of
+     * the month carrying self-consumption, zero at all of them except at 12:00 on the 10th and on the
+     * 20th, which hold half of the month's totals each. Worth, at 0.15 EUR/kWh: 15.00, 0.08 (a half
+     * cent again), 0.00 and 1.20 for the supply with savings; 3.00 for the other one. Up to the 15th,
+     * February holds 0.25 kWh of self-consumption, worth 0.0375, which presents as 0.04.
      */
     private static final List<MonthlyRecord> MONTHLY_RECORDS = List.of(
             new MonthlyRecord(CUPS_WITH_SAVINGS, "2024-01-01T00:00+01:00", 400.00d, 20.00d, 500.00d, 100.00d),
@@ -115,9 +122,29 @@ public class SupplyConsumptionSavingsInfluxLoader implements InfluxLoader {
                     pointAt(DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT, record.cups(), record.localTime(),
                             record.consumptionKWh(), record.surplusEnergyKWh(), record.generationEnergyKWh(),
                             record.selfConsumptionEnergyKWh())));
+            MONTHLY_RECORDS.forEach(record -> hourlyRecordsOf(record).forEach(batchPoints::point));
 
             connection.write(batchPoints);
         }
+    }
+
+    /**
+     * Every hour of the record's local month, zero except at 12:00 on the 10th and the 20th, which
+     * hold half of each total.
+     */
+    private static List<Point> hourlyRecordsOf(MonthlyRecord record) {
+        ZonedDateTime monthStart = OffsetDateTime.parse(record.localTime()).atZoneSameInstant(ZONE);
+        ZonedDateTime monthEnd = monthStart.plusMonths(1);
+        List<Point> points = new ArrayList<>();
+        for (ZonedDateTime hour = monthStart; hour.isBefore(monthEnd); hour = hour.plusHours(1)) {
+            boolean holdsHalf = hour.getHour() == 12 && (hour.getDayOfMonth() == 10 || hour.getDayOfMonth() == 20);
+            double share = holdsHalf ? 0.5d : 0d;
+            points.add(pointAt(DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT, record.cups(),
+                    hour.toOffsetDateTime().toString(), record.consumptionKWh() * share,
+                    record.surplusEnergyKWh() * share, record.generationEnergyKWh() * share,
+                    record.selfConsumptionEnergyKWh() * share));
+        }
+        return points;
     }
 
     private static Point pointAt(String measurement, String cups, String localTime, double consumptionKWh,

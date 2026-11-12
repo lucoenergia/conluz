@@ -7,12 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
 import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembershipRepository;
-import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
@@ -80,8 +78,6 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
     private SupplyRepository supplyRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
-    @Autowired
-    private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -283,9 +279,6 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         publish(FEBRUARY, supply);
         write(supply, "2024/01/20", "13:00", 1f, 1f, 0f);
         write(supply, "2024/02/10", "13:00", 2f, 1f, 0f);
-        // The per-supply series compared with still reads the monthly pre-aggregates.
-        aggregate(JANUARY, supply);
-        aggregate(FEBRUARY, supply);
         String start = "2024-01-15T12:00:00+01:00";
         String end = "2024-03-10T00:00:00+01:00";
         String token = loginUser(member);
@@ -487,17 +480,6 @@ class GetMembershipMonthlyConsumptionControllerTest extends BaseControllerTest {
         influxFixture.write(List.of(record));
         if (!writtenCups.contains(supply.getCode())) {
             writtenCups.add(supply.getCode());
-        }
-    }
-
-    /**
-     * Builds the month's pre-aggregate of each supply through the production aggregation.
-     */
-    private void aggregate(YearMonth month, SupplyEntity... supplies) {
-        for (SupplyEntity supply : supplies) {
-            monthlyAggregationRepository.aggregateMonthlyConsumption(
-                    SupplyMother.random().withId(supply.getId()).withCode(supply.getCode()).build(),
-                    month.getMonth(), month.getYear());
         }
     }
 

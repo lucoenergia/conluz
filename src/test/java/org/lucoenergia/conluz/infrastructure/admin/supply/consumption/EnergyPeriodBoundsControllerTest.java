@@ -18,7 +18,6 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
-import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationRepository;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -28,7 +27,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.Instant;
-import java.time.Month;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -80,8 +78,6 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
-    @Autowired
-    private DatadisMonthlyAggregationRepository monthlyAggregationRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
     @Autowired
@@ -211,7 +207,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-001 AC2 the supply monthly series over August returns August only")
     void supplyMonthlySeriesOverAugustReturnsAugustOnly() throws Exception {
-        givenMonthlyAggregatesForJulyAugustAndSeptember();
+        givenPublishedJulyAugustAndSeptember();
 
         request(supplyPath("/consumption/monthly"), AUGUST_START, AUGUST_END)
                 .andExpect(status().isOk())
@@ -223,7 +219,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-001 AC2 the membership monthly series over August returns August only")
     void membershipMonthlySeriesOverAugustReturnsAugustOnly() throws Exception {
-        givenMonthlyAggregatesForJulyAugustAndSeptember();
+        givenPublishedJulyAugustAndSeptember();
 
         request(membershipPath("/consumption/monthly"), AUGUST_START, AUGUST_END)
                 .andExpect(status().isOk())
@@ -309,7 +305,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-002 AC4 the supply monthly series emits no month starting after the current hour")
     void theSupplyMonthlySeriesEmitsNoMonthStartingAfterTheCurrentHour() throws Exception {
-        givenMonthlyAggregatesForSeptemberOctoberAndNovember();
+        givenPublishedSeptemberOctoberAndNovember();
 
         request(supplyPath("/consumption/monthly"), "2026-09-01T00:00:00+02:00", "2026-12-01T00:00:00+01:00")
                 .andExpect(status().isOk())
@@ -321,7 +317,7 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("EPR-002 AC4 the membership monthly series emits no month starting after the current hour")
     void theMembershipMonthlySeriesEmitsNoMonthStartingAfterTheCurrentHour() throws Exception {
-        givenMonthlyAggregatesForSeptemberOctoberAndNovember();
+        givenPublishedSeptemberOctoberAndNovember();
 
         request(membershipPath("/consumption/monthly"), "2026-09-01T00:00:00+02:00", "2026-12-01T00:00:00+01:00")
                 .andExpect(status().isOk())
@@ -451,17 +447,13 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
 
     /**
      * July, August and September published at every hour, then one record per month carrying grid
-     * import, aggregated by the production aggregation into a pre-aggregate stamped at local midnight
-     * of day 1: 1 kWh in July, 2 in August, 4 in September.
+     * import: 1 kWh in July, 2 in August, 4 in September.
      */
-    private void givenMonthlyAggregatesForJulyAugustAndSeptember() {
+    private void givenPublishedJulyAugustAndSeptember() {
         publish(YearMonth.of(2026, 7), YearMonth.of(2026, 8), YearMonth.of(2026, 9));
         writeAt(OffsetDateTime.parse("2026-07-15T12:00:00+02:00"), 1f);
         writeAt(OffsetDateTime.parse("2026-08-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 4f);
-        for (Month month : List.of(Month.JULY, Month.AUGUST, Month.SEPTEMBER)) {
-            monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
-        }
     }
 
     /**
@@ -477,17 +469,14 @@ class EnergyPeriodBoundsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * September, October and November published at every hour, then pre-aggregates for them:
-     * November's is stamped at local midnight of 1 November, after the current hour.
+     * September, October and November published at every hour, with one record each: November starts
+     * at local midnight of 1 November, after the current hour.
      */
-    private void givenMonthlyAggregatesForSeptemberOctoberAndNovember() {
+    private void givenPublishedSeptemberOctoberAndNovember() {
         publish(YearMonth.of(2026, 9), YearMonth.of(2026, 10), YearMonth.of(2026, 11));
         writeAt(OffsetDateTime.parse("2026-09-15T12:00:00+02:00"), 1f);
         writeAt(OffsetDateTime.parse("2026-10-15T12:00:00+02:00"), 2f);
         writeAt(OffsetDateTime.parse("2026-11-15T12:00:00+01:00"), 4f);
-        for (Month month : List.of(Month.SEPTEMBER, Month.OCTOBER, Month.NOVEMBER)) {
-            monthlyAggregationRepository.aggregateMonthlyConsumption(supply, month, 2026);
-        }
     }
 
     /**

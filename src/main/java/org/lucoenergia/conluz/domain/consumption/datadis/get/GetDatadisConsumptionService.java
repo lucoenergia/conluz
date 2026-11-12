@@ -33,19 +33,18 @@ public interface GetDatadisConsumptionService {
                                                           @NotNull OffsetDateTime endDate);
 
     /**
-     * Retrieves the monthly consumption series for a supply, each bucket priced over its
-     * <strong>whole</strong> local calendar month.
+     * Retrieves the monthly consumption series for a supply, summed from its hourly records.
      *
-     * <p>The interval is deliberately <em>not</em> intersected with the requested range, unlike the
-     * daily series. A monthly bucket is a pre-aggregate stamped at local midnight of day 1: the
-     * range selects it by that single instant, and once selected it carries the entire month's
-     * energy whatever the bounds are. Pricing a clipped interval would value a fraction of the
-     * month against the whole month's energy.
+     * <p>A month is selected when its local midnight on day 1 falls inside the period, clipped to
+     * the start of the current hour, and returned only when the supply's records carrying
+     * self-consumption reach the publication threshold of the month's hours inside the period: a
+     * month whose self-consumption is not yet published is omitted rather than reported as zero.
+     * Each month totals, and is priced over, its hours inside the period.
      *
      * @param supplyId the supply ID for which to retrieve consumption data
-     * @param startDate the start date of the range, inclusive
-     * @param endDate the end date of the range, inclusive
-     * @return a list of monthly consumption buckets with their estimated savings
+     * @param startDate the start of the period, inclusive
+     * @param endDate the end of the period, exclusive
+     * @return the months with published data, in chronological order, with their estimated savings
      */
     List<SupplyConsumptionBucket> getMonthlySeriesBySupply(@NotNull SupplyId supplyId,
                                                             @NotNull OffsetDateTime startDate,
