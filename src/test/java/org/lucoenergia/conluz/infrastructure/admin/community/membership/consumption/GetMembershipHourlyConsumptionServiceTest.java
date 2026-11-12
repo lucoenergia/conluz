@@ -107,7 +107,7 @@ class GetMembershipHourlyConsumptionServiceTest {
      * counted.
      */
     @Test
-    @DisplayName("MCS-003 AC1 an hour counts and sums only the supplies that stored a record that hour")
+    @DisplayName("MCS-003 AC1 an hour counts and sums only the supplies with data that hour")
     void anHourCountsAndSumsOnlyTheSuppliesThatStoredARecord() {
         givenMembership();
         givenSupplies(first, second);
