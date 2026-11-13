@@ -1632,7 +1632,8 @@
               "CONTACT_CHANNEL_EMAIL_INVALID",
               "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
               "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS",
-              "REQUEST_PAYLOAD_TOO_LARGE"
+              "REQUEST_PAYLOAD_TOO_LARGE",
+              "FIELD_TOO_LONG"
             ],
             "type" : [
               "string",
@@ -1866,7 +1867,8 @@
               "CONTACT_CHANNEL_EMAIL_INVALID",
               "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
               "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS",
-              "REQUEST_PAYLOAD_TOO_LARGE"
+              "REQUEST_PAYLOAD_TOO_LARGE",
+              "FIELD_TOO_LONG"
             ],
             "type" : [
               "string",
@@ -4149,7 +4151,8 @@
               "CONTACT_CHANNEL_EMAIL_INVALID",
               "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
               "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS",
-              "REQUEST_PAYLOAD_TOO_LARGE"
+              "REQUEST_PAYLOAD_TOO_LARGE",
+              "FIELD_TOO_LONG"
             ],
             "type" : [
               "string",
@@ -4330,7 +4333,8 @@
               "CONTACT_CHANNEL_EMAIL_INVALID",
               "CONTACT_CHANNEL_PHONE_CHARACTERS_INVALID",
               "CONTACT_CHANNEL_PHONE_TOO_FEW_DIGITS",
-              "REQUEST_PAYLOAD_TOO_LARGE"
+              "REQUEST_PAYLOAD_TOO_LARGE",
+              "FIELD_TOO_LONG"
             ],
             "type" : [
               "string",

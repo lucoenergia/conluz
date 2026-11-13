@@ -3,7 +3,10 @@ package org.lucoenergia.conluz.infrastructure.shared.web.error;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.InvalidNullException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.metadata.ConstraintDescriptor;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -83,14 +86,14 @@ public class BadRequestExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<RestError> handleException(MethodArgumentNotValidException e) {
 
+        if (e.getFieldErrors().stream().anyMatch(error -> maxLengthOf(error).isPresent())) {
+            return fieldErrorsWithCodes(e);
+        }
+
         List<String> errorMessages = new ArrayList<>();
         // The rejected value is never repeated: it may be a password, an email address or a personal ID (#479)
         for (FieldError error : e.getFieldErrors()) {
-            errorMessages.add(messageSource.getMessage(
-                    "error.property.invalid",
-                    Arrays.asList(error.getField(), error.getDefaultMessage()).toArray(),
-                    LocaleContextHolder.getLocale()
-            ));
+            errorMessages.add(invalidPropertyMessage(error));
         }
 
         String message = messageSource.getMessage(
@@ -100,6 +103,62 @@ public class BadRequestExceptionHandler {
         );
 
         return errorBuilder.build(message, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * One detail per field error, in the order of the fields: {@code FIELD_TOO_LONG} with its parameters for a value
+     * longer than its {@code @Size}, and today's untyped detail for any other error (#574). The rejected value is only
+     * measured, never repeated.
+     */
+    private ResponseEntity<RestError> fieldErrorsWithCodes(MethodArgumentNotValidException e) {
+        List<RestErrorDetail> details = e.getFieldErrors().stream()
+                .sorted(Comparator.comparing(FieldError::getField))
+                .map(error -> maxLengthOf(error)
+                        .map(maxLength -> tooLong(error, maxLength))
+                        .orElseGet(() -> new RestErrorDetail(invalidPropertyMessage(error), null, null)))
+                .toList();
+
+        String message = details.size() == 1
+                ? details.get(0).getMessage()
+                : messageSource.getMessage("error.properties.invalid.count", new Object[]{details.size()},
+                LocaleContextHolder.getLocale());
+
+        return errorBuilder.build(message, details, HttpStatus.BAD_REQUEST);
+    }
+
+    private RestErrorDetail tooLong(FieldError error, int maxLength) {
+        String field = error.getField();
+        String length = String.valueOf(((CharSequence) error.getRejectedValue()).length());
+        String max = String.valueOf(maxLength);
+        String message = messageSource.getMessage("error.property.too.long", new Object[]{field, max, length},
+                LocaleContextHolder.getLocale());
+        return new RestErrorDetail(message, RestErrorCode.FIELD_TOO_LONG,
+                Map.of("field", field, "maxLength", max, "n", length));
+    }
+
+    /**
+     * The maximum of the {@code @Size} the error breaks, if the rejected value is a text longer than it. Only
+     * {@code @Size} declares a maximum length, since it is the constraint the contract publishes as
+     * {@code maxLength}; {@code @Length} is used where a {@code maxLength} must not be published (#574).
+     */
+    private static Optional<Integer> maxLengthOf(FieldError error) {
+        if (!error.contains(ConstraintViolation.class)
+                || !(error.getRejectedValue() instanceof CharSequence value)) {
+            return Optional.empty();
+        }
+        ConstraintDescriptor<?> descriptor = error.unwrap(ConstraintViolation.class).getConstraintDescriptor();
+        if (!(descriptor.getAnnotation() instanceof Size size) || value.length() <= size.max()) {
+            return Optional.empty();
+        }
+        return Optional.of(size.max());
+    }
+
+    private String invalidPropertyMessage(FieldError error) {
+        return messageSource.getMessage(
+                "error.property.invalid",
+                Arrays.asList(error.getField(), error.getDefaultMessage()).toArray(),
+                LocaleContextHolder.getLocale()
+        );
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
