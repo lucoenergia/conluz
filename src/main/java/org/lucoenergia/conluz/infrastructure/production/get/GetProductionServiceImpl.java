@@ -176,8 +176,8 @@ public class GetProductionServiceImpl implements GetProductionService {
     // monthly/yearly use the application's configured local timezone's calendar boundaries
     // (conluz.time.zone.id, currently Europe/Madrid -- see monthlyProductionForSupply /
     // yearlyProductionForSupply). A month's 31 daily (UTC) totals will therefore NOT sum to that
-    // month's (local-timezone) total -- tracked as a follow-up (reconcile daily to local-day
-    // alignment); do not "fix" this as a drive-by change here.
+    // month's (local-timezone) total. The operations this serves are deprecated (#570), and this
+    // boundary behaviour will not change.
 
     private InstantProduction instantProductionForSupply(UUID supplyId) {
         Instant now = clock.instant();

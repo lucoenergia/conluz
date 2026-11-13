@@ -50,6 +50,8 @@ public class GetDatadisHourlyProductionController {
     @Operation(
             summary = "Retrieves hourly Datadis production data of a community within a given date interval.",
             description = """
+                    Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.
+
                     Retrieves hourly Datadis-derived production data for the plants of the community identified by
                     `communityId`, within the specified date range. **Required: any member of the community.**
 
@@ -65,6 +67,7 @@ public class GetDatadisHourlyProductionController {
                     and `time`; on the day they go forward, the local hour the clocks skip has no entry.
                     """,
             tags = ApiTag.PRODUCTION,
+            deprecated = true,
             operationId = "getDatadisHourlyProduction",
             security = @SecurityRequirement(name = "bearerToken")
     )

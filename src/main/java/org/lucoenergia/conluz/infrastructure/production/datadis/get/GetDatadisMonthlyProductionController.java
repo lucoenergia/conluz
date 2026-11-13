@@ -45,6 +45,8 @@ public class GetDatadisMonthlyProductionController {
     @Operation(
             summary = "Retrieves monthly Datadis production data of a community within a given date interval.",
             description = """
+                    Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.
+
                     Retrieves monthly Datadis-derived production data for the plants of the community identified by
                     `communityId`, within the specified date range. **Required: any member of the community.**
 
@@ -59,6 +61,7 @@ public class GetDatadisMonthlyProductionController {
                     the month starts.
                     """,
             tags = ApiTag.PRODUCTION,
+            deprecated = true,
             operationId = "getDatadisMonthlyProduction",
             security = @SecurityRequirement(name = "bearerToken")
     )

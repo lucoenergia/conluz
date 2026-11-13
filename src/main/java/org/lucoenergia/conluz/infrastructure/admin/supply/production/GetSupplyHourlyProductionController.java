@@ -40,8 +40,10 @@ public class GetSupplyHourlyProductionController {
     @GetMapping
     @Operation(
             summary = "Retrieves hourly production data assigned to a specific supply",
-            description = "This endpoint retrieves hourly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
+            description = "Deprecated: use `getSupplyEnergyMetrics` and the supply consumption series (`assignedProductionKWh`).\n\n"
+                    + "This endpoint retrieves hourly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
             tags = ApiTag.SUPPLIES,
+            deprecated = true,
             operationId = "getSupplyHourlyProduction"
     )
     @ApiResponses(value = {

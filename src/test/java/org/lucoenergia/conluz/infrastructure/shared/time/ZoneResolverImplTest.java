@@ -28,10 +28,10 @@ class ZoneResolverImplTest {
     }
 
     @Test
-    void resolvesAPlantsZoneFromTheConfiguredSetting() {
+    void resolvesTheApplicationZoneFromTheConfiguredSetting() {
         when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("Europe/Madrid"));
 
-        assertEquals(ZoneId.of("Europe/Madrid"), zoneResolver.resolveZoneId(UUID.randomUUID()));
+        assertEquals(ZoneId.of("Europe/Madrid"), zoneResolver.resolveApplicationZoneId());
     }
 
     @Test
@@ -42,14 +42,16 @@ class ZoneResolverImplTest {
     }
 
     /**
-     * Both lookups answer from the same application-level setting today. The day the zone becomes
-     * a per-community one they may diverge, but only inside this class.
+     * Every lookup answers from the same application-level setting today. The day the zone becomes
+     * a per-community one the supply and community lookups may diverge, but only inside this class.
      */
     @Test
-    void bothLookupsAnswerFromTheSameSettingToday() {
+    void everyLookupAnswersFromTheSameSettingToday() {
         when(timeConfiguration.getZoneId()).thenReturn(ZoneId.of("America/Bogota"));
 
-        assertEquals(zoneResolver.resolveZoneId(UUID.randomUUID()),
+        assertEquals(zoneResolver.resolveApplicationZoneId(),
                 zoneResolver.resolveZoneIdForSupply(UUID.randomUUID()));
+        assertEquals(zoneResolver.resolveApplicationZoneId(),
+                zoneResolver.resolveZoneIdForCommunity(UUID.randomUUID()));
     }
 }

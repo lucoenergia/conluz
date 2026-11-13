@@ -13073,7 +13073,8 @@
     },
     "/api/v1/communities/{communityId}/production" : {
       "get" : {
-        "description" : "Offers real-time insights into the instantaneous energy production of the plants of the community identified by the path `communityId`. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getPlantInverterProductionToday`.\n\nOffers real-time insights into the instantaneous energy production of the plants of the community identified by the path `communityId`. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
         "operationId" : "getInstantProduction",
         "parameters" : [
           {
@@ -13204,7 +13205,8 @@
     },
     "/api/v1/communities/{communityId}/production/daily" : {
       "get" : {
-        "description" : "Retrieves daily energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity{Hourly,Daily,Monthly}EnergySeries` for distributor data; `getPlantInverterProductionToday` for today's inverter data.\n\nRetrieves daily energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
         "operationId" : "getDailyProduction",
         "parameters" : [
           {
@@ -13356,7 +13358,8 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/daily" : {
       "get" : {
-        "description" : "Retrieves daily Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by day within the specified date range.\n\n**`date` and `time`:** each day is a UTC day, not a local calendar day. `date` and\n`time` are the UTC midnight that starts it, expressed in the time zone the\napplication is configured with, so `time` is the zone's offset from UTC rather than\n`00:00` (in Europe/Madrid, `01:00` in winter and `02:00` in summer).\n",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.\n\nRetrieves daily Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by day within the specified date range.\n\n**`date` and `time`:** each day is a UTC day, not a local calendar day. `date` and\n`time` are the UTC midnight that starts it, expressed in the time zone the\napplication is configured with, so `time` is the zone's offset from UTC rather than\n`00:00` (in Europe/Madrid, `01:00` in winter and `02:00` in summer).\n",
         "operationId" : "getDatadisDailyProduction",
         "parameters" : [
           {
@@ -13513,7 +13516,8 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/hourly" : {
       "get" : {
-        "description" : "Retrieves hourly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by hour within the specified date range.\n\n**`date` and `time`:** the local calendar date and local time, in the time zone the\napplication is configured with, at which each hour starts (`time` from `00:00` to\n`23:00`). On the day the clocks go back, two consecutive hours carry the same `date`\nand `time`; on the day they go forward, the local hour the clocks skip has no entry.\n",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.\n\nRetrieves hourly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by hour within the specified date range.\n\n**`date` and `time`:** the local calendar date and local time, in the time zone the\napplication is configured with, at which each hour starts (`time` from `00:00` to\n`23:00`). On the day the clocks go back, two consecutive hours carry the same `date`\nand `time`; on the day they go forward, the local hour the clocks skip has no entry.\n",
         "operationId" : "getDatadisHourlyProduction",
         "parameters" : [
           {
@@ -13670,7 +13674,8 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/monthly" : {
       "get" : {
-        "description" : "Retrieves monthly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by month within the specified date range.\n\n**`date` and `time`:** `date` is the first day of the month and `time` is `00:00`:\nthe local midnight, in the time zone the application is configured with, at which\nthe month starts.\n",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.\n\nRetrieves monthly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by month within the specified date range.\n\n**`date` and `time`:** `date` is the first day of the month and `time` is `00:00`:\nthe local midnight, in the time zone the application is configured with, at which\nthe month starts.\n",
         "operationId" : "getDatadisMonthlyProduction",
         "parameters" : [
           {
@@ -14093,7 +14098,8 @@
     },
     "/api/v1/communities/{communityId}/production/datadis/yearly" : {
       "get" : {
-        "description" : "Retrieves yearly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by year within the specified date range.\n\n**`date` and `time`:** `date` is 1 January and `time` is `00:00`: the local midnight,\nin the time zone the application is configured with, at which the year starts.\n",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.\n\nRetrieves yearly Datadis-derived production data for the plants of the community identified by\n`communityId`, within the specified date range. **Required: any member of the community.**\n\nReturns 404 if the community does not exist or the caller is not a member of it. When a\n`supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is\nreturned (an out-of-community supply is never confirmed to exist).\n\nData is aggregated by year within the specified date range.\n\n**`date` and `time`:** `date` is 1 January and `time` is `00:00`: the local midnight,\nin the time zone the application is configured with, at which the year starts.\n",
         "operationId" : "getDatadisYearlyProduction",
         "parameters" : [
           {
@@ -14250,7 +14256,8 @@
     },
     "/api/v1/communities/{communityId}/production/hourly" : {
       "get" : {
-        "description" : "Retrieves hourly energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity{Hourly,Daily,Monthly}EnergySeries` for distributor data; `getPlantInverterProductionToday` for today's inverter data.\n\nRetrieves hourly energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
         "operationId" : "getHourlyProduction",
         "parameters" : [
           {
@@ -14668,7 +14675,8 @@
     },
     "/api/v1/communities/{communityId}/production/monthly" : {
       "get" : {
-        "description" : "Retrieves monthly energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity{Hourly,Daily,Monthly}EnergySeries` for distributor data; `getPlantInverterProductionToday` for today's inverter data.\n\nRetrieves monthly energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
         "operationId" : "getMonthlyProduction",
         "parameters" : [
           {
@@ -14820,7 +14828,8 @@
     },
     "/api/v1/communities/{communityId}/production/yearly" : {
       "get" : {
-        "description" : "Retrieves yearly energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity{Hourly,Daily,Monthly}EnergySeries` for distributor data; `getPlantInverterProductionToday` for today's inverter data.\n\nRetrieves yearly energy production data for the plants of the community identified by the path `communityId`, within the specified date interval. **Required: any member of the community.** Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a non-member platform admin. When a `supplyId` is provided, it must back a plant of the community in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
         "operationId" : "getYearlyProduction",
         "parameters" : [
           {
@@ -23256,7 +23265,8 @@
     },
     "/api/v1/supplies/{supplyId}/production/daily" : {
       "get" : {
-        "description" : "This endpoint retrieves daily energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getSupplyEnergyMetrics` and the supply consumption series (`assignedProductionKWh`).\n\nThis endpoint retrieves daily energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
         "operationId" : "getSupplyDailyProduction",
         "parameters" : [
           {
@@ -23399,7 +23409,8 @@
     },
     "/api/v1/supplies/{supplyId}/production/hourly" : {
       "get" : {
-        "description" : "This endpoint retrieves hourly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getSupplyEnergyMetrics` and the supply consumption series (`assignedProductionKWh`).\n\nThis endpoint retrieves hourly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
         "operationId" : "getSupplyHourlyProduction",
         "parameters" : [
           {
@@ -23542,7 +23553,8 @@
     },
     "/api/v1/supplies/{supplyId}/production/monthly" : {
       "get" : {
-        "description" : "This endpoint retrieves monthly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
+        "deprecated" : true,
+        "description" : "Deprecated: use `getSupplyEnergyMetrics` and the supply consumption series (`assignedProductionKWh`).\n\nThis endpoint retrieves monthly energy production data assigned to a specific supply point within a given date interval. The production values are calculated by multiplying the total production by the supply's partition coefficient. This endpoint is useful for tracking the energy production allocated to individual supply points in the energy community. **Required: the supply owner or a Community Admin of the supply's community.**",
         "operationId" : "getSupplyMonthlyProduction",
         "parameters" : [
           {

@@ -71,7 +71,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     public List<SupplyPartitionCoefficient> setValidFrom(UUID plantId, UUID sharingAgreementId, LocalDate appliedOn,
                                                            List<UUID> coefficientIds) {
         loadAgreement(plantId, sharingAgreementId);
-        ZoneId zoneId = zoneResolver.resolveZoneId(plantId);
+        ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
         LocalDate today = LocalDate.now(clock.withZone(zoneId));
         Instant newValidFrom = appliedOn == null ? null : appliedOn.atStartOfDay(zoneId).toInstant();
 
@@ -133,7 +133,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     public List<SupplyPartitionCoefficient> setValidTo(UUID plantId, UUID sharingAgreementId, LocalDate closedOn,
                                                          List<UUID> coefficientIds) {
         loadAgreement(plantId, sharingAgreementId);
-        ZoneId zoneId = zoneResolver.resolveZoneId(plantId);
+        ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
         LocalDate today = LocalDate.now(clock.withZone(zoneId));
         Instant newValidTo = closedOn == null ? null : closedOn.atStartOfDay(zoneId).toInstant();
 

@@ -45,6 +45,8 @@ public class GetDatadisDailyProductionController {
     @Operation(
             summary = "Retrieves daily Datadis production data of a community within a given date interval.",
             description = """
+                    Deprecated: use `getCommunityEnergyMetrics` and `getCommunity*EnergySeries` for the community; `getPlantEnergyMetrics` and `getPlant*EnergySeries` for a plant.
+
                     Retrieves daily Datadis-derived production data for the plants of the community identified by
                     `communityId`, within the specified date range. **Required: any member of the community.**
 
@@ -60,6 +62,7 @@ public class GetDatadisDailyProductionController {
                     `00:00` (in Europe/Madrid, `01:00` in winter and `02:00` in summer).
                     """,
             tags = ApiTag.PRODUCTION,
+            deprecated = true,
             operationId = "getDatadisDailyProduction",
             security = @SecurityRequirement(name = "bearerToken")
     )

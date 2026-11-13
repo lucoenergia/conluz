@@ -15,8 +15,8 @@ public interface MembershipEnergyMetricsScopeResolver {
     /**
      * The member's supplies in the community and the period resolved for them.
      *
-     * <p>The period is resolved in one of three ways: the explicit {@code startDate} and
-     * {@code endDate}, both inclusive; the {@code referencePeriod}; or, when neither is supplied,
+     * <p>The period is resolved in one of three ways: the explicit {@code startDate}, inclusive,
+     * and {@code endDate}, exclusive; the {@code referencePeriod}; or, when neither is supplied,
      * from the earliest to the latest record stored for any of the member's supplies. An explicit
      * period always resolves, even for a membership without supplies.</p>
      *

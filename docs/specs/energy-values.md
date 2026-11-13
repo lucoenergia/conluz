@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`, `getPlantDailyEnergySeries`, `getPlantMonthlyEnergySeries`, `getPlantInverterProductionToday` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #565 |
+| **Last reviewed against code** | #570 |
 
 ## Purpose
 
@@ -28,6 +28,11 @@ touch it.
 | Surplus | Energy assigned to the supply and fed back to the grid. Field `surplusKWh`. |
 | Total consumption | Energy the supply consumed, whatever its origin. Field `totalConsumptionKWh`. Derived: grid import + self-consumption. |
 | Assigned production | Energy the community assigned to the supply, whether consumed or fed back. Field `assignedProductionKWh`. Derived: self-consumption + surplus. |
+| Production | Energy a plant exported to the grid at its connection point, as measured by the distributor for the plant's own supply (net of the plant's own consumption). Field `productionKWh`. |
+| Hours with data | Number of hourly records found in the period: consumption records for a supply or a membership, production records for a plant. Field `hoursWithData`. |
+| Expected hours | Number of hours the period spans, accounting for daylight saving transitions; for a membership, times its number of supplies. Field `expectedHours`. |
+| Supply count | Number of supplies a figure covers: the enabled supplies of a community, or the supplies a member owns in it. Field `supplyCount`. |
+| Supplies with data | Number of those supplies with data. What counts as having data is stated in each operation, so the figure is not comparable across operations. Field `suppliesWithData`. |
 | Average and sample count | An average of a quantity is named `average` followed by the quantity's field name (`averageTotalConsumptionKWh`); the number of records it rests on is named after the quantity with `SampleCount` in place of `KWh` (`totalConsumptionSampleCount`). |
 | Datadis pass-through schema | A schema that carries the distributor's own record shape and names (`DatadisConsumption`, `DatadisProduction`, the hourly consumption CSV report). It keeps the Datadis names, which the quantities above do not use. |
 
@@ -102,7 +107,8 @@ Then the month's grid import is 0.346 kWh, not 0.123 + 0.222 = 0.345 kWh
 - **Source:** #460; #545; #554 added the community energy operations, which reuse `selfConsumptionKWh`,
   `surplusKWh`, `selfConsumptionRatio`, `supplyCount` and `suppliesWithData`; #561 added the plant energy
   operations, which reuse the per-plant `productionKWh` of the community energy metrics, and
-  `hoursWithData` and `expectedHours` of the supply energy metrics
+  `hoursWithData` and `expectedHours` of the supply energy metrics; #570 listed production and the coverage counts
+  in the glossary
 
 **Scenarios**
 

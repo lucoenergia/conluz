@@ -38,12 +38,6 @@ public interface GetPlantRepository {
     List<Plant> findAllByCommunityId(UUID communityId);
 
     /**
-     * The single plant of a community. Relies on the one-plant-per-community invariant; if that
-     * invariant is ever violated, the underlying query throws rather than silently picking one plant.
-     */
-    Optional<Plant> findByCommunityId(UUID communityId);
-
-    /**
      * Provider codes of the plants belonging to the given community. These codes match the InfluxDB
      * {@code station_code} tag, so they can be used to scope time-series production queries.
      */

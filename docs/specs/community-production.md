@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → operations `getInstantProduction`, `getHourlyProduction`, `getDailyProduction`, `getMonthlyProduction`, `getYearlyProduction`, `getDatadisHourlyProduction`, `getDatadisDailyProduction`, `getDatadisMonthlyProduction`, `getDatadisYearlyProduction` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #552 |
+| **Last reviewed against code** | #570 |
 
 ## Purpose
 
@@ -36,6 +36,7 @@ covers only the rule #552 touched.
   supply-scoped path (`/api/v1/supplies/{supplyId}/production/*`). The 404 does not confirm that a
   supply the read does not cover exists.
 - **Source:** #552
+- **Note:** The operations this rule governs are deprecated (#570, API-002). The rule holds while they exist.
 
 **Scenarios**
 

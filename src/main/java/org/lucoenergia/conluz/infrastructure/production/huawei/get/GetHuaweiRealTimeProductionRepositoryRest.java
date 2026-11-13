@@ -72,7 +72,7 @@ public class GetHuaweiRealTimeProductionRepositoryRest {
 
         final OkHttpClient client = conluzRestClientBuilder.build();
 
-        LOGGER.info("Getting real time production from stations {}", stationCodes);
+        LOGGER.info("Getting real time production from {} stations", stations.size());
 
         // Create the complete URL
         final String url = UriComponentsBuilder.fromUriString(baseUrl + PATH)

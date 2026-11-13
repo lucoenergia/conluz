@@ -186,6 +186,48 @@ class EnergyValuesApiDocsTest extends BaseControllerTest {
         }
     }
 
+    /**
+     * The wording every description of production and of the coverage counts shares, read
+     * case-insensitively, as the glossary lists them. Adapted only to subject and period, so each
+     * pattern holds in every schema that reports the field.
+     */
+    private static final Map<String, List<Pattern>> PRODUCTION_AND_COVERAGE_WORDING = Map.of(
+            "productionKWh", List.of(
+                    Pattern.compile("exported to the grid at (its|their) connection points?"),
+                    Pattern.compile("as measured by the distributor")),
+            "hoursWithData", List.of(Pattern.compile("^number of hourly (consumption |production )?records")),
+            "expectedHours", List.of(Pattern.compile("^number of (the \\w+'s )?hours")),
+            "supplyCount", List.of(Pattern.compile("^number of (enabled )?supplies")),
+            "suppliesWithData", List.of(Pattern.compile("^number of those supplies")));
+
+    /** Datadis pass-through schemas keep the distributor's own record shape and are exempt. */
+    private static final List<String> PASS_THROUGH_SCHEMAS = List.of("DatadisProduction", "DatadisConsumption");
+
+    @Test
+    @DisplayName("EVL-003 production and the coverage counts keep one name and wording in every schema that reports them")
+    void productionAndTheCoverageCountsKeepOneWordingAcrossOperations() throws Exception {
+        JsonNode schemas = document().path("components").path("schemas");
+
+        PRODUCTION_AND_COVERAGE_WORDING.forEach((field, patterns) -> {
+            List<String> reporting = new ArrayList<>();
+            schemas.fieldNames().forEachRemaining(schemaName -> {
+                if (!PASS_THROUGH_SCHEMAS.contains(schemaName)
+                        && !schemas.path(schemaName).path("properties").path(field).isMissingNode()) {
+                    reporting.add(schemaName);
+                }
+            });
+            assertFalse(reporting.isEmpty(), () -> "No schema reports " + field);
+
+            for (String schemaName : reporting) {
+                String description = description(schemas.path(schemaName).path("properties"), field);
+                for (Pattern pattern : patterns) {
+                    assertTrue(pattern.matcher(description.toLowerCase()).find(),
+                            () -> schemaName + "." + field + " does not say \"" + pattern + "\": " + description);
+                }
+            }
+        });
+    }
+
     @Test
     @DisplayName("SEM-004 ENM-008 EVL-001 the self-consumption ratio's basis states that both kWh figures are rounded to 3 decimals")
     void theRatioBasisStatesItsPrecision() throws Exception {

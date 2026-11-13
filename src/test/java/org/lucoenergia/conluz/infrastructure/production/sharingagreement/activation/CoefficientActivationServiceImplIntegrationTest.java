@@ -95,8 +95,8 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
                 .build());
     }
 
-    private ZoneId zone(UUID plantId) {
-        return zoneResolver.resolveZoneId(plantId);
+    private ZoneId zone() {
+        return zoneResolver.resolveApplicationZoneId();
     }
 
     @Test
@@ -113,7 +113,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), successorAgreement.getId(),
                 appliedOn, List.of(successor.getId()));
 
-        Instant expected = appliedOn.atStartOfDay(zone(plant.getId())).toInstant();
+        Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(successor.getId()) && expected.equals(c.getValidFrom())));
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessor.getId()) && expected.equals(c.getValidTo())));
     }
@@ -141,7 +141,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), successorAgreement.getId(),
                 appliedOn, List.of(successor.getId()));
 
-        Instant expected = appliedOn.atStartOfDay(zone(plant.getId())).toInstant();
+        Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(successor.getId()) && expected.equals(c.getValidFrom())));
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessor.getId()) && expected.equals(c.getValidTo())));
     }
@@ -173,7 +173,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), third.getId(), thirdAppliedOn,
                 List.of(thirdRow.getId()));
 
-        Instant expected = thirdAppliedOn.atStartOfDay(zone(plant.getId())).toInstant();
+        Instant expected = thirdAppliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(thirdRow.getId()) && expected.equals(c.getValidFrom())));
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(secondRow.getId()) && expected.equals(c.getValidTo())));
     }
@@ -223,7 +223,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         SupplyPartitionCoefficient successor = persistCoefficient(supply, plant, successorAgreement, boundary, null);
 
         // D' == predecessor.validFrom -> the empty range [f, f) Postgres would accept silently.
-        LocalDate emptyRangeDate = predecessorValidFrom.atZone(zone(plant.getId())).toLocalDate();
+        LocalDate emptyRangeDate = predecessorValidFrom.atZone(zone()).toLocalDate();
 
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
                 () -> service.setValidFrom(plant.getId(), successorAgreement.getId(), emptyRangeDate, List.of(successor.getId())));
@@ -267,7 +267,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         List<SupplyPartitionCoefficient> result = service.setValidTo(plant.getId(), agreement.getId(), corrected,
                 List.of(exitCase.getId()));
 
-        assertEquals(corrected.atStartOfDay(zone(plant.getId())).toInstant(), result.get(0).getValidTo());
+        assertEquals(corrected.atStartOfDay(zone()).toInstant(), result.get(0).getValidTo());
     }
 
     @Test
@@ -296,7 +296,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         SupplyPartitionCoefficient target3 = persistCoefficient(supply3, plant, targetAgreement, null, null);
 
         LocalDate appliedOn = LocalDate.of(2025, 1, 1);
-        Instant expected = appliedOn.atStartOfDay(zone(plant.getId())).toInstant();
+        Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
 
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), targetAgreement.getId(), appliedOn,
                 List.of(target1.getId(), target2.getId(), target3.getId()));
@@ -344,7 +344,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         pendingNew = saveCoefficientRepository.save(pendingNew);
 
         LocalDate activationDate = LocalDate.of(2025, 1, 1);
-        Instant d = activationDate.atStartOfDay(zone(plant.getId())).toInstant();
+        Instant d = activationDate.atStartOfDay(zone()).toInstant();
         service.setValidFrom(plant.getId(), newAgreement.getId(), activationDate, List.of(pendingNew.getId()));
 
         BigDecimal beforeD = coefficientResolver.resolveCoefficient(plant.getId(), supply.getId(), d.minusSeconds(3600));
@@ -365,7 +365,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         SupplyPartitionCoefficient successorPending = persistCoefficient(supply, plant, agreementNPlus1, null, null);
 
         // Activating N+1's coefficient cascades: closes N's row, N becomes SUPERSEDED.
-        LocalDate activatedOn = boundary.atZone(zone(plant.getId())).toLocalDate();
+        LocalDate activatedOn = boundary.atZone(zone()).toLocalDate();
         List<SupplyPartitionCoefficient> activated = service.setValidFrom(plant.getId(), agreementNPlus1.getId(), activatedOn,
                 List.of(successorPending.getId()));
         UUID successorId = activated.stream().filter(c -> c.getSharingAgreementId().equals(agreementNPlus1.getId()))
@@ -392,7 +392,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), agreement.getId(), corrected,
                 List.of(coefficient.getId()));
 
-        assertEquals(corrected.atStartOfDay(zone(plant.getId())).toInstant(), result.get(0).getValidFrom());
+        assertEquals(corrected.atStartOfDay(zone()).toInstant(), result.get(0).getValidFrom());
     }
 
     @Test

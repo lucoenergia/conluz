@@ -81,7 +81,7 @@ class PlantEnergyScopeResolverTest {
         assertEquals(OffsetDateTime.parse("2026-11-10T10:00:00+01:00"), period.getEndDate());
         assertEquals(ZONE, scope.getZone());
         assertEquals(plant.getSupply().getCode(), scope.getSupplyCode());
-        verify(zoneResolver, never()).resolveZoneId(any());
+        verify(zoneResolver, never()).resolveApplicationZoneId();
         verifyNoInteractions(aggregateRepository);
     }
 

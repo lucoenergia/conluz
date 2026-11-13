@@ -38,12 +38,14 @@ public class GetMonthlyProductionController {
     @GetMapping
     @Operation(
             summary = "Retrieves monthly energy production data of a community within a given date interval.",
-            description = "Retrieves monthly energy production data for the plants of the community identified by the path "
+            description = "Deprecated: use `getCommunityEnergyMetrics` and `getCommunity{Hourly,Daily,Monthly}EnergySeries` for distributor data; `getPlantInverterProductionToday` for today's inverter data.\n\n"
+                    + "Retrieves monthly energy production data for the plants of the community identified by the path "
                     + "`communityId`, within the specified date interval. **Required: any member of the community.** "
                     + "Returns 404 if the community does not exist or the caller is not a member of it, and 403 for a "
                     + "non-member platform admin. When a `supplyId` is provided, it must back a plant of the community "
                     + "in the path; otherwise a 404 is returned (an out-of-community supply is never confirmed to exist).",
             tags = ApiTag.PRODUCTION,
+            deprecated = true,
             operationId = "getMonthlyProduction"
     )
     @ApiResponses(value = {

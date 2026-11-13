@@ -52,7 +52,8 @@ public class MembershipHourlyProfile {
     }
 
     /**
-     * The last instant of the month, inclusive, or null when no month could be resolved.
+     * The end of the period, exclusive: the first instant that is no longer part of it, or null
+     * when no period could be resolved.
      */
     public OffsetDateTime getEndDate() {
         return endDate;

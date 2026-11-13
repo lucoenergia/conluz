@@ -57,7 +57,7 @@ public class HuaweiProductionMonthlyAggregationRepositoryInflux implements Huawe
         LOGGER.info("Aggregating monthly production for plant: {}, month: {}, year: {}",
                 plant.getProviderCode(), month, year);
 
-        final ZoneId zoneId = zoneResolver.resolveZoneId(plant.getId());
+        final ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
         final LocalDate firstDayOfMonth = LocalDate.of(year, month, 1);
         final Instant startOfMonth = firstDayOfMonth.atStartOfDay(zoneId).toInstant();
         final Instant startOfNextMonth = firstDayOfMonth.plusMonths(1).atStartOfDay(zoneId).toInstant();
