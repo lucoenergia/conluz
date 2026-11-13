@@ -1,5 +1,11 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.update;
 
+import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -221,5 +227,38 @@ class UpdateCommunityControllerTest extends BaseControllerTest {
         List<String> names = new ArrayList<>();
         node.fieldNames().forEachRemaining(names::add);
         return names;
+    }
+
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private GetCommunityRepository getCommunityRepository;
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is updated")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        String adminToken = loginAsDefaultPlatformAdmin();
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+
+        String refused = objectMapper.writeValueAsString(Map.of("name", community.getName(),
+                "code", community.getCode(), "legalId", community.getLegalId(), "address", tooLong));
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(put(PATH, community.getId())
+                .header(HttpHeaders.AUTHORIZATION, adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(refused)), "address", tooLong);
+        assertEquals(community.getAddress(),
+                getCommunityRepository.findById(community.getId()).orElseThrow().getAddress());
+
+        mockMvc.perform(put(PATH, community.getId())
+                        .header(HttpHeaders.AUTHORIZATION, adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("name", community.getName(),
+                                "code", community.getCode(), "legalId", community.getLegalId(),
+                                "address", longest))))
+                .andExpect(status().isOk());
+        assertEquals(longest, getCommunityRepository.findById(community.getId()).orElseThrow().getAddress());
     }
 }

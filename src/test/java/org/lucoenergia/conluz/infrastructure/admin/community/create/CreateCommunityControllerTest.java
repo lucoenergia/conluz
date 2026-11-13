@@ -1,5 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.create;
 
+import java.util.Map;
+import org.junit.jupiter.api.DisplayName;
+import org.lucoenergia.conluz.domain.admin.community.get.GetCommunityRepository;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
@@ -183,5 +187,36 @@ class CreateCommunityControllerTest extends BaseControllerTest {
         List<String> names = new ArrayList<>();
         node.fieldNames().forEachRemaining(names::add);
         return names;
+    }
+
+    @Autowired
+    private GetCommunityRepository getCommunityRepository;
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is created")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        String adminToken = loginAsDefaultPlatformAdmin();
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+        int communitiesBefore = getCommunityRepository.findAll().size();
+
+        String refused = objectMapper.writeValueAsString(Map.of("name", "Community", "code", uniqueCode(),
+                "legalId", uniqueLegalId(), "address", tooLong));
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(post(PATH)
+                .header(HttpHeaders.AUTHORIZATION, adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(refused)), "address", tooLong);
+        assertEquals(communitiesBefore, getCommunityRepository.findAll().size());
+
+        String response = mockMvc.perform(post(PATH)
+                        .header(HttpHeaders.AUTHORIZATION, adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("name", "Community", "code", uniqueCode(),
+                                "legalId", uniqueLegalId(), "address", longest))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        UUID id = UUID.fromString(objectMapper.readTree(response).path("id").asText());
+        assertEquals(longest, getCommunityRepository.findById(id).orElseThrow().getAddress());
     }
 }

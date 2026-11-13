@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.profile;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -286,5 +287,30 @@ class UpdateProfileControllerTest extends BaseControllerTest {
             json.append(", \"phoneNumber\": \"").append(phoneNumber).append("\"");
         }
         return json.append("}").toString();
+    }
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is updated")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        User member = enabledMemberOfDefaultCommunity();
+        String authHeader = loginUser(member);
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(put(URL)
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body("nuevo@email.com", tooLong, "+34600111222"))), "address", tooLong);
+        User unchanged = reload(member);
+        assertEquals(member.getEmail(), unchanged.getEmail());
+        assertEquals(member.getAddress(), unchanged.getAddress());
+
+        mockMvc.perform(put(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("nuevo@email.com", longest, "+34600111222")))
+                .andExpect(status().isOk());
+        assertEquals(longest, reload(member).getAddress());
     }
 }

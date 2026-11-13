@@ -130,7 +130,8 @@ public class ImportMembersServiceImpl implements ImportMembersService {
                 .toList();
     }
 
-    private static ColumnViolation violationOf(FieldError error) {
+    // Package-private so that a test can give it a constraint the registration body does not have yet
+    static ColumnViolation violationOf(FieldError error) {
         // The only value that is converted is the member number, so a value that cannot be is not a whole number
         if (error.isBindingFailure()) {
             return ColumnViolation.of(error.getField(), MemberImportConstraint.NOT_AN_INTEGER);

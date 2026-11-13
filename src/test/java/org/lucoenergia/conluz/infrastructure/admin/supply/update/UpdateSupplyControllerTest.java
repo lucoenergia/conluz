@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -475,5 +476,37 @@ class UpdateSupplyControllerTest extends BaseControllerTest {
         User owner = createUserRepository.create(UserMother.randomUser());
         return createSupplyRepository.create(SupplyMother.random(owner).withCode(code).build(),
                 UserId.of(owner.getId()), communityId);
+    }
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is updated")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), DEFAULT_COMMUNITY_ID);
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+        UpdateSupplyBody body = new UpdateSupplyBody();
+        body.setCode(supply.getCode());
+
+        body.setAddress(tooLong);
+        String refused = objectMapper.writeValueAsString(body);
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(put(String.format("%s/%s", PATH, supply.getId()))
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(refused)), "address", tooLong);
+        Assertions.assertEquals(supply.getAddress(),
+                getSupplyRepository.findById(SupplyId.of(supply.getId())).orElseThrow().getAddress());
+
+        body.setAddress(longest);
+        mockMvc.perform(put(String.format("%s/%s", PATH, supply.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+        Assertions.assertEquals(longest,
+                getSupplyRepository.findById(SupplyId.of(supply.getId())).orElseThrow().getAddress());
     }
 }

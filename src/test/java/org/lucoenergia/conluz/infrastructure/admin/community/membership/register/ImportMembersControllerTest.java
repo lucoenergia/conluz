@@ -536,6 +536,36 @@ class ImportMembersControllerTest extends BaseSendingMemberTest {
         assertThat(accountCount(row.get("personalId"))).isZero();
     }
 
+    @Test
+    @DisplayName("API-004 a row whose address has more than 250 characters fails with MEMBERSHIP_IMPORT_ROW_INVALID and "
+            + "the constraint FIELD_TOO_LONG, never echoing the address, and the other rows are registered")
+    void aRowWithAnAddressLongerThan250_failsWithFieldTooLong() throws Exception {
+        Community community = newCommunity();
+        String tooLong = "LONG-ADDRESS-" + "x".repeat(238);
+        Map<String, String> first = newRow("Ana", "a".repeat(250));
+        Map<String, String> refused = newRow("Luis", tooLong);
+        Map<String, String> last = newRow("Eva", "Calle 3");
+
+        String response = importFile(loginAsAdminOf(community), community.getId(),
+                csv(';', false, COLUMNS, List.of(first, refused, last)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.registered").value(2))
+                .andExpect(jsonPath("$.rows[0].outcome").value("REGISTERED"))
+                .andExpect(jsonPath("$.rows[1].code").value("MEMBERSHIP_IMPORT_ROW_INVALID"))
+                .andExpect(jsonPath("$.rows[1].errors.length()").value(1))
+                .andExpect(jsonPath("$.rows[1].errors[0].column").value("address"))
+                .andExpect(jsonPath("$.rows[1].errors[0].constraint").value("FIELD_TOO_LONG"))
+                .andExpect(jsonPath("$.rows[1].errors[0].params.field").value("address"))
+                .andExpect(jsonPath("$.rows[1].errors[0].params.maxLength").value("250"))
+                .andExpect(jsonPath("$.rows[1].errors[0].params.n").value("251"))
+                .andExpect(jsonPath("$.rows[2].outcome").value("REGISTERED"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(response).doesNotContain(tooLong);
+        assertThat(accountCount(refused.get("personalId"))).isZero();
+        assertThat(membershipsIn(community)).isEqualTo(3);
+    }
+
     // --- Localised messages ---
 
     @Test

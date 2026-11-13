@@ -12,6 +12,8 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportSuppliesService;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportedSupplies;
 import org.lucoenergia.conluz.domain.admin.supply.create.ImportedSupplyRow;
+import org.lucoenergia.conluz.domain.admin.supply.create.ImportedSupplyRow.ColumnViolation;
+import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportConstraint;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportFileRefusedException;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportRowOutcome;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
@@ -23,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,6 +109,25 @@ class ImportSuppliesServiceTest {
         assertThat(imported.rows().get(1).violations()).extracting(v -> v.column() + ":" + v.constraint())
                 .containsExactly("code:REQUIRED");
         verifyNoInteractions(createSupplyService);
+    }
+
+    @Test
+    @DisplayName("API-004 a row whose address, as it is stored, has more than 250 characters is FIELD_TOO_LONG, only that "
+            + "row is not created, and every other rule it breaks is listed with it")
+    void aRowWithAnAddressLongerThan250_isFieldTooLong_andOnlyThatRowIsNotCreated() {
+        // Cells are stored untrimmed, so the spaces around an address count
+        ImportedSupplies imported = service.importSupplies(COMMUNITY_ID, csv("code;address;personalId\n"
+                + CUPS + ";" + "a".repeat(250) + ";1\n"
+                + "ES1;" + " " + "b".repeat(249) + " " + ";1\n"
+                + CUPS + ";" + " " + "c".repeat(248) + " " + ";1\n"));
+
+        assertThat(imported.rows()).extracting(ImportedSupplyRow::outcome).containsExactly(
+                SupplyImportRowOutcome.CREATED, SupplyImportRowOutcome.INVALID, SupplyImportRowOutcome.CREATED);
+        assertThat(imported.rows().get(1).violations()).containsExactly(
+                ColumnViolation.of("code", SupplyImportConstraint.INVALID_CUPS),
+                new ColumnViolation("address", SupplyImportConstraint.FIELD_TOO_LONG,
+                        Map.of("field", "address", "maxLength", "250", "n", "251")));
+        verify(createSupplyService, org.mockito.Mockito.times(2)).create(any(), any(), eq(COMMUNITY_ID));
     }
 
     @Test

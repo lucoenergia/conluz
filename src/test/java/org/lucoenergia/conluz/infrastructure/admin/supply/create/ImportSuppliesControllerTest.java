@@ -264,6 +264,35 @@ class ImportSuppliesControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("API-004 a row whose address has more than 250 characters fails with SUPPLY_IMPORT_ROW_INVALID and the "
+            + "constraint FIELD_TOO_LONG, never echoing the address, and the other rows are created")
+    void aRowWithAnAddressLongerThan250_failsWithFieldTooLong() throws Exception {
+        Community community = newCommunity();
+        User owner = memberOf(community, CommunityRole.COMMUNITY_MEMBER);
+        String id = owner.getPersonalId();
+        String first = SupplyMother.randomCups();
+        String last = SupplyMother.randomCups();
+        String tooLong = "LONG-ADDRESS-" + "x".repeat(238);
+        String content = "code;address;personalId\n"
+                + first + ";" + "a".repeat(250) + ";" + id + "\n"
+                + SupplyMother.randomCups() + ";" + tooLong + ";" + id + "\n"
+                + last + ";Calle 4;" + id + "\n";
+
+        String body = importFile(loginAsAdminOf(community), community.getId(), file(utf8(content), "text/csv"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode response = json(body);
+
+        assertThat(codes(response)).containsExactly(null, "SUPPLY_IMPORT_ROW_INVALID", null);
+        assertThat(errors(response.at("/rows/1"))).containsExactly("address:FIELD_TOO_LONG");
+        assertThat(response.at("/rows/1/errors/0/params/field").asText()).isEqualTo("address");
+        assertThat(response.at("/rows/1/errors/0/params/maxLength").asText()).isEqualTo("250");
+        assertThat(response.at("/rows/1/errors/0/params/n").asText()).isEqualTo("251");
+        assertThat(body).doesNotContain(tooLong);
+        assertThat(suppliesByCode(community)).containsOnlyKeys(first, last);
+    }
+
+    @Test
     @DisplayName("SUP-005 a row with fewer or more cells than the header fails with SUPPLY_IMPORT_ROW_MALFORMED, and "
             + "the other rows are created")
     void malformedRows_fail() throws Exception {

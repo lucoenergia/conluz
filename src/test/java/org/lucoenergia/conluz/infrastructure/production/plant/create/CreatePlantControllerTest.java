@@ -1,5 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.create;
 
+import org.lucoenergia.conluz.domain.shared.PlantId;
+import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -440,5 +443,47 @@ class CreatePlantControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @Autowired
+    private GetPlantRepository getPlantRepository;
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is created")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(), UserId.of(user.getId()),
+                DEFAULT_COMMUNITY_ID);
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+        int plantsBefore = getPlantRepository.findAllByCommunityId(DEFAULT_COMMUNITY_ID).size();
+
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(post(URL)
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(plantBody(supply, tooLong))), "address", tooLong);
+        Assertions.assertEquals(plantsBefore, getPlantRepository.findAllByCommunityId(DEFAULT_COMMUNITY_ID).size());
+
+        String response = mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(plantBody(supply, longest)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        UUID plantId = UUID.fromString(objectMapper.readTree(response).path("id").asText());
+        Assertions.assertEquals(longest, getPlantRepository.findById(PlantId.of(plantId)).orElseThrow().getAddress());
+    }
+
+    private String plantBody(Supply supply, String address) throws Exception {
+        return objectMapper.writeValueAsString(java.util.Map.of(
+                "providerCode", "PS-" + UUID.randomUUID().toString().substring(0, 8),
+                "name", "Plant one",
+                "supplyCode", supply.getCode(),
+                "address", address,
+                "peakPowerKWp", "60.00",
+                "nominalPowerKW", "60.00",
+                "inverterProvider", "HUAWEI"));
     }
 }
