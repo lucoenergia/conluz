@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.update;
 
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -38,6 +39,7 @@ public class UpdatePlantBody {
     private InverterProvider inverterProvider;
     private LocalDate connectionDate;
     @NotBlank
+    @Size(max = PostalAddress.MAX_LENGTH)
     private String address;
     @Schema(description = "Peak power of the plant's modules, in kWp.")
     @NotNull

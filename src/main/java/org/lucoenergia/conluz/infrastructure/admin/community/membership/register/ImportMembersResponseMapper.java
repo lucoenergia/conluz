@@ -65,6 +65,8 @@ public class ImportMembersResponseMapper {
             case MIN -> message(locale, "error.membership.import.row.min", column, violation.params().get("min"));
             case EMAIL -> message(locale, "error.membership.import.row.email", column);
             case NOT_AN_INTEGER -> message(locale, "error.membership.import.row.not.an.integer", column);
+            case FIELD_TOO_LONG -> message(locale, "error.membership.import.row.field.too.long", column,
+                    violation.params().get("maxLength"), violation.params().get("n"));
         };
     }
 

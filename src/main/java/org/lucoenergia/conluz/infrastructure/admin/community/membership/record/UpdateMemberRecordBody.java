@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.record;
 
+import jakarta.validation.constraints.Size;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -30,6 +32,7 @@ public class UpdateMemberRecordBody {
 
     @Schema(description = "The member's address, as this community records it. Omit it, or send null, an empty or a blank string, if there is none; one already recorded is then cleared.",
             types = {"string", "null"})
+    @Size(max = PostalAddress.MAX_LENGTH)
     private String address;
 
     @Schema(description = "The member's phone number, as this community records it. Omit it, or send null, an empty or a blank string, if there is none; one already recorded is then cleared.",

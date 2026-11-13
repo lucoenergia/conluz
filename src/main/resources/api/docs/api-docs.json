@@ -963,6 +963,7 @@
       "CreateCommunityBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "type" : "string"
           },
           "code" : {
@@ -986,6 +987,7 @@
       "CreateDefaultAdminUserBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "type" : "string"
           },
           "email" : {
@@ -1018,6 +1020,7 @@
       "CreatePlantBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "minLength" : 1,
             "type" : "string"
           },
@@ -1108,6 +1111,7 @@
       "CreateSupplyBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "minLength" : 1,
             "type" : "string"
           },
@@ -1476,14 +1480,15 @@
             "type" : "string"
           },
           "constraint" : {
-            "description" : "The rule broken: REQUIRED if a required value is empty or blank; NOT_EMPTY_ONCE_NORMALISED if the personal ID holds only whitespace, dots and hyphens; INVALID_PERSONAL_ID if the personal ID, once normalised, is not a valid DNI, NIE or NIF; MIN if the number is below `params.min`; EMAIL if the value is not an email address; NOT_AN_INTEGER if the value is not a whole number. A newer server may add rules, so a client must also handle one it does not know.",
+            "description" : "The rule broken: REQUIRED if a required value is empty or blank; NOT_EMPTY_ONCE_NORMALISED if the personal ID holds only whitespace, dots and hyphens; INVALID_PERSONAL_ID if the personal ID, once normalised, is not a valid DNI, NIE or NIF; MIN if the number is below `params.min`; EMAIL if the value is not an email address; NOT_AN_INTEGER if the value is not a whole number; FIELD_TOO_LONG if the value has more than `params.maxLength` characters. A newer server may add rules, so a client must also handle one it does not know.",
             "enum" : [
               "REQUIRED",
               "NOT_EMPTY_ONCE_NORMALISED",
               "INVALID_PERSONAL_ID",
               "MIN",
               "EMAIL",
-              "NOT_AN_INTEGER"
+              "NOT_AN_INTEGER",
+              "FIELD_TOO_LONG"
             ],
             "example" : "MIN",
             "type" : "string"
@@ -1492,7 +1497,7 @@
             "additionalProperties" : {
               "type" : "string"
             },
-            "description" : "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and formatted without a locale: `min` for MIN. Empty if the rule has none.",
+            "description" : "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and formatted without a locale: `min` for MIN; `field`, `maxLength` and `n` (the value's length) for FIELD_TOO_LONG. Empty if the rule has none.",
             "example" : {
               "min" : "0"
             },
@@ -1717,10 +1722,11 @@
             "type" : "string"
           },
           "constraint" : {
-            "description" : "The rule broken: REQUIRED if a required value is empty or blank; INVALID_CUPS if the code, once upper-cased, holds whitespace or is neither 20 nor 22 characters long. A newer server may add rules, so a client must also handle one it does not know.",
+            "description" : "The rule broken: REQUIRED if a required value is empty or blank; INVALID_CUPS if the code, once upper-cased, holds whitespace or is neither 20 nor 22 characters long; FIELD_TOO_LONG if the value has more than `params.maxLength` characters. A newer server may add rules, so a client must also handle one it does not know.",
             "enum" : [
               "REQUIRED",
-              "INVALID_CUPS"
+              "INVALID_CUPS",
+              "FIELD_TOO_LONG"
             ],
             "example" : "INVALID_CUPS",
             "type" : "string"
@@ -1729,7 +1735,7 @@
             "additionalProperties" : {
               "type" : "string"
             },
-            "description" : "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and formatted without a locale. Empty if the rule has none, as both rules today.",
+            "description" : "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and formatted without a locale: `field`, `maxLength` and `n` (the value's length) for FIELD_TOO_LONG. Empty if the rule has none.",
             "example" : { },
             "type" : "object"
           }
@@ -3873,6 +3879,7 @@
         "properties" : {
           "address" : {
             "description" : "The member's address, as this community records it. An empty or blank value is recorded as none.",
+            "maxLength" : 250,
             "type" : [
               "string",
               "null"
@@ -5522,6 +5529,7 @@
       "UpdateCommunityBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "type" : "string"
           },
           "code" : {
@@ -5546,6 +5554,7 @@
         "properties" : {
           "address" : {
             "description" : "The member's address, as this community records it. Omit it, or send null, an empty or a blank string, if there is none; one already recorded is then cleared.",
+            "maxLength" : 250,
             "type" : [
               "string",
               "null"
@@ -5603,6 +5612,7 @@
       "UpdatePlantBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "minLength" : 1,
             "type" : "string"
           },
@@ -5668,6 +5678,7 @@
       "UpdateProfileBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "type" : "string"
           },
           "email" : {
@@ -5708,6 +5719,7 @@
       "UpdateSupplyBody" : {
         "properties" : {
           "address" : {
+            "maxLength" : 250,
             "minLength" : 1,
             "type" : "string"
           },
@@ -6012,7 +6024,7 @@
         ]
       },
       "post" : {
-        "description" : "This endpoint facilitates the creation of a new energy community within the system.\nRequires PLATFORM_ADMIN role.\nWhen multi-community mode is disabled, this endpoint returns 404.\n\n`code` and `legalId` are unique across communities. Reusing either responds 409\nwith the `COMMUNITY_ALREADY_EXISTS` code, whose `field` param names which of the\ntwo collided.\n",
+        "description" : "This endpoint facilitates the creation of a new energy community within the system.\nRequires PLATFORM_ADMIN role.\nWhen multi-community mode is disabled, this endpoint returns 404.\n\n`code` and `legalId` are unique across communities. Reusing either responds 409\nwith the `COMMUNITY_ALREADY_EXISTS` code, whose `field` param names which of the\ntwo collided.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.\n",
         "operationId" : "createCommunity",
         "requestBody" : {
           "content" : {
@@ -6276,7 +6288,7 @@
         ]
       },
       "put" : {
-        "description" : "Updates the details of an existing community.\nRequires PLATFORM_ADMIN role.\n\n`code` and `legalId` are unique across communities. Moving either onto a value\nanother community already uses responds 409 with the\n`COMMUNITY_ALREADY_EXISTS` code, whose `field` param names which of the two\ncollided. Leaving this community's own values unchanged is not a conflict.\n",
+        "description" : "Updates the details of an existing community.\nRequires PLATFORM_ADMIN role.\n\n`code` and `legalId` are unique across communities. Moving either onto a value\nanother community already uses responds 409 with the\n`COMMUNITY_ALREADY_EXISTS` code, whose `field` param names which of the two\ncollided. Leaving this community's own values unchanged is not a conflict.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.\n",
         "operationId" : "updateCommunity",
         "parameters" : [
           {
@@ -9864,7 +9876,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/import" : {
       "post" : {
-        "description" : "Registers each data row of a CSV file as a member of the community, as `registerMember` does: a pending membership with the role COMMUNITY_MEMBER and the row as the community's member record. Only an active community admin of the community may import members; a platform admin may not.\n\nNothing is sent to the members and no invitation is issued. Invite them afterwards with `sendInvitations`.\n\n**The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in (\"CSV UTF-8\" and \"CSV\"), separated by `,` or `;`, told from the header line. A file starting with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The header line names the columns, in any order: `personalId` and `fullName` are required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other column is accepted. Each value follows the rules of the same field of `registerMember`. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is registered.\n\n**Rows.** Otherwise each row is registered in a transaction of its own, so a row that fails keeps the others. The response has one result per row. A person who already has an account is registered exactly as a new one, and their result is the same. A person who already has a membership in this community, including from an earlier row of the same file, fails with `MEMBERSHIP_ALREADY_EXISTS`. Importing the same file again is therefore safe: rows already registered fail with that code, and the rest are registered.\n\nA row whose values break rules of the registration fails with `MEMBERSHIP_IMPORT_ROW_INVALID` and lists each rule broken in `errors`, by column and constraint code, for a client to write its own text. A row whose `personalId`, once its spaces, dots and hyphens are removed and its letters upper-cased, is not a valid DNI, NIE or NIF fails with `USER_PERSONAL_ID_INVALID`, the code `registerMember` answers with, and lists the constraint `INVALID_PERSONAL_ID` of the column `personalId` in `errors`. Every `message` is in the language of the request's Accept-Language.\n",
+        "description" : "Registers each data row of a CSV file as a member of the community, as `registerMember` does: a pending membership with the role COMMUNITY_MEMBER and the row as the community's member record. Only an active community admin of the community may import members; a platform admin may not.\n\nNothing is sent to the members and no invitation is issued. Invite them afterwards with `sendInvitations`.\n\n**The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in (\"CSV UTF-8\" and \"CSV\"), separated by `,` or `;`, told from the header line. A file starting with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The header line names the columns, in any order: `personalId` and `fullName` are required; `memberNumber`, `contactEmail`, `address` and `phoneNumber` are optional. No other column is accepted. Each value follows the rules of the same field of `registerMember`. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is registered.\n\n**Rows.** Otherwise each row is registered in a transaction of its own, so a row that fails keeps the others. The response has one result per row. A person who already has an account is registered exactly as a new one, and their result is the same. A person who already has a membership in this community, including from an earlier row of the same file, fails with `MEMBERSHIP_ALREADY_EXISTS`. Importing the same file again is therefore safe: rows already registered fail with that code, and the rest are registered.\n\nA row whose values break rules of the registration fails with `MEMBERSHIP_IMPORT_ROW_INVALID` and lists each rule broken in `errors`, by column and constraint code, for a client to write its own text. A row whose `personalId`, once its spaces, dots and hyphens are removed and its letters upper-cased, is not a valid DNI, NIE or NIF fails with `USER_PERSONAL_ID_INVALID`, the code `registerMember` answers with, and lists the constraint `INVALID_PERSONAL_ID` of the column `personalId` in `errors`. Every `message` is in the language of the request's Accept-Language.\n\nA row whose `address` has more than 250 characters fails with `MEMBERSHIP_IMPORT_ROW_INVALID` and lists the constraint `FIELD_TOO_LONG` of the column `address` in `errors`, with the params `field`, `maxLength` and `n`, the length of the value.\n",
         "operationId" : "importMembers",
         "parameters" : [
           {
@@ -10244,7 +10256,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/register" : {
       "post" : {
-        "description" : "Registers a person as a member of the community with their DNI/NIE/NIF and the community's own member record. The membership is created pending, with the role COMMUNITY_MEMBER: it grants no access until the member accepts it. Only an active community admin of the community may register members; a platform admin may not.\n\nNothing is sent to the member: registering only records them. Invite them with `sendInvitation` once the community is ready for them to join; until then `invitedAt` stays null.\n\nThe response is the same whether or not the person already had an account, and carries nothing from it. Registering someone who already has a membership in this community, in any state, responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code.\n\nThe DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed it must be a valid DNI, NIE or NIF, with the control letter or character matching its digits; otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code and nothing is created.\n",
+        "description" : "Registers a person as a member of the community with their DNI/NIE/NIF and the community's own member record. The membership is created pending, with the role COMMUNITY_MEMBER: it grants no access until the member accepts it. Only an active community admin of the community may register members; a platform admin may not.\n\nNothing is sent to the member: registering only records them. Invite them with `sendInvitation` once the community is ready for them to join; until then `invitedAt` stays null.\n\nThe response is the same whether or not the person already had an account, and carries nothing from it. Registering someone who already has a membership in this community, in any state, responds 409 with the `MEMBERSHIP_ALREADY_EXISTS` code.\n\nThe DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed it must be a valid DNI, NIE or NIF, with the control letter or character matching its digits; otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code and nothing is created.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.\n",
         "operationId" : "registerMember",
         "parameters" : [
           {
@@ -12793,7 +12805,7 @@
     },
     "/api/v1/communities/{communityId}/memberships/{userId}/record" : {
       "put" : {
-        "description" : "Replaces the record this community keeps on a member: full name, member number, contact email, address and phone number. The whole record is sent: an optional value that is missing, null, empty or blank is cleared. Only the record is written, never the person's account, which they share with their other communities, nor the membership's role or state. The only other change is the invitation link revoked as described below.\n\nAny membership of the community may be edited, whatever its role and whether it is pending, accepted or disabled, the caller's own included. A user with no membership in the community responds 404.\n\nA membership with the `COMMUNITY_ADMIN` role must keep a contact email: a record without one responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and nothing is changed.\n\nChanging the contact email of a pending membership revokes its active invitation link, so a link sent to the old address stops working and `invitationExpiresAt` is null; the next invitation, or resend, goes to the new contact email. A change only of letter case is not a change of address and keeps the link.\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n",
+        "description" : "Replaces the record this community keeps on a member: full name, member number, contact email, address and phone number. The whole record is sent: an optional value that is missing, null, empty or blank is cleared. Only the record is written, never the person's account, which they share with their other communities, nor the membership's role or state. The only other change is the invitation link revoked as described below.\n\nAny membership of the community may be edited, whatever its role and whether it is pending, accepted or disabled, the caller's own included. A user with no membership in the community responds 404.\n\nA membership with the `COMMUNITY_ADMIN` role must keep a contact email: a record without one responds 400 with the `MEMBERSHIP_WITHOUT_CONTACT_EMAIL` code, and nothing is changed.\n\nChanging the contact email of a pending membership revokes its active invitation link, so a link sent to the old address stops working and `invitationExpiresAt` is null; the next invitation, or resend, goes to the new contact email. A change only of letter case is not a change of address and keeps the link.\n\n**Required: Community Admin of this community.** A platform admin who is not one is refused with 403.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.\n",
         "operationId" : "updateMemberRecord",
         "parameters" : [
           {
@@ -15275,7 +15287,7 @@
     },
     "/api/v1/communities/{communityId}/supplies/import" : {
       "post" : {
-        "description" : "Creates a supply in the community for each data row of a CSV file, as `createSupply` does. Only an active community admin of the community may import supplies; a platform admin may not.\n\n**The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in (\"CSV UTF-8\" and \"CSV\"), separated by `,` or `;`, told from the header line. A file starting with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The header line names the columns, in any order: `code`, `address` and `personalId` are required; `addressRef` and `name` are optional. No other column is accepted. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is created.\n\n**Rows.** Otherwise each row is created in a transaction of its own, so a row that fails keeps the others. The response has one result per row. An empty `addressRef` or `name` is stored as null. A row with an empty required value, or whose `code` is not a CUPS (once upper-cased, it holds whitespace or is neither 20 nor 22 characters long), fails with `SUPPLY_IMPORT_ROW_INVALID` and lists each rule broken in `errors`, by column and constraint code, for a client to write its own text. A row whose `personalId` matches no member of this community fails with `SUPPLY_OWNER_NOT_FOUND`, whether or not it matches a user; a member whose membership is pending is an owner. The code is stored upper-cased, and is the same CUPS as another once both are completed to 22 characters (a 20-character one with `0F`) and compared case-insensitively. A CUPS a supply of this community already has, including from an earlier row of the same file, fails with `SUPPLY_ALREADY_EXISTS`, so importing the same file again is safe: rows already created fail with that code, and the rest are created. A CUPS only a supply of another community has fails with `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`. No result carries a value of the file. Every `message` is in the language of the request's Accept-Language.\n",
+        "description" : "Creates a supply in the community for each data row of a CSV file, as `createSupply` does. Only an active community admin of the community may import supplies; a platform admin may not.\n\n**The file.** UTF-8 or Windows-1252, the two encodings Spanish Excel saves a CSV file in (\"CSV UTF-8\" and \"CSV\"), separated by `,` or `;`, told from the header line. A file starting with a UTF-8 byte order mark is read as UTF-8; one starting with a UTF-16 byte order mark is refused; any other is read as UTF-8 if it is valid UTF-8, and as Windows-1252 otherwise. The header line names the columns, in any order: `code`, `address` and `personalId` are required; `addressRef` and `name` are optional. No other column is accepted. At most 1000 data rows; rows whose cells are all empty are skipped.\n\n**Whole-file refusals.** If the file is neither UTF-8 nor Windows-1252, its separator cannot be told, it is not valid CSV, its header names an unknown column, a column twice or lacks a required one, or it has more than 1000 data rows, the response is 400 with a dedicated code, and nothing is created.\n\n**Rows.** Otherwise each row is created in a transaction of its own, so a row that fails keeps the others. The response has one result per row. An empty `addressRef` or `name` is stored as null. A row with an empty required value, or whose `code` is not a CUPS (once upper-cased, it holds whitespace or is neither 20 nor 22 characters long), fails with `SUPPLY_IMPORT_ROW_INVALID` and lists each rule broken in `errors`, by column and constraint code, for a client to write its own text. A row whose `personalId` matches no member of this community fails with `SUPPLY_OWNER_NOT_FOUND`, whether or not it matches a user; a member whose membership is pending is an owner. The code is stored upper-cased, and is the same CUPS as another once both are completed to 22 characters (a 20-character one with `0F`) and compared case-insensitively. A CUPS a supply of this community already has, including from an earlier row of the same file, fails with `SUPPLY_ALREADY_EXISTS`, so importing the same file again is safe: rows already created fail with that code, and the rest are created. A CUPS only a supply of another community has fails with `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`. No result carries a value of the file. Every `message` is in the language of the request's Accept-Language.\n\nA row whose `address` has more than 250 characters fails with `SUPPLY_IMPORT_ROW_INVALID` and lists the constraint `FIELD_TOO_LONG` of the column `address` in `errors`, with the params `field`, `maxLength` and `n`, the length of the value.\n",
         "operationId" : "importSupplies",
         "parameters" : [
           {
@@ -15519,7 +15531,7 @@
     },
     "/api/v1/init" : {
       "post" : {
-        "description" : "This endpoint serves as a crucial initiation step for the application, allowing the configuration of foundational settings. This endpoint facilitates the establishment of the default admin user credentials, pivotal for initiating subsequent configurations. By executing this endpoint, users can set the groundwork for the app, enabling the seamless configuration of users, supplies, and other application settings. No authorization is required to execute this endpoint, and the response provides confirmation of successful initialization or relevant error messages.\n\nThe body is validated: `defaultAdminUser` and its `personalId`, `fullName`, `email` and `password` are required, and a missing or invalid field is answered 400. The `password` must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A password that breaks the policy is answered 400 with the `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed: `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nThe application can only be initialised once: any later call is answered 403.",
+        "description" : "This endpoint serves as a crucial initiation step for the application, allowing the configuration of foundational settings. This endpoint facilitates the establishment of the default admin user credentials, pivotal for initiating subsequent configurations. By executing this endpoint, users can set the groundwork for the app, enabling the seamless configuration of users, supplies, and other application settings. No authorization is required to execute this endpoint, and the response provides confirmation of successful initialization or relevant error messages.\n\nThe body is validated: `defaultAdminUser` and its `personalId`, `fullName`, `email` and `password` are required, and a missing or invalid field is answered 400. The `password` must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A password that breaks the policy is answered 400 with the `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed: `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field` (`defaultAdminUser.address`), its `maxLength` and the length `n` sent.\n\nThe application can only be initialised once: any later call is answered 403.",
         "operationId" : "init",
         "requestBody" : {
           "content" : {
@@ -16061,7 +16073,7 @@
     },
     "/api/v1/plants" : {
       "post" : {
-        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nThe CIL is optional. It is upper-cased and stripped of all whitespace, and empty after that means\nno CIL. A CIL that is not then exactly 25 ASCII alphanumeric characters is answered 400 with\n`PLANT_CIL_INVALID`. A CIL identifies at most one plant across the platform: a CIL another plant\nholds is answered 409 with `PLANT_CIL_ALREADY_IN_USE`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n",
+        "description" : "This endpoint facilitates the creation of a new plant within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the plants's\naddress, its code and any relevant parameters.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin**\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive\ndetails about the newly created plant, including its unique identifier.\n\nA supply is the supply of at most one plant: when the supply already has one, the request is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is created.\n\nThe CIL is optional. It is upper-cased and stripped of all whitespace, and empty after that means\nno CIL. A CIL that is not then exactly 25 ASCII alphanumeric characters is answered 400 with\n`PLANT_CIL_INVALID`. A CIL identifies at most one plant across the platform: a CIL another plant\nholds is answered 409 with `PLANT_CIL_ALREADY_IN_USE`, and nothing is created.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptiv\nerror message, aiding the client in diagnosing and addressing the issue.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.\n",
         "operationId" : "createPlant",
         "requestBody" : {
           "content" : {
@@ -16511,7 +16523,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n\nThe CIL is replaced like every other field, so omitting it clears it. It is upper-cased and stripped\nof all whitespace, and empty after that means no CIL. A CIL that is not then exactly 25 ASCII\nalphanumeric characters is answered 400 with `PLANT_CIL_INVALID`. A CIL identifies at most one\nplant across the platform: a CIL another plant holds is answered 409 with\n`PLANT_CIL_ALREADY_IN_USE`, and nothing is updated; keeping the plant's own CIL is not a conflict.\n",
+        "description" : "This endpoint enables the update of plant information by specifying the plant's unique identifier in the\nendpoint path.\n\nClients send a request containing the updated plant details, and authentication, through an\nauthentication token, is required for secure access.\n**Required: Community Admin**\n\nA successful update results in an HTTP status code of 200, indicating that the plant information has\nbeen successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their\nvalues will be updated with a null value.\n\nA supply is the supply of at most one plant: moving the plant to a supply that already has one is\nanswered 409 with `SUPPLY_ALREADY_HAS_PLANT`, and nothing is updated.\n\nThe CIL is replaced like every other field, so omitting it clears it. It is upper-cased and stripped\nof all whitespace, and empty after that means no CIL. A CIL that is not then exactly 25 ASCII\nalphanumeric characters is answered 400 with `PLANT_CIL_INVALID`. A CIL identifies at most one\nplant across the platform: a CIL another plant holds is answered 409 with\n`PLANT_CIL_ALREADY_IN_USE`, and nothing is updated; keeping the plant's own CIL is not a conflict.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.\n",
         "operationId" : "updatePlant",
         "parameters" : [
           {
@@ -21315,7 +21327,7 @@
     },
     "/api/v1/supplies" : {
       "post" : {
-        "description" : "This endpoint is designed to create a new supply within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.\n\nThe supply's community is provided in the body via the required `communityId` field.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the\ncommunity does not exist or the caller is not a member of it, or 403 if the caller is a member but\nnot one of its admins.**\n\nThe owner identified by `personalId` must be a member of the supply's community. An owner who is\nnot a member of it is reported as not found (404, `SUPPLY_OWNER_NOT_FOUND`), exactly like a\n`personalId` that matches no user.\n\nThe `code` is the supply's CUPS. It is upper-cased and stored that way; it must then hold no\nwhitespace and be 20 or 22 characters long, or the request is refused with 400\n`SUPPLY_CUPS_INVALID`. A CUPS is the same as another once both are completed to 22 characters\n(a 20-character one with `0F`) and compared case-insensitively. If a supply of this community\nalready has the same CUPS, the request is refused with 400 `SUPPLY_ALREADY_EXISTS`; if only a\nsupply of another community has it, with 400 `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`, which\nnames neither that community nor its owner.\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.\n",
+        "description" : "This endpoint is designed to create a new supply within the system.\n\nTo utilize this endpoint, a client sends a request containing essential details such as the supply's address, partition coefficient, and any relevant parameters.\n\nThe supply's community is provided in the body via the required `communityId` field.\n\nProper authentication, through authentication tokens, is required to access this endpoint.\n**Required: Community Admin of the community. Returns 400 if `communityId` is missing, 404 if the\ncommunity does not exist or the caller is not a member of it, or 403 if the caller is a member but\nnot one of its admins.**\n\nThe owner identified by `personalId` must be a member of the supply's community. An owner who is\nnot a member of it is reported as not found (404, `SUPPLY_OWNER_NOT_FOUND`), exactly like a\n`personalId` that matches no user.\n\nThe `code` is the supply's CUPS. It is upper-cased and stored that way; it must then hold no\nwhitespace and be 20 or 22 characters long, or the request is refused with 400\n`SUPPLY_CUPS_INVALID`. A CUPS is the same as another once both are completed to 22 characters\n(a 20-character one with `0F`) and compared case-insensitively. If a supply of this community\nalready has the same CUPS, the request is refused with 400 `SUPPLY_ALREADY_EXISTS`; if only a\nsupply of another community has it, with 400 `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`, which\nnames neither that community nor its owner.\n\nUpon successful creation, the server responds with a status code of 200, providing comprehensive details about the newly created supply, including its unique identifier.\n\nIn case of failure, the server returns an appropriate error status code along with a descriptive error message, aiding the client in diagnosing and addressing the issue. This endpoint plays a pivotal role in dynamically expanding the system's repertoire of energy supplies.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.\n",
         "operationId" : "createSupply",
         "requestBody" : {
           "content" : {
@@ -21727,7 +21739,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint enables the update of supply information by specifying the supply's unique identifier in the endpoint path.\n\nClients send a request containing the updated supply details, and authentication, through an authentication token, is required for secure access.\n**Required: Community Admin of the supply's community.**\n\nA successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.\n\nA `code` equal to the stored one is kept as it is, even if it was stored before the CUPS rules. A changed `code` follows the rules of `createSupply`: it is upper-cased, and refused with 400 `SUPPLY_CUPS_INVALID` if it is not a CUPS, `SUPPLY_ALREADY_EXISTS` if another supply of this community has the same CUPS, or `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY` if only a supply of another community has it.",
+        "description" : "This endpoint enables the update of supply information by specifying the supply's unique identifier in the endpoint path.\n\nClients send a request containing the updated supply details, and authentication, through an authentication token, is required for secure access.\n**Required: Community Admin of the supply's community.**\n\nA successful update results in an HTTP status code of 200, indicating that the supply information has been successfully modified. In cases where the update encounters errors, the server responds with an appropriate error status code along with a descriptive error message to assist clients in addressing and resolving the issue.\n\nIf you don't provide some of the optional parameters, they will be considered as null value so their values will be updated with a null value.\n\nA `code` equal to the stored one is kept as it is, even if it was stored before the CUPS rules. A changed `code` follows the rules of `createSupply`: it is upper-cased, and refused with 400 `SUPPLY_CUPS_INVALID` if it is not a CUPS, `SUPPLY_ALREADY_EXISTS` if another supply of this community has the same CUPS, or `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY` if only a supply of another community has it.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.",
         "operationId" : "updateSupply",
         "parameters" : [
           {
@@ -24445,7 +24457,7 @@
     },
     "/api/v1/users/profile" : {
       "put" : {
-        "description" : "This endpoint lets the authenticated user change how the community reaches them: email,\npostal address and phone number. It always acts on the caller — there is no\nuser identifier to supply — so it cannot be used to edit anybody else.\n\nName, DNI and member number are not editable here: they identify the member to the\ncommunity and to the distributor. A community keeps its own name and member number for\nthe member on the membership's member record.\n\nOmitting `email`, `address` or `phoneNumber` clears the stored value. An empty or blank\n`email` also clears it; any other value must be a valid email address.\n\n**Required: any authenticated user (edits their own contact details).**",
+        "description" : "This endpoint lets the authenticated user change how the community reaches them: email,\npostal address and phone number. It always acts on the caller — there is no\nuser identifier to supply — so it cannot be used to edit anybody else.\n\nName, DNI and member number are not editable here: they identify the member to the\ncommunity and to the distributor. A community keeps its own name and member number for\nthe member on the membership's member record.\n\nOmitting `email`, `address` or `phoneNumber` clears the stored value. An empty or blank\n`email` also clears it; any other value must be a valid email address.\n\n**Required: any authenticated user (edits their own contact details).**\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.",
         "operationId" : "updateProfile",
         "requestBody" : {
           "content" : {

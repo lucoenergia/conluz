@@ -29,5 +29,10 @@ public enum MemberImportConstraint {
     /**
      * The value is not a whole number.
      */
-    NOT_AN_INTEGER
+    NOT_AN_INTEGER,
+    /**
+     * The value has more characters than the column allows, given as the parameters {@code field}, {@code maxLength}
+     * and {@code n} (#574).
+     */
+    FIELD_TOO_LONG
 }

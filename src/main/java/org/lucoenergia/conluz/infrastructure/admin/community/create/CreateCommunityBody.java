@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.create;
 
+import jakarta.validation.constraints.Size;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import org.lucoenergia.conluz.domain.admin.community.Community;
@@ -17,6 +19,7 @@ public class CreateCommunityBody {
 
     private String legalId;
 
+    @Size(max = PostalAddress.MAX_LENGTH)
     private String address;
 
     public String getName() {

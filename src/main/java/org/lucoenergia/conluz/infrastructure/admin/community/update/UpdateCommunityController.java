@@ -59,6 +59,8 @@ public class UpdateCommunityController {
                     another community already uses responds 409 with the
                     `COMMUNITY_ALREADY_EXISTS` code, whose `field` param names which of the two
                     collided. Leaving this community's own values unchanged is not a conflict.
+
+                    An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.
                     """,
             tags = ApiTag.COMMUNITIES,
             operationId = "updateCommunity",

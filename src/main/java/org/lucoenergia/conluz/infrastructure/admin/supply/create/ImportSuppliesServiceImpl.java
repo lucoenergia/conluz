@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportConstraint;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportFileProblem;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportFileRefusedException;
 import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportRowOutcome;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.shared.io.CsvImportFile;
@@ -34,9 +35,9 @@ import java.util.UUID;
  * Not transactional itself: each row is created in a transaction of its own by {@link CreateSupplyService}, so a row
  * that fails keeps the rows created before and after it, and the owner's lock is held for one row at a time.
  *
- * <p>A row is checked for empty required values and for a code that is not a CUPS before it is created, and every
- * rule it breaks is reported at once; then it is created as {@code createSupply} creates a supply, which checks the
- * owner and the CUPS's uniqueness. A broken rule is reported as its {@link SupplyImportConstraint}, never with a
+ * <p>A row is checked for empty required values, for a code that is not a CUPS and for an address that is too long
+ * before it is created, and every rule it breaks is reported at once; then it is created as {@code createSupply}
+ * creates a supply, which checks the owner and the CUPS's uniqueness. A broken rule is reported as its {@link SupplyImportConstraint}, never with a
  * value of the row.</p>
  */
 @Service
@@ -127,6 +128,14 @@ public class ImportSuppliesServiceImpl implements ImportSuppliesService {
         String code = values.get(CODE);
         if (!isBlank(code) && SupplyCode.ofCups(code).isEmpty()) {
             violations.add(ColumnViolation.of(CODE, SupplyImportConstraint.INVALID_CUPS));
+        }
+        // Measured as it is stored: the cell is stored untrimmed
+        String address = values.get(ADDRESS);
+        if (address != null && address.length() > PostalAddress.MAX_LENGTH) {
+            violations.add(new ColumnViolation(ADDRESS, SupplyImportConstraint.FIELD_TOO_LONG, Map.of(
+                    "field", ADDRESS,
+                    "maxLength", String.valueOf(PostalAddress.MAX_LENGTH),
+                    "n", String.valueOf(address.length()))));
         }
         return violations.stream()
                 .sorted(Comparator.comparingInt((ColumnViolation violation) -> COLUMNS.indexOf(violation.column()))

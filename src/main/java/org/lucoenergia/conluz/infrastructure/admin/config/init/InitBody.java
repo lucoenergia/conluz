@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.config.init;
 
+import jakarta.validation.constraints.Size;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -40,6 +42,7 @@ public class InitBody {
         private String personalId;
         @NotBlank
         private String fullName;
+        @Size(max = PostalAddress.MAX_LENGTH)
         private String address;
         @NotBlank
         @Email

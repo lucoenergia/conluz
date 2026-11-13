@@ -62,6 +62,8 @@ public class CreateCommunityController {
                     `code` and `legalId` are unique across communities. Reusing either responds 409
                     with the `COMMUNITY_ALREADY_EXISTS` code, whose `field` param names which of the
                     two collided.
+
+                    An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.
                     """,
             tags = ApiTag.COMMUNITIES,
             operationId = "createCommunity",

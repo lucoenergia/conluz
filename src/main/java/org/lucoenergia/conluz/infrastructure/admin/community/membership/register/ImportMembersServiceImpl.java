@@ -5,6 +5,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.metadata.ConstraintDescriptor;
 import org.lucoenergia.conluz.domain.admin.community.MembershipAlreadyExistsException;
 import org.lucoenergia.conluz.domain.admin.community.membership.register.ImportMembersService;
@@ -53,7 +54,8 @@ public class ImportMembersServiceImpl implements ImportMembersService {
             NotBlank.class, MemberImportConstraint.REQUIRED,
             NotEmptyOnceNormalised.class, MemberImportConstraint.NOT_EMPTY_ONCE_NORMALISED,
             Min.class, MemberImportConstraint.MIN,
-            Email.class, MemberImportConstraint.EMAIL);
+            Email.class, MemberImportConstraint.EMAIL,
+            Size.class, MemberImportConstraint.FIELD_TOO_LONG);
 
     private static final String PERSONAL_ID_COLUMN = "personalId";
 
@@ -143,6 +145,23 @@ public class ImportMembersServiceImpl implements ImportMembersService {
         if (annotation instanceof Min min) {
             return new ColumnViolation(error.getField(), constraint, Map.of("min", String.valueOf(min.value())));
         }
+        if (annotation instanceof Size size) {
+            return tooLong(error, size);
+        }
         return ColumnViolation.of(error.getField(), constraint);
+    }
+
+    /**
+     * A {@code @Size} of the registration body declares a maximum length (#574); a value it refuses for any other
+     * reason has no code, as a constraint without one.
+     */
+    private static ColumnViolation tooLong(FieldError error, Size size) {
+        if (!(error.getRejectedValue() instanceof CharSequence value) || value.length() <= size.max()) {
+            throw new IllegalStateException("No import constraint for a @Size violation other than a maximum length");
+        }
+        return new ColumnViolation(error.getField(), MemberImportConstraint.FIELD_TOO_LONG, Map.of(
+                "field", error.getField(),
+                "maxLength", String.valueOf(size.max()),
+                "n", String.valueOf(value.length())));
     }
 }

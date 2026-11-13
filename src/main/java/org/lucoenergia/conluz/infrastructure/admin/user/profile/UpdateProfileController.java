@@ -60,7 +60,9 @@ public class UpdateProfileController {
                 Omitting `email`, `address` or `phoneNumber` clears the stored value. An empty or blank
                 `email` also clears it; any other value must be a valid email address.
                 
-                **Required: any authenticated user (edits their own contact details).**""",
+                **Required: any authenticated user (edits their own contact details).**
+
+                An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.""",
             tags = ApiTag.USERS,
             operationId = "updateProfile",
             security = @SecurityRequirement(name = "bearerToken")
