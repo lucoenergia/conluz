@@ -1,28 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.apidocs;
 
 import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import io.swagger.v3.core.converter.AnnotatedType;
-import io.swagger.v3.core.converter.ModelConverter;
-import io.swagger.v3.core.converter.ModelConverterContext;
 import io.swagger.v3.oas.models.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
-import jakarta.validation.groups.Default;
 import org.springdoc.core.providers.ObjectMapperProvider;
 import org.springframework.stereotype.Component;
 
 import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Stream;
 
 /**
  * Keeps the minimum length of a model's property when a {@code @Size} publishes its maximum.
@@ -35,55 +24,18 @@ import java.util.stream.Stream;
  * {@code minLength}, or removes {@code minLength} when that minimum is 0, so that publishing a maximum length changes
  * nothing else in the property's schema (#574).</p>
  *
- * <p>It is a model converter for the reason {@link NumericBoundsModelConverter} is one: swagger-core applies bean
- * validation after property customizers have run.</p>
+ * <p>It is a {@link BeanValidationModelConverter} because swagger-core applies bean validation after property
+ * customizers have run.</p>
  */
 @Component
-public class StringLengthModelConverter implements ModelConverter {
-
-    private static final String SCHEMAS_REF_PREFIX = "#/components/schemas/";
-
-    private final ObjectMapperProvider objectMapperProvider;
+public class StringLengthModelConverter extends BeanValidationModelConverter {
 
     public StringLengthModelConverter(ObjectMapperProvider objectMapperProvider) {
-        this.objectMapperProvider = objectMapperProvider;
+        super(objectMapperProvider);
     }
 
     @Override
-    public Schema resolve(AnnotatedType type, ModelConverterContext context, Iterator<ModelConverter> chain) {
-        if (!chain.hasNext()) {
-            return null;
-        }
-        Schema resolved = chain.next().resolve(type, context, chain);
-        if (resolved == null || type.getType() == null) {
-            return resolved;
-        }
-        // The mapper swagger-core's ModelResolver introspects with, so properties are named as in the schema.
-        ObjectMapper mapper = objectMapperProvider.jsonMapper();
-        JavaType javaType = mapper.constructType(type.getType());
-        if (javaType.isContainerType() || javaType.isPrimitive() || javaType.isEnumType()) {
-            return resolved;
-        }
-        Schema model = definedModel(resolved, context);
-        if (model == null || model.getProperties() == null || model.getProperties().isEmpty()) {
-            return resolved;
-        }
-        applyMinLengths(mapper.getSerializationConfig().introspect(javaType), model);
-        return resolved;
-    }
-
-    private Schema definedModel(Schema resolved, ModelConverterContext context) {
-        String ref = resolved.get$ref();
-        if (ref == null) {
-            return resolved;
-        }
-        if (!ref.startsWith(SCHEMAS_REF_PREFIX)) {
-            return null;
-        }
-        return context.getDefinedModels().get(ref.substring(SCHEMAS_REF_PREFIX.length()));
-    }
-
-    private void applyMinLengths(BeanDescription bean, Schema model) {
+    protected void correct(BeanDescription bean, Schema model) {
         Map<String, Schema> properties = model.getProperties();
         for (BeanPropertyDefinition property : bean.findProperties()) {
             List<Annotation> annotations = annotationsOf(property);
@@ -114,20 +66,4 @@ public class StringLengthModelConverter implements ModelConverter {
                         || (annotation instanceof NotBlank notBlank && appliesByDefault(notBlank.groups())));
     }
 
-    private static List<Annotation> annotationsOf(BeanPropertyDefinition property) {
-        List<Annotation> annotations = new ArrayList<>();
-        Stream.of(property.getField(), property.getGetter(), property.getSetter())
-                .filter(Objects::nonNull)
-                .map(AnnotatedMember::getAllAnnotations)
-                .forEach(map -> map.annotations().forEach(annotations::add));
-        return annotations;
-    }
-
-    /**
-     * Request bodies are validated with {@code @Valid}, which checks the default group only; a constraint of another
-     * group is not enforced on them and so is not a bound of the contract.
-     */
-    private static boolean appliesByDefault(Class<?>[] groups) {
-        return groups.length == 0 || List.of(groups).contains(Default.class);
-    }
 }
