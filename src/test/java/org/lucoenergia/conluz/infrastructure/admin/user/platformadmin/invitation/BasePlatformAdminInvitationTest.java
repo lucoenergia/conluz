@@ -59,7 +59,7 @@ public abstract class BasePlatformAdminInvitationTest extends BaseInvitationAcce
     protected PlatformInvitation invited(String bearer, Map<String, Object> body) throws Exception {
         JsonNode response = json(invitePlatformAdmin(bearer, body).andExpect(status().isOk()));
         String code = codeOf(response);
-        String token = tokenFrom(awaitNextEmails(1)[0]);
+        String token = tokenFrom(awaitEmailTo((String) body.get("email")));
         return new PlatformInvitation(UUID.fromString(response.get("platformAdmin").get("user").get("id").asText()),
                 UserPersonalId.normalize((String) body.get("personalId")), (String) body.get("email"), code, token);
     }

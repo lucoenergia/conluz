@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.admins;
 
+import com.icegreen.greenmail.util.GreenMailUtil;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.shared.email.Email;
 import org.lucoenergia.conluz.domain.shared.email.EmailCategory;
@@ -31,5 +32,15 @@ class EmailTestHarnessTest extends BaseCommunityAdminTest {
 
         assertThat(awaitNextEmailsHandedOver()).isEmpty();
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(DELIVERY_MILLIS));
+    }
+
+    @Test
+    void aFixture_findsItsOwnEmail_withAStrayEmailInTheMailbox() throws Exception {
+        GreenMailUtil.sendTextEmail(newEmail(), "stray@conluz.test", "Stray", "Not an invitation",
+                GREEN_MAIL.getSmtp().getServerSetup());
+
+        InvitedAdmin admin = invitedAdmin();
+
+        assertThat(linkWorks(admin.token())).isTrue();
     }
 }

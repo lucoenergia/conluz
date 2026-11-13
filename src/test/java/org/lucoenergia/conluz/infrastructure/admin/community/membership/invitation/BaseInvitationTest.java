@@ -80,7 +80,7 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
         Map<String, Object> body = newRecord();
         UUID userId = registered(bearer, community.getId(), body);
         invite(bearer, community.getId(), userId).andExpect(status().isOk());
-        String token = tokenFrom(awaitNextEmails(1)[0]);
+        String token = tokenFrom(awaitEmailTo((String) body.get("contactEmail")));
         return new InvitedMember(community, bearer, userId, (String) body.get("personalId"),
                 (String) body.get("contactEmail"), token);
     }
@@ -149,6 +149,14 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
                 .as("email deliveries still pending after %d ms", DELIVERY_MILLIS)
                 .isZero();
         return unseen(GREEN_MAIL.getReceivedMessages());
+    }
+
+    /**
+     * Waits for every email dispatched since the emails last waited for, and returns the one to the address: an email
+     * to anyone else, a notification of the same request or a stray one, neither satisfies nor breaks the wait (#571).
+     */
+    protected MimeMessage awaitEmailTo(String address) throws Exception {
+        return emailTo(awaitNextEmailsHandedOver(), address);
     }
 
     /**
