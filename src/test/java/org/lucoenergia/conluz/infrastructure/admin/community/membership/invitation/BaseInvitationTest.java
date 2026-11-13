@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.admin.user.token.OneTimeTokenPurpose;
 import org.lucoenergia.conluz.domain.shared.email.Email;
 import org.lucoenergia.conluz.infrastructure.admin.community.admins.notification.CommunityAdminChangeEmailFactory;
 import org.lucoenergia.conluz.infrastructure.admin.community.membership.register.BaseSendingMemberTest;
+import org.lucoenergia.conluz.infrastructure.shared.email.EmailDispatchTestSupport;
 import org.mockito.invocation.Invocation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -53,7 +54,6 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
     protected GetOneTimeTokenService getOneTimeTokenService;
 
     private final Set<String> emailsSeen = new HashSet<>();
-    private long sendsSeen;
     private int notificationSendsRead;
 
     /**
@@ -66,7 +66,6 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
     @BeforeEach
     void noEmailSeenYet() {
         emailsSeen.clear();
-        sendsSeen = 0;
         notificationSendsRead = 0;
     }
 
@@ -137,26 +136,19 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
      * mailbox, not in the order they arrived, so the ones already returned are told apart by their message id.
      */
     protected MimeMessage[] awaitNextEmails(int count) {
-        MimeMessage[] all = awaitEmails(emailsSeen.size() + count);
-        List<MimeMessage> next = new ArrayList<>();
-        for (MimeMessage email : all) {
-            if (emailsSeen.add(messageId(email))) {
-                next.add(email);
-            }
-        }
-        sendsSeen += count;
-        return next.toArray(MimeMessage[]::new);
+        return unseen(awaitEmails(emailsSeen.size() + count));
     }
 
     /**
-     * Waits for every email handed to the sender since the emails last waited for, and returns only them: a request
-     * that changes a community's admins hands over the notifications of the change too (#466).
+     * Waits for every email dispatched since the emails last waited for, and returns only them: a request that
+     * changes a community's admins hands over the notifications of the change too (#466). An email that was never
+     * dispatched, because its transaction rolled back or the test made its sending fail, is not waited for (#571).
      */
     protected MimeMessage[] awaitNextEmailsHandedOver() {
-        long sends = mockingDetails(emailSender).getInvocations().stream()
-                .filter(invocation -> invocation.getMethod().getName().equals("send"))
-                .count();
-        return awaitNextEmails(Math.toIntExact(sends - sendsSeen));
+        assertThat(EmailDispatchTestSupport.drain(emailSender, DELIVERY_MILLIS))
+                .as("email deliveries still pending after %d ms", DELIVERY_MILLIS)
+                .isZero();
+        return unseen(GREEN_MAIL.getReceivedMessages());
     }
 
     /**
@@ -187,6 +179,19 @@ public abstract class BaseInvitationTest extends BaseSendingMemberTest {
         List<Email> to = emails.stream().filter(email -> email.recipient().equals(recipient)).toList();
         assertThat(to).as("notifications to the recipient").hasSize(1);
         return to.get(0).body();
+    }
+
+    /**
+     * The emails among them not returned before, now marked as returned.
+     */
+    private MimeMessage[] unseen(MimeMessage[] emails) {
+        List<MimeMessage> next = new ArrayList<>();
+        for (MimeMessage email : emails) {
+            if (emailsSeen.add(messageId(email))) {
+                next.add(email);
+            }
+        }
+        return next.toArray(MimeMessage[]::new);
     }
 
     private static String messageId(MimeMessage email) {

@@ -28,8 +28,8 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembership
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.email.EmailDispatchTestSupport;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,7 +51,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -107,8 +106,6 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     private final List<String> personalIds = new CopyOnWriteArrayList<>();
     private final List<String> secrets = new CopyOnWriteArrayList<>();
     protected LogCapture logs;
-    @Value("${conluz.mail.enabled}")
-    private boolean mailEnabled;
 
     @DynamicPropertySource
     static void mailProperties(DynamicPropertyRegistry registry) {
@@ -370,18 +367,12 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     }
 
     /**
-     * Waits for the emails the test handed to the sender to arrive, so that none arrives in the next test's mailbox:
-     * a change to a community's admins hands over notifications a test may not wait for (#466). An email whose
-     * sending the test made fail is not waited for.
+     * Waits for the emails the test dispatched to arrive, so that none arrives in the next test's mailbox: a change
+     * to a community's admins hands over notifications a test may not wait for (#466). An email that was never
+     * dispatched, because its transaction rolled back or the test made its sending fail, is not waited for (#571).
      */
     private void awaitEveryEmailHandedOver() {
-        long handedOver = mockingDetails(emailSender).getInvocations().stream()
-                .filter(invocation -> invocation.getMethod().getName().equals("send"))
-                .filter(invocation -> invocation.stubInfo() == null)
-                .count();
-        if (mailEnabled && handedOver > 0) {
-            GREEN_MAIL.waitForIncomingEmail(DELIVERY_MILLIS, Math.toIntExact(handedOver));
-        }
+        EmailDispatchTestSupport.drain(emailSender, DELIVERY_MILLIS);
     }
 
     protected static String bodyOf(MimeMessage message) throws Exception {
