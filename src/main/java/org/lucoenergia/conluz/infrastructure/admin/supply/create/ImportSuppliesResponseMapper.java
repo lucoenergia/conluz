@@ -62,6 +62,8 @@ public class ImportSuppliesResponseMapper {
         return switch (violation.constraint()) {
             case REQUIRED -> message(locale, "error.supply.import.row.required", column);
             case INVALID_CUPS -> message(locale, "error.supply.import.row.invalid.cups", column);
+            case FIELD_TOO_LONG -> message(locale, "error.supply.import.row.field.too.long", column,
+                    violation.params().get("maxLength"), violation.params().get("n"));
         };
     }
 

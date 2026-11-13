@@ -66,6 +66,8 @@ public class UpdatePlantController {
                 alphanumeric characters is answered 400 with `PLANT_CIL_INVALID`. A CIL identifies at most one
                 plant across the platform: a CIL another plant holds is answered 409 with
                 `PLANT_CIL_ALREADY_IN_USE`, and nothing is updated; keeping the plant's own CIL is not a conflict.
+
+                An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.
                 """,
             tags = ApiTag.PLANTS,
             operationId = "updatePlant",

@@ -68,6 +68,8 @@ public class RegisterMemberController {
                     The DNI/NIE/NIF may be typed in any case, with spaces, dots and hyphens. Once those are removed \
                     it must be a valid DNI, NIE or NIF, with the control letter or character matching its digits; \
                     otherwise it responds 400 with the `USER_PERSONAL_ID_INVALID` code and nothing is created.
+
+                    An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.
                     """,
             tags = ApiTag.MEMBERSHIPS,
             operationId = "registerMember",

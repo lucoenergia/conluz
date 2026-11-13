@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.plant.update;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
@@ -521,5 +522,33 @@ class UpdatePlantControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is updated")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        Supply supply = createSupply();
+        Plant plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+        UpdatePlantBody body = updateBody(plant, supply.getCode());
+
+        body.setAddress(tooLong);
+        String refused = objectMapper.writeValueAsString(body);
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(put(String.format("/api/v1/plants/%s", plant.getId()))
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(refused)), "address", tooLong);
+        assertEquals(plant.getAddress(), getPlantRepository.findById(PlantId.of(plant.getId())).orElseThrow().getAddress());
+
+        body.setAddress(longest);
+        mockMvc.perform(put(String.format("/api/v1/plants/%s", plant.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+        assertEquals(longest, getPlantRepository.findById(PlantId.of(plant.getId())).orElseThrow().getAddress());
     }
 }

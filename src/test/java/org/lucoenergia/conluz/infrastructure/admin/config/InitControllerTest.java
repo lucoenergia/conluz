@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.config;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -171,5 +172,27 @@ class InitControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andDo(print());
+    }
+
+    @Test
+    @DisplayName("API-004 a default admin address of 250 characters is accepted, and one of 251 is refused with "
+            + "FIELD_TOO_LONG for defaultAdminUser.address and nothing is stored")
+    @SuppressWarnings("unchecked")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        allowInitialisationAgain();
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+
+        Map<String, Object> refused = bodyWith("33600010T", "a secure password!!");
+        ((Map<String, Object>) refused.get("defaultAdminUser")).put("address", tooLong);
+        String refusedBody = objectMapper.writeValueAsString(refused);
+        FieldTooLongTestSupport.assertFieldTooLong(() -> postInit(refusedBody), "defaultAdminUser.address", tooLong);
+        Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of("33600010T")));
+
+        Map<String, Object> accepted = bodyWith("33600011R", "a secure password!!");
+        ((Map<String, Object>) accepted.get("defaultAdminUser")).put("address", longest);
+        postInit(objectMapper.writeValueAsString(accepted)).andExpect(status().isOk());
+        Assertions.assertEquals(longest,
+                getUserRepository.findByPersonalId(UserPersonalId.of("33600011R")).orElseThrow().getAddress());
     }
 }

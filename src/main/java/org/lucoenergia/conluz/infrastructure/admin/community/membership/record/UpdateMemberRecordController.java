@@ -70,6 +70,8 @@ public class UpdateMemberRecordController {
 
                     **Required: Community Admin of this community.** A platform admin who is not one is refused with \
                     403.
+
+                    An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is updated.
                     """,
             tags = ApiTag.MEMBERSHIPS,
             operationId = "updateMemberRecord",

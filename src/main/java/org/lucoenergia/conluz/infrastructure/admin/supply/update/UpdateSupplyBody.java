@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.update;
 
+import jakarta.validation.constraints.Size;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import org.lucoenergia.conluz.domain.admin.supply.update.UpdateSupplyDto;
@@ -14,6 +16,7 @@ public class UpdateSupplyBody {
     private String code;
     private String name;
     @NotEmpty
+    @Size(max = PostalAddress.MAX_LENGTH)
     private String address;
     private String addressRef;
 

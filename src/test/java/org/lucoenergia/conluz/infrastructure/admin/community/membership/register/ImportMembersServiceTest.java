@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.infrastructure.admin.community.membership.registe
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.metadata.BeanDescriptor;
 import jakarta.validation.metadata.PropertyDescriptor;
 import org.junit.jupiter.api.AfterAll;
@@ -26,6 +27,9 @@ import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.springframework.validation.DirectFieldBindingResult;
+import org.springframework.validation.beanvalidation.SpringValidatorAdapter;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
@@ -176,6 +180,45 @@ class ImportMembersServiceTest {
         assertThat(result.violations()).containsExactly(
                 ColumnViolation.of("memberNumber", MemberImportConstraint.NOT_AN_INTEGER));
         verify(step, never()).register(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("API-004 a row whose address has more than 250 characters is FIELD_TOO_LONG, only that row is refused, "
+            + "with every other rule it breaks")
+    void aRowWithAnAddressLongerThan250_isFieldTooLong_andOnlyThatRowIsRefused() {
+        when(reader.read(FILE)).thenReturn(file(
+                row(2, Map.of("personalId", "1", "fullName", "Ana", "address", "a".repeat(250))),
+                row(3, Map.of("personalId", "2", "fullName", " ", "address", "b".repeat(251))),
+                row(4, Map.of("personalId", "3", "fullName", "Luis", "address", "Calle"))));
+
+        ImportedMembers imported = service.importMembers(COMMUNITY_ID, ADMIN, FILE);
+
+        assertThat(imported.rows()).extracting(ImportedMemberRow::outcome).containsExactly(
+                MemberImportRowOutcome.REGISTERED, MemberImportRowOutcome.INVALID, MemberImportRowOutcome.REGISTERED);
+        assertThat(imported.rows().get(1).violations()).containsExactly(
+                ColumnViolation.of("fullName", MemberImportConstraint.REQUIRED),
+                new ColumnViolation("address", MemberImportConstraint.FIELD_TOO_LONG,
+                        Map.of("field", "address", "maxLength", "250", "n", "251")));
+        verify(step, never()).register(any(), any(), personalId("2"), any());
+    }
+
+    @Test
+    @DisplayName("API-004 a @Size refusal other than a maximum length has no constraint code")
+    void aSizeRefusalOtherThanAMaximumLength_hasNoCode() {
+        WithMinimumSize body = new WithMinimumSize();
+        DirectFieldBindingResult result = new DirectFieldBindingResult(body, "body");
+        new SpringValidatorAdapter(VALIDATORS.getValidator()).validate(body, result);
+
+        assertThatThrownBy(() -> ImportMembersServiceImpl.violationOf(result.getFieldError("value")))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    /**
+     * A constraint the registration body does not have: a @Size refused for being too short.
+     */
+    static class WithMinimumSize {
+        @Size(min = 5, max = 10)
+        String value = "abc";
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.register;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -708,5 +709,27 @@ class RegisterMemberControllerTest extends BaseSendingMemberTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is created")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+
+        Map<String, Object> refused = newRecord();
+        refused.put("address", tooLong);
+        FieldTooLongTestSupport.assertFieldTooLong(() -> register(admin, community.getId(), refused),
+                "address", tooLong);
+        assertThat(accountCount((String) refused.get("personalId"))).isZero();
+
+        Map<String, Object> accepted = newRecord();
+        accepted.put("address", longest);
+        register(admin, community.getId(), accepted).andExpect(status().isOk());
+        assertThat(membershipRow((String) accepted.get("personalId"), community.getId()).get("address"))
+                .isEqualTo(longest);
     }
 }

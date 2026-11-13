@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.profile;
 
+import jakarta.validation.constraints.Size;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import org.lucoenergia.conluz.domain.admin.user.profile.ContactDetails;
@@ -17,6 +19,7 @@ public class UpdateProfileBody {
      */
     @Email
     private String email;
+    @Size(max = PostalAddress.MAX_LENGTH)
     private String address;
     private String phoneNumber;
 

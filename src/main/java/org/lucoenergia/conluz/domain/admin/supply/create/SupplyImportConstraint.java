@@ -12,5 +12,10 @@ public enum SupplyImportConstraint {
     /**
      * The code, once upper-cased, holds whitespace or is neither 20 nor 22 characters long (SUP-006).
      */
-    INVALID_CUPS
+    INVALID_CUPS,
+    /**
+     * The value has more characters than the column allows, given as the parameters {@code field}, {@code maxLength}
+     * and {@code n} (#574).
+     */
+    FIELD_TOO_LONG
 }

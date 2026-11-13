@@ -81,6 +81,10 @@ public class ImportSuppliesController {
                     of another community has fails with `SUPPLY_REGISTERED_IN_ANOTHER_COMMUNITY`. No result \
                     carries a value of the file. Every `message` is in the language of the request's \
                     Accept-Language.
+
+                    A row whose `address` has more than 250 characters fails with `SUPPLY_IMPORT_ROW_INVALID` and lists the \
+                    constraint `FIELD_TOO_LONG` of the column `address` in `errors`, with the params `field`, \
+                    `maxLength` and `n`, the length of the value.
                     """,
             tags = ApiTag.SUPPLIES,
             operationId = "importSupplies",

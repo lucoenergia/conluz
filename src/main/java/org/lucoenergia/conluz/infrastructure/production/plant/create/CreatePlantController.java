@@ -75,6 +75,8 @@ public class CreatePlantController {
                     
                     In case of failure, the server returns an appropriate error status code along with a descriptiv
                     error message, aiding the client in diagnosing and addressing the issue.
+
+                    An `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field`, its `maxLength` and the length `n` sent, and nothing is created.
                     """,
             tags = ApiTag.PLANTS,
             operationId = "createPlant",

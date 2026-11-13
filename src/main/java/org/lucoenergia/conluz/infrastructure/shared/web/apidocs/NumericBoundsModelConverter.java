@@ -1,15 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.shared.web.apidocs;
 
 import com.fasterxml.jackson.databind.BeanDescription;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
-import io.swagger.v3.core.converter.AnnotatedType;
-import io.swagger.v3.core.converter.ModelConverter;
-import io.swagger.v3.core.converter.ModelConverterContext;
 import io.swagger.v3.oas.models.media.Schema;
-import jakarta.validation.groups.Default;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
@@ -26,13 +19,10 @@ import java.lang.annotation.Annotation;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiPredicate;
-import java.util.stream.Stream;
 
 /**
  * Publishes the numeric bounds that bean validation enforces on a model's properties.
@@ -45,61 +35,19 @@ import java.util.stream.Stream;
  * constraints, the strictest bound on each side and writes it in the 3.1 form: {@code minimum} or
  * {@code exclusiveMinimum}, {@code maximum} or {@code exclusiveMaximum}, never both on one side.</p>
  *
- * <p>It is a model converter rather than a springdoc {@code PropertyCustomizer} because swagger-core
- * applies bean validation to a property <em>after</em> property customizers have run, so a customizer
- * that removed the wrong {@code minimum} would see it written back. Wrapping the resolution of the
- * whole model sees every property in its final state.</p>
- *
  * <p>It covers the properties of models only. Constraints on operation parameters
  * ({@code @RequestParam}, {@code @PathVariable}, {@code @RequestHeader}) are published by springdoc
  * itself and are not touched here.</p>
  */
 @Component
-public class NumericBoundsModelConverter implements ModelConverter {
-
-    private static final String SCHEMAS_REF_PREFIX = "#/components/schemas/";
-
-    private final ObjectMapperProvider objectMapperProvider;
+public class NumericBoundsModelConverter extends BeanValidationModelConverter {
 
     public NumericBoundsModelConverter(ObjectMapperProvider objectMapperProvider) {
-        this.objectMapperProvider = objectMapperProvider;
+        super(objectMapperProvider);
     }
 
     @Override
-    public Schema resolve(AnnotatedType type, ModelConverterContext context, Iterator<ModelConverter> chain) {
-        if (!chain.hasNext()) {
-            return null;
-        }
-        Schema resolved = chain.next().resolve(type, context, chain);
-        if (resolved == null || type.getType() == null) {
-            return resolved;
-        }
-        // The mapper swagger-core's ModelResolver introspects with, so properties are named as in the schema.
-        ObjectMapper mapper = objectMapperProvider.jsonMapper();
-        JavaType javaType = mapper.constructType(type.getType());
-        if (javaType.isContainerType() || javaType.isPrimitive() || javaType.isEnumType()) {
-            return resolved;
-        }
-        Schema model = definedModel(resolved, context);
-        if (model == null || model.getProperties() == null || model.getProperties().isEmpty()) {
-            return resolved;
-        }
-        applyBounds(mapper.getSerializationConfig().introspect(javaType), model);
-        return resolved;
-    }
-
-    private Schema definedModel(Schema resolved, ModelConverterContext context) {
-        String ref = resolved.get$ref();
-        if (ref == null) {
-            return resolved;
-        }
-        if (!ref.startsWith(SCHEMAS_REF_PREFIX)) {
-            return null;
-        }
-        return context.getDefinedModels().get(ref.substring(SCHEMAS_REF_PREFIX.length()));
-    }
-
-    private void applyBounds(BeanDescription bean, Schema model) {
+    protected void correct(BeanDescription bean, Schema model) {
         Map<String, Schema> properties = model.getProperties();
         for (BeanPropertyDefinition property : bean.findProperties()) {
             List<Annotation> annotations = annotationsOf(property);
@@ -120,15 +68,6 @@ public class NumericBoundsModelConverter implements ModelConverter {
             lower.ifPresent(bound -> writeLower(schema, bound));
             upper.ifPresent(bound -> writeUpper(schema, bound));
         }
-    }
-
-    private static List<Annotation> annotationsOf(BeanPropertyDefinition property) {
-        List<Annotation> annotations = new ArrayList<>();
-        Stream.of(property.getField(), property.getGetter(), property.getSetter())
-                .filter(Objects::nonNull)
-                .map(AnnotatedMember::getAllAnnotations)
-                .forEach(map -> map.annotations().forEach(annotations::add));
-        return annotations;
     }
 
     private static List<Bound> lowerBounds(List<Annotation> annotations) {
@@ -173,14 +112,6 @@ public class NumericBoundsModelConverter implements ModelConverter {
      */
     private static BigDecimal digitsLimit(Digits digits) {
         return BigDecimal.TEN.pow(digits.integer()).subtract(BigDecimal.ONE.movePointLeft(digits.fraction()));
-    }
-
-    /**
-     * Request bodies are validated with {@code @Valid}, which checks the default group only; a
-     * constraint of another group is not enforced on them and so is not a bound of the contract.
-     */
-    private static boolean appliesByDefault(Class<?>[] groups) {
-        return groups.length == 0 || List.of(groups).contains(Default.class);
     }
 
     private static Optional<Bound> strictest(Collection<Bound> bounds,

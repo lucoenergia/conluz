@@ -4,15 +4,16 @@
 | --- | --- |
 | **Prefix** | `API` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot (`src/main/resources/api/docs/api-docs.json`) → every request body schema; operations `getInstantProduction`, `getHourlyProduction`, `getDailyProduction`, `getMonthlyProduction`, `getYearlyProduction`, `getDatadisHourlyProduction`, `getDatadisDailyProduction`, `getDatadisMonthlyProduction`, `getDatadisYearlyProduction`, `getSupplyHourlyProduction`, `getSupplyDailyProduction`, `getSupplyMonthlyProduction` |
+| **Contract** | OpenAPI snapshot (`src/main/resources/api/docs/api-docs.json`) → every request body schema; operations `getInstantProduction`, `getHourlyProduction`, `getDailyProduction`, `getMonthlyProduction`, `getYearlyProduction`, `getDatadisHourlyProduction`, `getDatadisDailyProduction`, `getDatadisMonthlyProduction`, `getDatadisYearlyProduction`, `getSupplyHourlyProduction`, `getSupplyDailyProduction`, `getSupplyMonthlyProduction`, `createSupply`, `updateSupply`, `createPlant`, `updatePlant`, `createCommunity`, `updateCommunity`, `registerMember`, `updateMemberRecord`, `updateProfile`, `init`, `importSupplies`, `importMembers` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #570 |
+| **Last reviewed against code** | #574 |
 
 ## Purpose
 
 Rules that hold for the published contract as a whole rather than for one capability: what the generated
 OpenAPI document must say about the requests every endpoint accepts. The rules of each capability decide
-the bounds; this spec decides how they reach the contract. It also records which operations the contract
+the bounds; this spec decides how they reach the contract, and how a request that breaks a maximum length is
+answered. It also records which operations the contract
 marks deprecated, and what it tells a client about them.
 
 ## Glossary
@@ -21,6 +22,7 @@ marks deprecated, and what it tells a client about them.
 | --- | --- |
 | Numeric bound | A limit on the value of a number in a request, enforced by bean validation (`@Min`, `@Max`, `@DecimalMin`, `@DecimalMax`, `@Positive`, `@PositiveOrZero`, `@Negative`, `@NegativeOrZero`, `@Digits`) |
 | Side | Whether a bound limits a value from below (minimum) or from above (maximum) |
+| Maximum length | The most characters a string in a request may have, declared with `@Size(max)` |
 
 ## Rules
 
@@ -50,6 +52,36 @@ marks deprecated, and what it tells a client about them.
   detail did until lucoenergia/conluz-web#406. The production syncs and the Huawei configuration are still in use
   and are not deprecated. Removing the reads is a separate decision, after a release cycle.
 - **Source:** #570
+
+### API-003 — Every maximum length of a request body is published, and a violation is answered FIELD_TOO_LONG
+
+- **Status:** Active
+- **Rule:** Every maximum string length of a request body MUST be declared with `@Size` and published in the contract
+  as `maxLength`; publishing it MUST NOT change any other part of the property's schema. A value longer than its
+  maximum MUST be answered 400 with one error per field, of code `FIELD_TOO_LONG` and params `field` (the property
+  path), `maxLength` and `n` (the value's length), and the response and the logs MUST NOT repeat the value. A request
+  with no value longer than its maximum MUST be answered as before.
+- **Rationale:** Clients are generated from the contract; a limit it omits is a 400 (or, past a column's size, a 500)
+  that a form cannot prevent. A typed code with its parameters lets a client say which field is too long and by how
+  much in its own language, while every other refusal keeps the response clients already handle. `@Length` stays
+  available where a maximum must not be published, so it is not treated as one. The value may be personal data, so it
+  is only measured.
+- **Source:** #574
+
+### API-004 — Every address is at most 250 characters
+
+- **Status:** Active
+- **Rule:** Every `address` of a request body (`createSupply`, `updateSupply`, `createPlant`, `updatePlant`,
+  `createCommunity`, `updateCommunity`, `registerMember`, `updateMemberRecord`, `updateProfile`, `init`) MUST be at
+  most 250 characters, as API-003 publishes and answers it. In a CSV import (`importSupplies`, `importMembers`), a row
+  whose address, as it would be stored, is longer MUST fail as an invalid row with the constraint `FIELD_TOO_LONG` on
+  the column `address`, with the same params, alongside every other rule it breaks; the other rows are imported as
+  before.
+- **Rationale:** Users, supplies and member records store the address in a column of 250 characters, so a longer one
+  failed with a 500; plants and communities have no limit, which let the same address be valid in one place and not
+  in another. One limit everywhere, published, makes the failure a field error a client can show. An import reports
+  it per row, with the import's existing row structure, so one long address does not refuse the whole file.
+- **Source:** #574
 
 ## Impossible states
 

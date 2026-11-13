@@ -15,12 +15,14 @@ public class ImportMembersRowErrorResponse {
     @Schema(description = "The rule broken: REQUIRED if a required value is empty or blank; NOT_EMPTY_ONCE_NORMALISED "
             + "if the personal ID holds only whitespace, dots and hyphens; INVALID_PERSONAL_ID if the personal ID, once "
             + "normalised, is not a valid DNI, NIE or NIF; MIN if the number is below `params.min`; "
-            + "EMAIL if the value is not an email address; NOT_AN_INTEGER if the value is not a whole number. A newer "
-            + "server may add rules, so a client must also handle one it does not know.",
+            + "EMAIL if the value is not an email address; NOT_AN_INTEGER if the value is not a whole number; "
+            + "FIELD_TOO_LONG if the value has more than `params.maxLength` characters. A newer server may add rules, "
+            + "so a client must also handle one it does not know.",
             example = "MIN")
     private final MemberImportConstraint constraint;
     @Schema(description = "The rule's parameters, keyed in camelCase for use as i18n interpolation variables and "
-            + "formatted without a locale: `min` for MIN. Empty if the rule has none.",
+            + "formatted without a locale: `min` for MIN; `field`, `maxLength` and `n` (the value's length) for "
+            + "FIELD_TOO_LONG. Empty if the rule has none.",
             example = "{\"min\": \"0\"}")
     private final Map<String, String> params;
 

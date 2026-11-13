@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.create;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -697,5 +698,36 @@ class CreateSupplyControllerTest extends BaseControllerTest {
         createSupplyRepository.create(SupplyMother.random(owner).withCode(code).build(), UserId.of(owner.getId()),
                 communityId);
         return owner;
+    }
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is created")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        User owner = createUserRepository.create(UserMother.randomUser());
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
+        String refusedCode = SupplyMother.randomCups();
+        String acceptedCode = SupplyMother.randomCups();
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+
+        FieldTooLongTestSupport.assertFieldTooLong(() -> mockMvc.perform(post(URL)
+                .header(HttpHeaders.AUTHORIZATION, authHeader)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("code", refusedCode,
+                        "communityId", DEFAULT_COMMUNITY_ID.toString(), "personalId", owner.getPersonalId(),
+                        "address", tooLong)))), "address", tooLong);
+        Assertions.assertTrue(getSupplyRepository.findByCode(SupplyCode.of(refusedCode)).isEmpty());
+
+        mockMvc.perform(post(URL)
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("code", acceptedCode,
+                                "communityId", DEFAULT_COMMUNITY_ID.toString(), "personalId", owner.getPersonalId(),
+                                "address", longest))))
+                .andExpect(status().isOk());
+        Assertions.assertEquals(longest,
+                getSupplyRepository.findByCode(SupplyCode.of(acceptedCode)).orElseThrow().getAddress());
     }
 }

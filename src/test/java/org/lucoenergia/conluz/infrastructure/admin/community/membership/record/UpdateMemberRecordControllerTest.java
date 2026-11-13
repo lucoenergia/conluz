@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.record;
 
+import org.lucoenergia.conluz.infrastructure.shared.web.error.FieldTooLongTestSupport;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.DisplayName;
@@ -630,5 +631,28 @@ class UpdateMemberRecordControllerTest extends BaseInvitationAcceptanceTest {
 
     private static String text(JsonNode value) {
         return value == null || value.isNull() ? "null" : value.asText();
+    }
+
+    @Test
+    @DisplayName("API-004 an address of 250 characters is accepted, and one of 251 is refused with FIELD_TOO_LONG and "
+            + "nothing is updated")
+    void anAddressLongerThan250_isRefusedWithFieldTooLong() throws Exception {
+        Community community = newCommunity();
+        String admin = loginAsAdminOf(community);
+        String personalId = (String) registeredRecord(admin, community).get("personalId");
+        UUID userId = userIdOf(personalId);
+        Map<String, Object> before = membershipRow(personalId, community.getId());
+        String tooLong = FieldTooLongTestSupport.address(251);
+        String longest = FieldTooLongTestSupport.address(250);
+
+        Map<String, Object> edit = newEdit();
+        edit.put("address", tooLong);
+        FieldTooLongTestSupport.assertFieldTooLong(() -> updateRecord(admin, community.getId(), userId, edit),
+                "address", tooLong);
+        assertThat(membershipRow(personalId, community.getId())).isEqualTo(before);
+
+        edit.put("address", longest);
+        updateRecord(admin, community.getId(), userId, edit).andExpect(status().isOk());
+        assertThat(membershipRow(personalId, community.getId()).get("address")).isEqualTo(longest);
     }
 }

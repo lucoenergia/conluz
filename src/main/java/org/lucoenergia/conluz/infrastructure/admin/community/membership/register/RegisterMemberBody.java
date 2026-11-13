@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.register;
 
+import jakarta.validation.constraints.Size;
+import org.lucoenergia.conluz.domain.shared.PostalAddress;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
@@ -33,6 +35,7 @@ public class RegisterMemberBody {
 
     @Schema(description = "The member's address, as this community records it. An empty or blank value is recorded as none.",
             types = {"string", "null"})
+    @Size(max = PostalAddress.MAX_LENGTH)
     private String address;
 
     @Schema(description = "The member's phone number, as this community records it. An empty or blank value is recorded as none.",
