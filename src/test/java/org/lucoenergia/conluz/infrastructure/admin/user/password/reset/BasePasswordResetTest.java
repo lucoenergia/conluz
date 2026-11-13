@@ -7,6 +7,7 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
@@ -20,6 +21,7 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.email.EmailDispatchTestSupport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -111,20 +113,28 @@ public abstract class BasePasswordResetTest extends BaseControllerTest {
     }
 
     @BeforeEach
-    void startWithAnEmptyMailboxAndCaptureLogs() throws Exception {
+    void startWithAnEmptyMailboxAndCaptureLogs(TestInfo testInfo) throws Exception {
+        // Drained before purging, so that no email dispatched before this test can arrive after the purge (#571)
+        EmailDispatchTestSupport.assertDrained(emailSender, DELIVERY_MILLIS, "Before " + nameOf(testInfo));
         GREEN_MAIL.purgeEmailFromAllMailboxes();
         clearInvocations(emailSender, consumeOneTimeTokenService);
         logs = LogCapture.ofRoot();
     }
 
     @AfterEach
-    void noLogLineContainsASecret_andDeleteTheUsers() {
+    void noLogLineContainsASecret_andDeleteTheUsers(TestInfo testInfo) {
         try {
+            // A test that leaves an email undelivered fails itself, instead of the next test (#571)
+            EmailDispatchTestSupport.assertDrained(emailSender, DELIVERY_MILLIS, nameOf(testInfo));
             assertNoSecretIn(logs.all());
         } finally {
             logs.close();
             users.forEach(id -> jdbcTemplate.update("DELETE FROM users WHERE id = ?", id));
         }
+    }
+
+    private static String nameOf(TestInfo testInfo) {
+        return testInfo.getTestClass().map(Class::getSimpleName).orElse("") + " > " + testInfo.getDisplayName();
     }
 
     /**

@@ -58,6 +58,19 @@ public final class EmailDispatchTestSupport {
         }
     }
 
+    /**
+     * Drains the sender, and fails, naming {@code testName} and how many deliveries are still pending, if it is not
+     * drained within {@code timeoutMillis}: a test that leaves an email undelivered fails itself, instead of letting it
+     * reach the next test's mailbox (#571). Counts only, never an address.
+     */
+    public static void assertDrained(EmailSender sender, long timeoutMillis, String testName) {
+        int pending = drain(sender, timeoutMillis);
+        if (pending > 0) {
+            throw new AssertionError(String.format("%s: %d email deliveries still pending after %d ms", testName,
+                    pending, timeoutMillis));
+        }
+    }
+
     static ThreadPoolTaskExecutor executorOf(EmailSender sender) {
         Object target = AopTestUtils.getUltimateTargetObject(sender);
         Field field = ReflectionUtils.findField(target.getClass(), EXECUTOR_FIELD);

@@ -9,6 +9,7 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -117,16 +118,18 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     }
 
     @BeforeEach
-    void startWithAnEmptyMailboxAndCaptureLogs() throws Exception {
+    void startWithAnEmptyMailboxAndCaptureLogs(TestInfo testInfo) throws Exception {
+        // Drained before purging, so that no email dispatched before this test can arrive after the purge (#571)
+        EmailDispatchTestSupport.assertDrained(emailSender, DELIVERY_MILLIS, "Before " + nameOf(testInfo));
         GREEN_MAIL.purgeEmailFromAllMailboxes();
         clearInvocations(emailSender, consumeOneTimeTokenService, lockUserRepository);
         logs = LogCapture.ofRoot();
     }
 
     @AfterEach
-    void noLogLineContainsASecret_andDeleteWhatWasCreated() {
+    void noLogLineContainsASecret_andDeleteWhatWasCreated(TestInfo testInfo) {
         try {
-            awaitEveryEmailHandedOver();
+            awaitEveryEmailHandedOver(testInfo);
             assertNoSecretIn(logs.all());
         } finally {
             logs.close();
@@ -369,10 +372,15 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     /**
      * Waits for the emails the test dispatched to arrive, so that none arrives in the next test's mailbox: a change
      * to a community's admins hands over notifications a test may not wait for (#466). An email that was never
-     * dispatched, because its transaction rolled back or the test made its sending fail, is not waited for (#571).
+     * dispatched, because its transaction rolled back or the test made its sending fail, is not waited for. A test
+     * that leaves an email undelivered fails itself (#571).
      */
-    private void awaitEveryEmailHandedOver() {
-        EmailDispatchTestSupport.drain(emailSender, DELIVERY_MILLIS);
+    private void awaitEveryEmailHandedOver(TestInfo testInfo) {
+        EmailDispatchTestSupport.assertDrained(emailSender, DELIVERY_MILLIS, nameOf(testInfo));
+    }
+
+    private static String nameOf(TestInfo testInfo) {
+        return testInfo.getTestClass().map(Class::getSimpleName).orElse("") + " > " + testInfo.getDisplayName();
     }
 
     protected static String bodyOf(MimeMessage message) throws Exception {

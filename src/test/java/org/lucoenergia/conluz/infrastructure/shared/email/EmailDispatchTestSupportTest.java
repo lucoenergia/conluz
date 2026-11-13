@@ -71,6 +71,26 @@ class EmailDispatchTestSupportTest {
     }
 
     @Test
+    void anUndrainedSender_failsNamingTheTestAndThePendingCount() throws Exception {
+        CountDownLatch blocked = new CountDownLatch(1);
+        sender = new AfterCommitEmailSender(email -> {
+            assertThat(blocked.await(10, TimeUnit.SECONDS)).isTrue();
+            delivered.add(email);
+        }, THREADS, 100);
+        sender.send(email("DRAIN"));
+
+        try {
+            assertThatThrownBy(() -> EmailDispatchTestSupport.assertDrained(sender, 200, "SomeTest > some test"))
+                    .isInstanceOf(AssertionError.class)
+                    .hasMessage("SomeTest > some test: 1 email deliveries still pending after 200 ms");
+        } finally {
+            blocked.countDown();
+        }
+        EmailDispatchTestSupport.assertDrained(sender, 5_000, "SomeTest > some test");
+        assertThat(delivered).hasSize(1);
+    }
+
+    @Test
     void aSenderWithoutTheExecutorField_failsLoudly() {
         EmailSender withoutExecutor = email -> {
         };
