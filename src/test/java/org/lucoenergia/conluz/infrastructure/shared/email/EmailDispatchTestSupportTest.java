@@ -4,6 +4,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.shared.email.Email;
 import org.lucoenergia.conluz.domain.shared.email.EmailSender;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -91,6 +92,18 @@ class EmailDispatchTestSupportTest {
     }
 
     @Test
+    void anExecutorThatCanGrowPastItsCoreSize_failsLoudly() {
+        SenderWithAGrowingExecutor growing = new SenderWithAGrowingExecutor();
+        try {
+            assertThatThrownBy(() -> EmailDispatchTestSupport.drain(growing, 1_000))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("core pool size (1) differs from its max pool size (2)");
+        } finally {
+            growing.executor.shutdown();
+        }
+    }
+
+    @Test
     void aSenderWithoutTheExecutorField_failsLoudly() {
         EmailSender withoutExecutor = email -> {
         };
@@ -105,6 +118,22 @@ class EmailDispatchTestSupportTest {
         assertThatThrownBy(() -> EmailDispatchTestSupport.drain(new SenderWithAnotherExecutor(), 1_000))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("is not a ThreadPoolTaskExecutor");
+    }
+
+    private static final class SenderWithAGrowingExecutor implements EmailSender {
+
+        private final ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+
+        private SenderWithAGrowingExecutor() {
+            executor.setCorePoolSize(1);
+            executor.setMaxPoolSize(2);
+            executor.setQueueCapacity(1);
+            executor.initialize();
+        }
+
+        @Override
+        public void send(Email email) {
+        }
     }
 
     private static final class SenderWithAnotherExecutor implements EmailSender {

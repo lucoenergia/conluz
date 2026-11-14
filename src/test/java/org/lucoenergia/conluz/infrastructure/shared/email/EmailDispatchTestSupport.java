@@ -21,8 +21,9 @@ import java.util.concurrent.TimeUnit;
  * nothing, and is not waited for.</p>
  *
  * <p>No production API exposes the sender's executor, so this reads its private {@value #EXECUTOR_FIELD} field by
- * reflection. If the field is missing, or is not a {@link ThreadPoolTaskExecutor}, it fails loudly instead of
- * skipping the wait: a skipped wait would let an email reach the next test.</p>
+ * reflection. If the field is missing, is not a {@link ThreadPoolTaskExecutor}, or holds a pool that can grow past
+ * its core size, it fails loudly instead of skipping the wait or draining partially: either would let an email reach
+ * the next test.</p>
  */
 public final class EmailDispatchTestSupport {
 
@@ -37,8 +38,12 @@ public final class EmailDispatchTestSupport {
      */
     public static int drain(EmailSender sender, long timeoutMillis) {
         ThreadPoolExecutor pool = executorOf(sender).getThreadPoolExecutor();
-        // The queue is bounded, so the pool never grows past its core size: that many threads run at the same time
         int threads = pool.getCorePoolSize();
+        if (pool.getMaximumPoolSize() != threads) {
+            // A full queue would start extra threads, which could run every barrier task while a delivery still runs
+            throw new IllegalStateException("The executor's core pool size (" + threads + ") differs from its max pool"
+                    + " size (" + pool.getMaximumPoolSize() + "): the email test harness cannot wait for its deliveries");
+        }
         CountDownLatch running = new CountDownLatch(threads);
         CountDownLatch release = new CountDownLatch(1);
         for (int i = 0; i < threads; i++) {
