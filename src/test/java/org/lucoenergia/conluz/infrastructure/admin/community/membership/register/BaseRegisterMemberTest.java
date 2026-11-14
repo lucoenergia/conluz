@@ -9,6 +9,7 @@ import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.CommunityRole;
@@ -28,8 +29,8 @@ import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembership
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.user.auth.throttle.LogCapture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
+import org.lucoenergia.conluz.infrastructure.shared.email.EmailDispatchTestSupport;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,7 +52,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -107,8 +107,6 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     private final List<String> personalIds = new CopyOnWriteArrayList<>();
     private final List<String> secrets = new CopyOnWriteArrayList<>();
     protected LogCapture logs;
-    @Value("${conluz.mail.enabled}")
-    private boolean mailEnabled;
 
     @DynamicPropertySource
     static void mailProperties(DynamicPropertyRegistry registry) {
@@ -120,16 +118,18 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     }
 
     @BeforeEach
-    void startWithAnEmptyMailboxAndCaptureLogs() throws Exception {
+    void startWithAnEmptyMailboxAndCaptureLogs(TestInfo testInfo) throws Exception {
+        // Drained before purging, so that no email dispatched before this test can arrive after the purge (#571)
+        EmailDispatchTestSupport.assertNothingLeftOver(emailSender, DELIVERY_MILLIS, nameOf(testInfo));
         GREEN_MAIL.purgeEmailFromAllMailboxes();
         clearInvocations(emailSender, consumeOneTimeTokenService, lockUserRepository);
         logs = LogCapture.ofRoot();
     }
 
     @AfterEach
-    void noLogLineContainsASecret_andDeleteWhatWasCreated() {
+    void noLogLineContainsASecret_andDeleteWhatWasCreated(TestInfo testInfo) {
         try {
-            awaitEveryEmailHandedOver();
+            awaitEveryEmailHandedOver(testInfo);
             assertNoSecretIn(logs.all());
         } finally {
             logs.close();
@@ -370,18 +370,17 @@ public abstract class BaseRegisterMemberTest extends BaseControllerTest {
     }
 
     /**
-     * Waits for the emails the test handed to the sender to arrive, so that none arrives in the next test's mailbox:
-     * a change to a community's admins hands over notifications a test may not wait for (#466). An email whose
-     * sending the test made fail is not waited for.
+     * Waits for the emails the test dispatched to arrive, so that none arrives in the next test's mailbox: a change
+     * to a community's admins hands over notifications a test may not wait for (#466). An email that was never
+     * dispatched, because its transaction rolled back or the test made its sending fail, is not waited for. A test
+     * that leaves an email undelivered fails itself (#571).
      */
-    private void awaitEveryEmailHandedOver() {
-        long handedOver = mockingDetails(emailSender).getInvocations().stream()
-                .filter(invocation -> invocation.getMethod().getName().equals("send"))
-                .filter(invocation -> invocation.stubInfo() == null)
-                .count();
-        if (mailEnabled && handedOver > 0) {
-            GREEN_MAIL.waitForIncomingEmail(DELIVERY_MILLIS, Math.toIntExact(handedOver));
-        }
+    private void awaitEveryEmailHandedOver(TestInfo testInfo) {
+        EmailDispatchTestSupport.assertDrained(emailSender, DELIVERY_MILLIS, nameOf(testInfo));
+    }
+
+    private static String nameOf(TestInfo testInfo) {
+        return testInfo.getTestClass().map(Class::getSimpleName).orElse("") + " > " + testInfo.getDisplayName();
     }
 
     protected static String bodyOf(MimeMessage message) throws Exception {

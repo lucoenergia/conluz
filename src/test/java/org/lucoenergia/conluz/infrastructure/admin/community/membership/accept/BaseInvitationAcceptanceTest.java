@@ -51,7 +51,7 @@ public abstract class BaseInvitationAcceptanceTest extends BaseInvitationTest {
         UUID userId = registered(bearer, community.getId(), body);
         assertThat(userId).isEqualTo(user.getId());
         invite(bearer, community.getId(), userId).andExpect(status().isOk());
-        String token = tokenFrom(awaitNextEmails(1)[0]);
+        String token = tokenFrom(awaitEmailTo((String) body.get("contactEmail")));
         return new InvitedAccount(new InvitedMember(community, bearer, userId, user.getPersonalId(),
                 (String) body.get("contactEmail"), token), user);
     }
