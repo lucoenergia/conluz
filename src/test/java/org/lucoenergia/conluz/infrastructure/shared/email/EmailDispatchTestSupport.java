@@ -69,10 +69,23 @@ public final class EmailDispatchTestSupport {
      * reach the next test's mailbox (#571). Counts only, never an address.
      */
     public static void assertDrained(EmailSender sender, long timeoutMillis, String testName) {
+        assertDrained(sender, timeoutMillis, "%s: %d email deliveries still pending after %d ms", testName);
+    }
+
+    /**
+     * Drains the sender before a test starts, and fails, naming {@code testName}, if it is not drained within
+     * {@code timeoutMillis}. The message says the pending deliveries come from a previous test, so that the failure
+     * is not attributed to the test that was about to run. Counts only, never an address.
+     */
+    public static void assertNothingLeftOver(EmailSender sender, long timeoutMillis, String testName) {
+        assertDrained(sender, timeoutMillis, "%s: %d email deliveries from a previous test still pending after %d ms",
+                testName);
+    }
+
+    private static void assertDrained(EmailSender sender, long timeoutMillis, String format, String testName) {
         int pending = drain(sender, timeoutMillis);
         if (pending > 0) {
-            throw new AssertionError(String.format("%s: %d email deliveries still pending after %d ms", testName,
-                    pending, timeoutMillis));
+            throw new AssertionError(String.format(format, testName, pending, timeoutMillis));
         }
     }
 

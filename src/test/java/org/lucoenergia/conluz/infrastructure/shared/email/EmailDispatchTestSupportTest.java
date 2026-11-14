@@ -92,6 +92,26 @@ class EmailDispatchTestSupportTest {
     }
 
     @Test
+    void deliveriesLeftOverFromAPreviousTest_failNamingThemAsSuch() throws Exception {
+        CountDownLatch blocked = new CountDownLatch(1);
+        sender = new AfterCommitEmailSender(email -> {
+            assertThat(blocked.await(10, TimeUnit.SECONDS)).isTrue();
+            delivered.add(email);
+        }, THREADS, 100);
+        sender.send(email("DRAIN"));
+
+        try {
+            assertThatThrownBy(() -> EmailDispatchTestSupport.assertNothingLeftOver(sender, 200, "SomeTest > some test"))
+                    .isInstanceOf(AssertionError.class)
+                    .hasMessage("SomeTest > some test: 1 email deliveries from a previous test still pending after 200 ms");
+        } finally {
+            blocked.countDown();
+        }
+        EmailDispatchTestSupport.assertNothingLeftOver(sender, 5_000, "SomeTest > some test");
+        assertThat(delivered).hasSize(1);
+    }
+
+    @Test
     void anExecutorThatCanGrowPastItsCoreSize_failsLoudly() {
         SenderWithAGrowingExecutor growing = new SenderWithAGrowingExecutor();
         try {

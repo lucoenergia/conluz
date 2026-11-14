@@ -115,7 +115,7 @@ public abstract class BasePasswordResetTest extends BaseControllerTest {
     @BeforeEach
     void startWithAnEmptyMailboxAndCaptureLogs(TestInfo testInfo) throws Exception {
         // Drained before purging, so that no email dispatched before this test can arrive after the purge (#571)
-        EmailDispatchTestSupport.assertDrained(emailSender, DELIVERY_MILLIS, "Before " + nameOf(testInfo));
+        EmailDispatchTestSupport.assertNothingLeftOver(emailSender, DELIVERY_MILLIS, nameOf(testInfo));
         GREEN_MAIL.purgeEmailFromAllMailboxes();
         clearInvocations(emailSender, consumeOneTimeTokenService);
         logs = LogCapture.ofRoot();
