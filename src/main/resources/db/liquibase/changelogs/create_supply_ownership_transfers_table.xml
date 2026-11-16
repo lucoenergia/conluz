@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- Supply ownership transfers (#585): one row per change of a supply's owner, written by the transfer and
+         never updated. It is the only record of who owned a supply when.
+
+         The foreign key to supplies is ON DELETE CASCADE: the records belong to their supply and are deleted only
+         with it, when SUP-001 allows deleting it. The foreign keys to users keep the default delete rule: an account
+         named in a record cannot be deleted while the record exists.
+
+         previous_user_id NULL means the supply had no owner when it was transferred (supplies left without one by
+         deletions before #412).
+
+         No backfill: no ownership change happened before this table existed. -->
+    <changeSet id="create_supply_ownership_transfers_table" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot create supply_ownership_transfers: the table already exists.">
+            <not>
+                <tableExists tableName="supply_ownership_transfers"/>
+            </not>
+        </preConditions>
+        <createTable tableName="supply_ownership_transfers"
+                     remarks="Each change of a supply's owner, as it was made. Rows are never updated.">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" primaryKeyName="supply_ownership_transfers_id_pk"/>
+            </column>
+            <column name="supply_id" type="UUID" remarks="The supply whose owner changed.">
+                <constraints nullable="false"
+                             foreignKeyName="supply_ownership_transfers_supply_id_fk"
+                             referencedTableName="supplies" referencedColumnNames="id"
+                             deleteCascade="true"/>
+            </column>
+            <column name="previous_user_id" type="UUID"
+                    remarks="The owner before the transfer. NULL if the supply had no owner.">
+                <constraints nullable="true"
+                             foreignKeyName="supply_ownership_transfers_previous_user_id_fk"
+                             referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="new_user_id" type="UUID" remarks="The owner after the transfer.">
+                <constraints nullable="false"
+                             foreignKeyName="supply_ownership_transfers_new_user_id_fk"
+                             referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="effective_date" type="DATE"
+                    remarks="The date the new owner became the supply's holder at the distributor.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="history_included" type="BOOLEAN"
+                    remarks="Whether the new owner received the supply's history from before the effective date.">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transferred_by" type="UUID" remarks="The user who made the transfer.">
+                <constraints nullable="false"
+                             foreignKeyName="supply_ownership_transfers_transferred_by_fk"
+                             referencedTableName="users" referencedColumnNames="id"/>
+            </column>
+            <column name="transferred_at" type="TIMESTAMPTZ" remarks="The instant the transfer was made.">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="supply_ownership_transfers" indexName="supply_ownership_transfers_supply_id_idx">
+            <column name="supply_id"/>
+        </createIndex>
+        <rollback>
+            <dropTable tableName="supply_ownership_transfers"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
