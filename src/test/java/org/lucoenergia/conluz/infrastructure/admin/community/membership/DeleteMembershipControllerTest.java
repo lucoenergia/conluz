@@ -1,5 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership;
 
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import java.time.LocalDate;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
@@ -73,6 +76,8 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private EntityManager entityManager;
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     @Test
     void deletingAMembershipThatDoesNotExistIsReportedAsNotFound() throws Exception {
@@ -213,6 +218,27 @@ class DeleteMembershipControllerTest extends BaseControllerTest {
                 "the membership in the other community must not have been touched");
         assertEquals(1, count("SELECT count(*) FROM supplies WHERE id = ? AND user_id = ? AND community_id = ?",
                 supply.getId(), member.getId(), otherCommunity));
+    }
+
+    @Test
+    @DisplayName("SUP-012 MEM-029 once the only supply a member owned in the community is transferred to another "
+            + "member, their membership is deleted, and the supply stays with its new owner")
+    void aMemberWhoseOnlySupplyWasTransferredCanHaveTheirMembershipDeleted() throws Exception {
+        UUID community = newCommunity();
+        User previous = registerInvitedMember(community);
+        User next = registerInvitedMember(community);
+        Supply supply = createSupply(previous, community);
+        User admin = persistMember(community);
+        transferSupplyOwnershipService.transfer(SupplyId.of(supply.getId()),
+                UserPersonalId.of(next.getPersonalId()), LocalDate.of(2025, 6, 1), UserId.of(admin.getId()));
+
+        mockMvc.perform(delete(PATH, community, previous.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community)))
+                .andExpect(status().isOk());
+
+        assertFalse(membershipExists(community, previous.getId()), "the membership should have been deleted");
+        assertEquals(1, count("SELECT count(*) FROM supplies WHERE id = ? AND user_id = ? AND community_id = ?",
+                supply.getId(), next.getId(), community));
     }
 
     @Test

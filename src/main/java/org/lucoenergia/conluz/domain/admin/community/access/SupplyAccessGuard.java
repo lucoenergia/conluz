@@ -11,6 +11,12 @@ public interface SupplyAccessGuard {
     boolean canEditSupply(UUID supplyId);
 
     /**
+     * Whether the current user may transfer the supply to another owner (SUP-008): a community admin of the
+     * supply's community. Its owner is answered 403 and anyone who cannot see it 404, as for editing it.
+     */
+    boolean canTransferSupplyOwnership(UUID supplyId);
+
+    /**
      * Whether the current user may read the partition coefficients of the given supply. This is
      * currently byte-for-byte identical to {@link #canEditSupply(UUID)} -- kept as a separate,
      * deliberately duplicating method (not merged away) so a read rule and a write rule can diverge

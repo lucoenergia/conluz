@@ -4,22 +4,23 @@
 | --- | --- |
 | **Prefix** | `SUP` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `importSupplies`, `deleteSupply`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `updateSupply`, `enableSupply`, `disableSupply` |
+| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `createSupply`, `importSupplies`, `deleteSupply`, `getSupply`, `getAllSupplies`, `getSuppliesByUserId`, `updateSupply`, `enableSupply`, `disableSupply`, `transferSupplyOwnership` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #532 |
+| **Last reviewed against code** | #585 |
 
 ## Purpose
 
 A supply is a member's point of consumption (CUPS) in a community. This spec covers the rules that keep a supply
 tied to a member of its community, what deleting one does, who reads one, how it references its plant, how
-supplies are imported from a file, and which codes a supply may have. It covers only the rules #412, #411 and #532
-touched.
+supplies are imported from a file, which codes a supply may have, and how a supply is transferred to another owner. It
+covers only the rules #412, #411, #532 and #585 touched.
 
 ## Glossary
 
 | Term | Meaning |
 | --- | --- |
-| Supply | A point of consumption, identified by its CUPS code, owned by one user and belonging to one community. |
+| Supply | A point of consumption, identified by its CUPS code, owned by one user at a time and belonging to one community. |
+| Transfer | A change of a supply's owner to another member of its community, made by a community admin from an effective date (`transferSupplyOwnership`), and recorded. |
 | Plant | A generation installation attached to a supply. |
 | Partition coefficient | The share of a plant's production a sharing agreement assigns to a supply. |
 | CUPS | The code of a point of consumption, 22 characters long. It may be written with its first 20 characters only, which stand for the 22 obtained by adding `0F`. |
@@ -123,13 +124,74 @@ touched.
   file. The admin needs to know the CUPS cannot be registered here, and the creation would fail anyway.
 - **Source:** #532
 
+### SUP-008 — A community admin transfers a supply to another member
+
+- **Status:** Active
+- **Rule:** A community admin of a supply's community MAY transfer the supply to another user
+  (`transferSupplyOwnership`). The supply's owner MUST be answered 403. Any caller who cannot see the supply
+  (SUP-003), a platform admin included, MUST be answered 404.
+- **Rationale:** The holder of a supply changes in real life (a death, a sale), and the supply must follow without
+  being deleted and created again, which SUP-001 refuses for a supply in use and which would lose its coefficient
+  history. Changing the owner is a community-management act, like editing the supply, so it has the same access.
+- **Source:** #585
+
+### SUP-009 — A supply is transferred only to a member of its community, under the owners' locks
+
+- **Status:** Active
+- **Rule:** A transfer MUST lock the community, then the previous and the new owner's account rows in ascending id
+  order, then the supply, and MUST check that the new owner has a membership in the supply's community, in any state.
+  A new owner without one, or whose account or membership is deleted while the supply is being transferred, MUST be
+  answered exactly like an unknown owner (404 `SUPPLY_OWNER_NOT_FOUND`). Transferring the supply to its current owner
+  MUST be refused with 409 `SUPPLY_ALREADY_OWNED_BY_USER`. A refused transfer MUST change nothing.
+- **Rationale:** The same invariant and race protection as SUP-002 and MEM-029, applied to both owners: deleting an
+  owner or their membership locks the same user row first, so the deletion and the transfer run one after the other,
+  and the deletion then sees the supply or the transfer finds the membership gone. The community lock makes two
+  transfers of the same community run one after the other, so the previous owner a transfer reads cannot change
+  before it writes. The ascending order keeps two transfers between the same users from waiting for each other.
+- **Source:** #585, SUP-002, MEM-029, ADR-0003 §11
+
+### SUP-010 — A transfer's effective date is not in the future and follows the previous transfer's
+
+- **Status:** Active
+- **Rule:** A transfer's effective date MUST NOT be after today in the community's time zone (400
+  `SUPPLY_TRANSFER_DATE_IN_FUTURE`), and MUST be strictly after the effective date of the supply's previous transfer
+  (409 `SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS`). Only the transfers of the same supply count.
+- **Rationale:** The date records when the holder changed at the distributor, which has already happened. Strictly
+  ordered dates keep a supply's transfers usable as consecutive half-open ownership periods (EPR-001), each starting
+  on its effective date.
+- **Source:** #585, EPR-001
+
+### SUP-011 — Every transfer is recorded, and the records are never changed
+
+- **Status:** Active
+- **Rule:** Every transfer MUST be recorded with the supply, the previous owner (none if the supply had no owner),
+  the new owner, the effective date, whether the history was included, who made it and when. Records MUST NOT be
+  updated. They MUST be deleted only with their supply, when SUP-001 allows deleting it. A supply without an owner MAY
+  be transferred.
+- **Rationale:** The record is the audit trail: there is no other record of who owned a supply when, or of who
+  changed it. Supplies left without an owner by deletions before #412 need a way to get one.
+- **Source:** #585
+
+### SUP-012 — After a transfer, everything read through the supply follows the new owner
+
+- **Status:** Active
+- **Rule:** After a transfer, every read through the supply (SUP-003) and every figure of a membership MUST follow
+  the new owner for the supply's whole history, including the periods before the effective date. Every later write
+  of the supply MUST keep the new owner.
+- **Rationale:** The transfer carries the supply's history to the new owner, which is the right outcome when the
+  supply stays in the same household. A write of a supply loaded before the transfer, such as the Datadis supply
+  sync's, must not undo it.
+- **Source:** #585
+
 ## Impossible states
 
-- A supply whose owner has no membership in its community, created after #412 — prevented by SUP-002 and MEM-029.
+- A supply whose owner has no membership in its community, created or transferred after #412 — prevented by
+  SUP-002, SUP-009 and MEM-029.
 
 ## Accepted exceptions
 
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
 | A deleted supply's consumption series stay in the time-series database, keyed by CUPS; a supply created again with the same CUPS shows them | The series are measurements of the point of consumption, and deleting them cannot be undone or made part of the database transaction | A rule decides what happens to the series of a deleted supply | #412 |
+| The previous owner's membership figures lose a transferred supply for every period, including the months they owned it (SUP-012) | Ownership is a single column read when the request runs; the transfer records are shaped as periods so this can be lifted without a backfill | Figures per owner and period are needed | #585 |
 | Two supplies with the same CUPS across lengths or case can be written after #532, by two creations or code changes running at the same time | SUP-007 is checked by the application before the write, without a lock or a database constraint, so two concurrent writes can both pass the check | A database constraint or a lock makes SUP-007 hold for concurrent writes | #532 |

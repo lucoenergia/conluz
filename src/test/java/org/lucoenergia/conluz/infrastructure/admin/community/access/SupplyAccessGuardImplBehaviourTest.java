@@ -176,6 +176,55 @@ class SupplyAccessGuardImplBehaviourTest {
         assertThrows(SupplyNotFoundException.class, () -> guard().canReadSupply(supply.getId()));
     }
 
+    // --- canTransferSupplyOwnership ---
+
+    @Test
+    @DisplayName("SUP-008 canTransferSupplyOwnership is true for a community admin of the supply's community")
+    void canTransferSupplyOwnership_returnsTrue_whenUserIsCommunityAdmin() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_ADMIN, true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        Supply supply = supplyInCommunity(UUID.randomUUID(), community);
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertTrue(guard().canTransferSupplyOwnership(supply.getId()));
+    }
+
+    @Test
+    @DisplayName("SUP-008 canTransferSupplyOwnership is false, a 403, for the supply's owner")
+    void canTransferSupplyOwnership_returnsFalse_whenUserIsOwner() {
+        Community community = CommunityMother.random().build();
+        User user = userWithMembership(community, CommunityRole.COMMUNITY_MEMBER, true);
+        Supply supply = supplyInCommunity(user.getId(), community);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(user));
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+
+        assertFalse(guard().canTransferSupplyOwnership(supply.getId()));
+    }
+
+    @Test
+    @DisplayName("SUP-008 canTransferSupplyOwnership throws not found for a platform admin who cannot see the supply, "
+            + "and for a supply that does not exist")
+    void canTransferSupplyOwnership_throwsNotFound_whenTheCallerCannotSeeTheSupply() {
+        Supply supply = supplyOwnedBy(UUID.randomUUID());
+        UUID missing = UUID.randomUUID();
+        User admin = UserMother.randomUser();
+        admin.setPlatformAdmin(true);
+        when(authService.getCurrentUser()).thenReturn(Optional.of(admin));
+        when(getSupplyRepository.findById(SupplyId.of(supply.getId()))).thenReturn(Optional.of(supply));
+        when(getSupplyRepository.findById(SupplyId.of(missing))).thenReturn(Optional.empty());
+
+        assertThrows(SupplyNotFoundException.class, () -> guard().canTransferSupplyOwnership(supply.getId()));
+        assertThrows(SupplyNotFoundException.class, () -> guard().canTransferSupplyOwnership(missing));
+    }
+
+    @Test
+    void canTransferSupplyOwnership_returnsFalse_whenNoAuthenticatedUser() {
+        when(authService.getCurrentUser()).thenReturn(Optional.empty());
+
+        assertFalse(guard().canTransferSupplyOwnership(UUID.randomUUID()));
+    }
+
     // --- canEditSupply ---
 
     @Test

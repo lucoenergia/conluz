@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -66,6 +68,9 @@ import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.assertKWh
  */
 @Transactional
 class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
+
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     private static final String URL = "/api/v1/supplies";
     private static final String PATH = "/energy-metrics";
@@ -1356,5 +1361,36 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.selfSufficiencyRatio").value(not(closeTo(0.033 / 0.379, 1e-6)), Double.class))
                 .andExpect(jsonPath("$.selfConsumptionRatio").value(not(closeTo(0.033 / 0.366, 1e-6)), Double.class))
                 .andExpect(jsonPath("$.savings.amountEur").value(RoundingNoiseDataset.SAVINGS_EUR));
+    }
+
+    @Test
+    @DisplayName("SUP-012 after a transfer, the previous owner is answered not found and the new owner reads the "
+            + "supply's metrics from before the effective date")
+    void afterATransferTheNewOwnerReadsTheMetricsFromBeforeTheEffectiveDate() throws Exception {
+        User previous = createMemberOfDefaultCommunity();
+        User next = createMemberOfDefaultCommunity();
+        Supply supply = createSupplyOwnedBy(previous);
+        writeRecords(
+                hourlyRecord(supply.getCode(), "2024/02/01", "01:00", 1.0f, 2.0f, 0.5f),
+                hourlyRecord(supply.getCode(), "2024/02/01", "02:00", 3.0f, 4.0f, 0.5f));
+        User admin = createEnabledUser();
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        transferSupplyOwnershipService.transfer(SupplyId.of(supply.getId()),
+                UserPersonalId.of(next.getPersonalId()), LocalDate.of(2025, 6, 1), UserId.of(admin.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(previous))
+                        .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T03:00:00+01:00"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get(URL + "/" + supply.getId() + PATH)
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(next))
+                        .queryParam("startDate", "2024-02-01T00:00:00+01:00")
+                        .queryParam("endDate", "2024-02-01T03:00:00+01:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coverage.hoursWithData").value(2))
+                .andExpect(jsonPath("$.energy.gridImportKWh").value(closeTo(4.0, TOLERANCE)))
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(6.0, TOLERANCE)));
     }
 }

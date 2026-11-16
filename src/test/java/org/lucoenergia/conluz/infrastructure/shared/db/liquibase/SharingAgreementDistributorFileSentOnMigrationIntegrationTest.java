@@ -30,7 +30,7 @@ import static org.lucoenergia.conluz.infrastructure.shared.db.liquibase.Liquibas
 class SharingAgreementDistributorFileSentOnMigrationIntegrationTest {
 
     /** The last changeset before the one under test. */
-    private static final String BOUNDARY_CHANGESET_ID = "add_cil_to_plants";
+    private static final String BOUNDARY_CHANGESET_ID = "create_supply_ownership_transfers_table";
     private static final String CHANGESET_ID = "add_distributor_file_sent_on_to_sharing_agreement";
     private static final String COLUMN = "distributor_file_sent_on";
     private static final String REMARKS = "The local date the agreement's distributor file was sent to the distributor.";

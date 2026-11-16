@@ -232,6 +232,22 @@ Table "supplies_shelly" {
   "mqtt_prefix" "character varying(250)"
 }
 
+Table "supply_ownership_transfers" {
+  "id" uuid [pk, not null]
+  "supply_id" uuid [not null, note: 'The supply whose owner changed.']
+  "previous_user_id" uuid [note: 'The owner before the transfer. NULL if the supply had no owner.']
+  "new_user_id" uuid [not null, note: 'The owner after the transfer.']
+  "effective_date" date [not null, note: '''The date the new owner became the supply\'s holder at the distributor.''']
+  "history_included" boolean [not null, note: '''Whether the new owner received the supply\'s history from before the effective date.''']
+  "transferred_by" uuid [not null, note: 'The user who made the transfer.']
+  "transferred_at" timestamp [not null, note: 'The instant the transfer was made.']
+
+  Indexes {
+    supply_id [type: btree, name: "supply_ownership_transfers_supply_id_idx"]
+  }
+  Note: '''Each change of a supply\'s owner, as it was made. Rows are never updated.'''
+}
+
 Table "supply_partition_coefficient" {
   "id" uuid [pk, not null]
   "supply_id" uuid [not null]
@@ -308,6 +324,14 @@ Ref "supplies_distributor_supply_id_fk":"supplies"."id" <? "supplies_distributor
 Ref "supplies_shelly_supply_id_fk":"supplies"."id" <? "supplies_shelly"."supply_id" [delete: cascade]
 
 Ref "supplies_user_id_fk":"users"."id" ?<? "supplies"."user_id"
+
+Ref "supply_ownership_transfers_new_user_id_fk":"users"."id" <? "supply_ownership_transfers"."new_user_id"
+
+Ref "supply_ownership_transfers_previous_user_id_fk":"users"."id" ?<? "supply_ownership_transfers"."previous_user_id"
+
+Ref "supply_ownership_transfers_supply_id_fk":"supplies"."id" <? "supply_ownership_transfers"."supply_id" [delete: cascade]
+
+Ref "supply_ownership_transfers_transferred_by_fk":"users"."id" <? "supply_ownership_transfers"."transferred_by"
 
 Ref "supply_partition_coefficient_plant_id_fk":"plants"."id" <? "supply_partition_coefficient"."plant_id"
 

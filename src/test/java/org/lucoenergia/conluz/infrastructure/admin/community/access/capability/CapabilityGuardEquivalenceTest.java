@@ -195,6 +195,8 @@ class CapabilityGuardEquivalenceTest extends BaseIntegrationTest {
                     () -> guard.canReadSupplyPartitionCoefficients(id));
             assertSame("canCreatePlant", capabilities.isCanCreatePlant(),
                     () -> guard.canCreatePlant(supply.getCode()));
+            assertSame("canTransferOwnership", capabilities.isCanTransferOwnership(),
+                    () -> guard.canTransferSupplyOwnership(id));
         });
     }
 

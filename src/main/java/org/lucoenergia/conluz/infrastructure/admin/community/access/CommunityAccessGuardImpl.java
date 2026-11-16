@@ -58,6 +58,11 @@ public class CommunityAccessGuardImpl implements CommunityAccessGuard {
     }
 
     @Override
+    public boolean canTransferSupplyOwnership(UUID supplyId) {
+        return supplyAccessGuard.canTransferSupplyOwnership(supplyId);
+    }
+
+    @Override
     public SupplyOwnerScope visibleSuppliesOfUser(UUID userId) {
         return supplyAccessGuard.visibleSuppliesOfUser(userId);
     }

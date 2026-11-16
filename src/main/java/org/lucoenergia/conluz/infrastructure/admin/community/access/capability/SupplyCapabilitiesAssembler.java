@@ -30,6 +30,7 @@ public class SupplyCapabilitiesAssembler {
                 .withCanReadPartitionCoefficients(
                         policies.supply().canReadPartitionCoefficients(caller, supply).isAllowed())
                 .withCanCreatePlant(policies.plant().canCreate(caller, supply).isAllowed())
+                .withCanTransferOwnership(policies.supply().canTransferOwnership(caller, supply).isAllowed())
                 .build();
     }
 }
