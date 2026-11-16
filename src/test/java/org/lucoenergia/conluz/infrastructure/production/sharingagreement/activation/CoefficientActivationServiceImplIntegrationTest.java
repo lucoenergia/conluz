@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation;
 
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientResolver;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFAULT_COMMUNITY_ID;
@@ -100,6 +102,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
     }
 
     @Test
+    @DisplayName("SHA-002 activating B on day X closes A at exactly X, and A and B do not overlap on X")
     void activationCascadeSatisfiesExclusionConstraintNoOverlapPersisted() {
         SupplyEntity supply = persistSupply();
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
@@ -116,6 +119,15 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(successor.getId()) && expected.equals(c.getValidFrom())));
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessor.getId()) && expected.equals(c.getValidTo())));
+
+        // Half-open periods: X's local midnight is the first instant of B and is no longer part of A.
+        SupplyPartitionCoefficient closedA = result.stream().filter(c -> c.getId().equals(predecessor.getId()))
+                .findFirst().orElseThrow();
+        SupplyPartitionCoefficient activeB = result.stream().filter(c -> c.getId().equals(successor.getId()))
+                .findFirst().orElseThrow();
+        assertEquals(closedA.getValidTo(), activeB.getValidFrom());
+        assertFalse(expected.isBefore(closedA.getValidTo()), "A must not apply on X");
+        assertFalse(expected.isBefore(activeB.getValidFrom()), "B must apply from the start of X");
     }
 
     @Test

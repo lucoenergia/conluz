@@ -539,6 +539,7 @@ CREATE TABLE public.sharing_agreement (
                                           created_by uuid,
                                           updated_at timestamp with time zone,
                                           updated_by uuid,
+                                          distributor_file_sent_on date,
                                           CONSTRAINT sharing_agreement_status_check CHECK ((status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SUPERSEDED'::text])))
 );
 
@@ -604,6 +605,13 @@ COMMENT ON COLUMN public.sharing_agreement.updated_at IS 'When the agreement was
 --
 
 COMMENT ON COLUMN public.sharing_agreement.updated_by IS 'The user who last edited the agreement. NULL means it has never been edited since creation.';
+
+
+--
+-- Name: COLUMN sharing_agreement.distributor_file_sent_on; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sharing_agreement.distributor_file_sent_on IS 'The local date the agreement''s distributor file was sent to the distributor.';
 
 
 --

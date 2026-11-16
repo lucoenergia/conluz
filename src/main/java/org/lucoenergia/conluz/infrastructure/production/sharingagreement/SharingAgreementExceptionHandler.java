@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsNotNormalizableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFileNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.update.SharingAgreementDistributorFileSentOnInFutureException;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation.CoefficientActivationErrorMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.distributorfile.DistributorFileErrorMapper;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -117,6 +118,18 @@ public class SharingAgreementExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_DUPLICATE_CUPS, null, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(SharingAgreementDistributorFileSentOnInFutureException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementDistributorFileSentOnInFutureException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.distributor.file.sent.on.in.future",
+                new Object[]{e.getDistributorFileSentOn().toString(), e.getToday().toString()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE, null,
+                HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(DuplicatePartitionCoefficientSupplyException.class)

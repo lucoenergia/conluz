@@ -103,7 +103,8 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("AC14 the agreement's nominal power is stored as given, whatever the plant's own nominal power")
+    @DisplayName("AC14 SHA-001 the agreement's nominal power is stored as given, whatever the plant's own nominal power, "
+            + "and the created agreement has no distributor file sent date")
     void createsDraftAgreementWithSuppliedPowerAndCreator() throws Exception {
         String authHeader = loginAsCommunityAdmin(communityA.getId());
         // Deliberately different from plantA's nominalPowerKW, to prove the stored value comes
@@ -122,6 +123,7 @@ class CreateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.nominalPowerKW").value(nominalPowerKW.doubleValue()))
                 .andExpect(jsonPath("$.createdBy").isNotEmpty())
+                .andExpect(jsonPath("$.distributorFileSentOn").value(nullValue()))
                 .andExpect(jsonPath("$.file").value(nullValue()));
     }
 

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
@@ -47,6 +48,11 @@ public class SharingAgreementEntity {
      */
     @Column(name = "updated_by")
     private UUID updatedBy;
+    /**
+     * NULL means no sent date is recorded for the agreement's distributor file.
+     */
+    @Column(name = "distributor_file_sent_on")
+    private LocalDate distributorFileSentOn;
 
     public UUID getId() {
         return id;
@@ -126,5 +132,13 @@ public class SharingAgreementEntity {
 
     public void setUpdatedBy(UUID updatedBy) {
         this.updatedBy = updatedBy;
+    }
+
+    public LocalDate getDistributorFileSentOn() {
+        return distributorFileSentOn;
+    }
+
+    public void setDistributorFileSentOn(LocalDate distributorFileSentOn) {
+        this.distributorFileSentOn = distributorFileSentOn;
     }
 }

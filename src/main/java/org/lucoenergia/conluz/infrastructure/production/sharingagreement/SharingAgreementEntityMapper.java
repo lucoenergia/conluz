@@ -20,6 +20,7 @@ public class SharingAgreementEntityMapper extends BaseMapper<SharingAgreementEnt
                 .withCreatedBy(entity.getCreatedBy())
                 .withUpdatedAt(entity.getUpdatedAt())
                 .withUpdatedBy(entity.getUpdatedBy())
+                .withDistributorFileSentOn(entity.getDistributorFileSentOn())
                 .build();
     }
 }
