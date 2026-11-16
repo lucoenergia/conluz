@@ -101,6 +101,7 @@ final class CapabilityInventory {
         // the plant reports whether following it would succeed.
         report("canReadSupply", capability(SUPPLY, "canRead"), capability(PLANT, "canReadSupply"));
         report("canEditSupply", capability(SUPPLY, "canEdit"), capability(SUPPLY, "canDelete"));
+        report("canTransferSupplyOwnership", capability(SUPPLY, "canTransferOwnership"));
         report("canReadSupplyPartitionCoefficients", capability(SUPPLY, "canReadPartitionCoefficients"));
         report("canCreatePlant", capability(SUPPLY, "canCreatePlant"));
 

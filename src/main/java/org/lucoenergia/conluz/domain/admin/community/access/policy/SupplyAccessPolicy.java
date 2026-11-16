@@ -37,6 +37,17 @@ public class SupplyAccessPolicy {
     }
 
     /**
+     * Transferring a supply to another owner is a community-management act, like editing it (SUP-008): only a
+     * community admin of the supply's community may do it, and its owner is forbidden rather than not-found.
+     *
+     * <p>The same outcomes as {@link #canEdit} today, kept as its own rule so that the capability reporting it has
+     * a name of its own and the two can diverge without touching any call site.</p>
+     */
+    public AccessDecision canTransferOwnership(User caller, Supply supply) {
+        return canEdit(caller, supply);
+    }
+
+    /**
      * Whether the caller administers the supply's community. Never {@link AccessDecision#NOT_VISIBLE}:
      * this answers a question asked <em>after</em> a gate has passed, to shape a response the caller
      * is already entitled to, so an unknown supply is merely forbidden.

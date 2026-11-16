@@ -1576,6 +1576,9 @@
               "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_OWNED_BY_USER",
+              "SUPPLY_TRANSFER_DATE_IN_FUTURE",
+              "SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_REVERTIBLE",
@@ -1812,6 +1815,9 @@
               "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_OWNED_BY_USER",
+              "SUPPLY_TRANSFER_DATE_IN_FUTURE",
+              "SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_REVERTIBLE",
@@ -4097,6 +4103,9 @@
               "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_OWNED_BY_USER",
+              "SUPPLY_TRANSFER_DATE_IN_FUTURE",
+              "SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_REVERTIBLE",
@@ -4279,6 +4288,9 @@
               "SUPPLY_IMPORT_ROW_MALFORMED",
               "SUPPLY_HAS_PLANTS",
               "SUPPLY_HAS_PARTITION_COEFFICIENTS",
+              "SUPPLY_ALREADY_OWNED_BY_USER",
+              "SUPPLY_TRANSFER_DATE_IN_FUTURE",
+              "SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS",
               "SHARING_AGREEMENT_NOT_DRAFT",
               "SHARING_AGREEMENT_HAS_NO_COEFFICIENTS",
               "SHARING_AGREEMENT_NOT_REVERTIBLE",
@@ -4736,6 +4748,10 @@
           "canReadPartitionCoefficients" : {
             "description" : "Whether the caller may read this supply's partition coefficients. The same access reading the supply requires -- the coefficients describe the owner's own share.",
             "type" : "boolean"
+          },
+          "canTransferOwnership" : {
+            "description" : "Whether the caller may transfer this supply to another owner (POST /api/v1/supplies/{supplyId}/ownership/transfer). Only a community admin of the supply's community may; its owner may not.",
+            "type" : "boolean"
           }
         },
         "required" : [
@@ -4743,7 +4759,8 @@
           "canDelete",
           "canEdit",
           "canRead",
-          "canReadPartitionCoefficients"
+          "canReadPartitionCoefficients",
+          "canTransferOwnership"
         ],
         "type" : "object"
       },
@@ -5524,6 +5541,26 @@
             "type" : "string"
           }
         },
+        "type" : "object"
+      },
+      "TransferSupplyOwnershipBody" : {
+        "properties" : {
+          "effectiveDate" : {
+            "description" : "The date the new owner became the supply's holder at the distributor. It cannot be later than today, and must be later than the date of the supply's previous transfer.",
+            "example" : "2026-03-01",
+            "format" : "date",
+            "type" : "string"
+          },
+          "newOwnerPersonalId" : {
+            "description" : "The DNI/NIE/NIF of the member who becomes the supply's owner. It is normalised before the owner is looked up: whitespace (including the no-break space), dots and hyphens are removed and letters are upper-cased, so 12.345.678-a and 12345678A are the same identifier.",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "effectiveDate",
+          "newOwnerPersonalId"
+        ],
         "type" : "object"
       },
       "UpdateCommunityBody" : {
@@ -22875,6 +22912,187 @@
           }
         ],
         "summary" : "Retrieves aggregated energy metrics for a specific supply",
+        "tags" : [
+          "Supplies"
+        ]
+      }
+    },
+    "/api/v1/supplies/{supplyId}/ownership/transfer" : {
+      "post" : {
+        "description" : "Makes another member of the supply's community its owner, for example when the holder of the supply changes at the distributor. The new owner receives the supply's whole history: every read through the supply, and every figure of the new owner's membership, includes the periods before the transfer. The previous owner stops reading the supply, and their membership's figures no longer include it, also for the periods they owned it. Every transfer is recorded with the previous and the new owner, the effective date, who made it and when.\n\n**Required: Community Admin of the supply's community.** The supply's owner is answered 403. Anyone who cannot see the supply, a platform admin included, is answered 404.\n\nThe new owner identified by `newOwnerPersonalId` must have a membership in the supply's community, in any state: pending and disabled memberships count. A new owner who has none is reported as not found (404, `SUPPLY_OWNER_NOT_FOUND`), exactly like a `newOwnerPersonalId` that matches no user. Transferring the supply to its current owner is answered 409 `SUPPLY_ALREADY_OWNED_BY_USER`.\n\nThe `effectiveDate` cannot be later than today in the community's time zone (400 `SUPPLY_TRANSFER_DATE_IN_FUTURE`), and must be later than the effective date of the supply's previous transfer (409 `SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS`). When the request is refused, nothing is changed.\n\nFrom the next Datadis synchronisation, the supply's consumption is requested with the new owner's DNI/NIE/NIF.\n",
+        "operationId" : "transferSupplyOwnership",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "supplyId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TransferSupplyOwnershipBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SupplyResponse"
+                }
+              }
+            },
+            "description" : "Supply transferred successfully. The response is the supply with its new owner."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Already owned by the user" : {
+                    "description" : "Already owned by the user",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "SUPPLY_ALREADY_OWNED_BY_USER",
+                          "message" : "This member already owns the supply, so there is nothing to transfer.",
+                          "params" : { }
+                        }
+                      ],
+                      "message" : "This member already owns the supply, so there is nothing to transfer.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Date not after the previous transfer" : {
+                    "description" : "Date not after the previous transfer",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS",
+                          "message" : "The transfer date must be later than the date of the previous transfer of the supply.",
+                          "params" : { }
+                        }
+                      ],
+                      "message" : "The transfer date must be later than the date of the previous transfer of the supply.",
+                      "status" : 409,
+                      "timestamp" : "2026-10-17T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The new owner already owns the supply, or the effective date is not later than the date of the supply's previous transfer. Nothing is changed."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Transfers a supply to another member of its community",
         "tags" : [
           "Supplies"
         ]

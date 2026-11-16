@@ -40,7 +40,8 @@ class CapabilitySerializationTest {
                         "canCreatePlants", "canReadProduction", "canListSupplies"));
 
         assertKeys(SupplyCapabilitiesResponse.builder().build(),
-                Set.of("canRead", "canEdit", "canDelete", "canReadPartitionCoefficients", "canCreatePlant"));
+                Set.of("canRead", "canEdit", "canDelete", "canReadPartitionCoefficients", "canCreatePlant",
+                        "canTransferOwnership"));
 
         assertKeys(PlantCapabilitiesResponse.builder().build(),
                 Set.of("canRead", "canManage", "canListSharingAgreements", "canManageSharingAgreements",

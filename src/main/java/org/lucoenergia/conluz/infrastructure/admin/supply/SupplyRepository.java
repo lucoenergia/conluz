@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -61,6 +62,18 @@ public interface SupplyRepository extends JpaRepository<SupplyEntity, UUID>, Jpa
      */
     @Query(value = "SELECT id FROM supplies WHERE id = :supplyId FOR KEY SHARE", nativeQuery = true)
     Optional<UUID> lockAsReferencedById(@Param("supplyId") UUID supplyId);
+
+    /**
+     * The only write of a supply's owner: {@code SupplyEntity.user} is not updatable, so no save of the entity writes
+     * it (#585). A bulk update, so it reaches the database when it is called; {@code flushAutomatically} writes anything
+     * already pending first, and {@code clearAutomatically} then drops the supply loaded with its previous owner from
+     * the persistence context.
+     *
+     * @return the number of supplies updated: 1, or 0 if there is no such supply
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = "UPDATE supplies SET user_id = :userId WHERE id = :supplyId", nativeQuery = true)
+    int updateOwner(@Param("supplyId") UUID supplyId, @Param("userId") UUID userId);
 
     @EntityGraph(attributePaths = {"user", "community", "contract", "distributor", "shelly"})
     List<SupplyEntity> findByUserId(UUID userId);

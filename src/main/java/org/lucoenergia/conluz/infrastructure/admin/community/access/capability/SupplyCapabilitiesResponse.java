@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * the agreement's {@code status} that says the action would be rejected right now. Clients read
  * both.</p>
  */
-@Schema(description = "What the caller may do with this supply.", requiredProperties = {"canRead", "canEdit", "canDelete", "canReadPartitionCoefficients", "canCreatePlant"})
+@Schema(description = "What the caller may do with this supply.", requiredProperties = {"canRead", "canEdit", "canDelete", "canReadPartitionCoefficients", "canCreatePlant", "canTransferOwnership"})
 public class SupplyCapabilitiesResponse {
 
     @Schema(description = "Whether the caller may read this supply and its consumption and production series.")
@@ -29,12 +29,16 @@ public class SupplyCapabilitiesResponse {
     @Schema(description = "Whether the caller may create a plant on this supply (POST /api/v1/plants).")
     private final boolean canCreatePlant;
 
+    @Schema(description = "Whether the caller may transfer this supply to another owner (POST /api/v1/supplies/{supplyId}/ownership/transfer). Only a community admin of the supply's community may; its owner may not.")
+    private final boolean canTransferOwnership;
+
     private SupplyCapabilitiesResponse(Builder builder) {
         this.canRead = builder.canRead;
         this.canEdit = builder.canEdit;
         this.canDelete = builder.canDelete;
         this.canReadPartitionCoefficients = builder.canReadPartitionCoefficients;
         this.canCreatePlant = builder.canCreatePlant;
+        this.canTransferOwnership = builder.canTransferOwnership;
     }
 
     public boolean isCanRead() {
@@ -57,6 +61,10 @@ public class SupplyCapabilitiesResponse {
         return canCreatePlant;
     }
 
+    public boolean isCanTransferOwnership() {
+        return canTransferOwnership;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -72,6 +80,7 @@ public class SupplyCapabilitiesResponse {
         private boolean canDelete;
         private boolean canReadPartitionCoefficients;
         private boolean canCreatePlant;
+        private boolean canTransferOwnership;
 
         public Builder withCanRead(boolean canRead) {
             this.canRead = canRead;
@@ -95,6 +104,11 @@ public class SupplyCapabilitiesResponse {
 
         public Builder withCanCreatePlant(boolean canCreatePlant) {
             this.canCreatePlant = canCreatePlant;
+            return this;
+        }
+
+        public Builder withCanTransferOwnership(boolean canTransferOwnership) {
+            this.canTransferOwnership = canTransferOwnership;
             return this;
         }
 
