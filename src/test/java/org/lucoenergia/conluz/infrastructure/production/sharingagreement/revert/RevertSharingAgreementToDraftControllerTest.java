@@ -208,6 +208,7 @@ class RevertSharingAgreementToDraftControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(publishedAgreement.getId().toString()))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.distributorFileSentOn").value(nullValue()))
                 .andExpect(jsonPath("$.file").value(nullValue()));
 
         // No coefficient side effect: only the agreement's status changed.

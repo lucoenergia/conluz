@@ -140,6 +140,7 @@ class GetSharingAgreementByIdControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.id").value(agreementOfPlantA.getId().toString()))
                 .andExpect(jsonPath("$.plantId").value(plantA.getId().toString()))
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.distributorFileSentOn").value(nullValue()))
                 .andExpect(jsonPath("$.file").value(nullValue()));
     }
 

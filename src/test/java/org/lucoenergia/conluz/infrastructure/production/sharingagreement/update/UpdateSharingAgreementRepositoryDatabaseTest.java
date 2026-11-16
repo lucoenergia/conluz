@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.update;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -31,6 +32,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -93,6 +95,14 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
                 .withNotes(notes)
                 .withNominalPowerKW(nominalPowerKW)
                 .withUpdatedBy(updatedBy)
+                .build();
+    }
+
+    private UpdateSharingAgreement anUpdateSentOn(LocalDate distributorFileSentOn) {
+        return new UpdateSharingAgreement.Builder()
+                .withName("New name")
+                .withNominalPowerKW(BigDecimal.valueOf(9.5))
+                .withDistributorFileSentOn(distributorFileSentOn)
                 .build();
     }
 
@@ -205,5 +215,33 @@ class UpdateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertThrows(SharingAgreementNotFoundException.class,
                 () -> repository.update(plant.getId(), UUID.randomUUID(),
                         anUpdate("New name", "New notes", BigDecimal.ONE)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(SharingAgreementStatus.class)
+    @DisplayName("SHA-001 the distributor file sent date is stored and read back, in any state")
+    void update_storesTheDistributorFileSentOn_regardlessOfStatus(SharingAgreementStatus status) {
+        PlantEntity plant = persistPlant();
+        SharingAgreementEntity entity = persistAgreement(plant, status);
+        LocalDate sentOn = LocalDate.of(2025, 11, 3);
+
+        SharingAgreement result = repository.update(plant.getId(), entity.getId(), anUpdateSentOn(sentOn));
+
+        assertEquals(sentOn, result.getDistributorFileSentOn());
+        assertEquals(status, result.getStatus());
+        assertEquals(sentOn, sharingAgreementRepository.findById(entity.getId()).orElseThrow().getDistributorFileSentOn());
+    }
+
+    @Test
+    @DisplayName("SHA-001 an update without a distributor file sent date clears the stored one")
+    void update_clearsTheDistributorFileSentOn_whenTheUpdateHasNone() {
+        PlantEntity plant = persistPlant();
+        SharingAgreementEntity entity = persistAgreement(plant);
+        repository.update(plant.getId(), entity.getId(), anUpdateSentOn(LocalDate.of(2025, 11, 3)));
+
+        SharingAgreement result = repository.update(plant.getId(), entity.getId(), anUpdateSentOn(null));
+
+        assertNull(result.getDistributorFileSentOn());
+        assertNull(sharingAgreementRepository.findById(entity.getId()).orElseThrow().getDistributorFileSentOn());
     }
 }

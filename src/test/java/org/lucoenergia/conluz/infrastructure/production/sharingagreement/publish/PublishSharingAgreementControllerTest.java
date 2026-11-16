@@ -201,6 +201,7 @@ class PublishSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(draftAgreement.getId().toString()))
                 .andExpect(jsonPath("$.status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.distributorFileSentOn").value(nullValue()))
                 .andExpect(jsonPath("$.file").value(nullValue()));
     }
 

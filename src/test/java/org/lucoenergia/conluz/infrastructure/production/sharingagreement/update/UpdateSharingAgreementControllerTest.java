@@ -24,6 +24,7 @@ import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantReposito
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
@@ -39,7 +40,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,6 +53,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -77,6 +83,8 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
     @Autowired
     private GetSupplyPartitionCoefficientRepository getCoefficientRepository;
+    @Autowired
+    private ZoneResolver zoneResolver;
 
     private Community communityA;
     private Community communityB;
@@ -317,6 +325,155 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.file.filename").value("distributor.txt"));
     }
 
+    @ParameterizedTest
+    @EnumSource(SharingAgreementStatus.class)
+    @DisplayName("SHA-001 a past distributor file sent date is stored and returned in any state, with the edit recorded")
+    void storesAPastDistributorFileSentOn_inAnyState(SharingAgreementStatus status) throws Exception {
+        SharingAgreementEntity agreement = createAgreement(plantA, status);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        LocalDate sentOn = today().minusDays(10);
+
+        mockMvc.perform(put(url(plantA.getId(), agreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithSentOn(sentOn.toString())))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.distributorFileSentOn").value(sentOn.toString()))
+                .andExpect(jsonPath("$.status").value(status.name()));
+
+        SharingAgreementEntity persisted = sharingAgreementRepository.findById(agreement.getId()).orElseThrow();
+        assertEquals(sentOn, persisted.getDistributorFileSentOn());
+        assertEquals(status, persisted.getStatus());
+        assertNotNull(persisted.getUpdatedAt());
+        assertNotNull(persisted.getUpdatedBy());
+    }
+
+    @Test
+    @DisplayName("SHA-001 today in the application time zone is accepted, even while it is still the day before in UTC")
+    void acceptsTodayInTheApplicationZone_whileUtcIsStillOnThePreviousDay() throws Exception {
+        ZoneId zone = zoneResolver.resolveApplicationZoneId();
+        // Half an hour into a coming local day: in a zone ahead of UTC, the UTC date is still the day before.
+        LocalDate localDay = today().plusDays(2);
+        Instant halfPastLocalMidnight = localDay.atStartOfDay(zone).plusMinutes(30).toInstant();
+        assertNotEquals(localDay, LocalDate.ofInstant(halfPastLocalMidnight, ZoneOffset.UTC),
+                "the application zone must be ahead of UTC for this test to tell the two dates apart");
+        advanceTo(halfPastLocalMidnight);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        putSentOn(authHeader, draftAgreement, localDay);
+
+        assertEquals(localDay, sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow()
+                .getDistributorFileSentOn());
+    }
+
+    @Test
+    @DisplayName("SHA-001 a future distributor file sent date is refused with 400, and nothing is updated")
+    void refusesAFutureDistributorFileSentOn_andChangesNothing() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        LocalDate stored = today().minusDays(3);
+        putSentOn(authHeader, draftAgreement, stored);
+        SharingAgreementEntity before = sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow();
+        String nameBefore = before.getName();
+        Instant updatedAtBefore = before.getUpdatedAt();
+        clock.advance(Duration.ofMinutes(1));
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Other name\",\"nominalPowerKW\":7,\"distributorFileSentOn\":\""
+                                + today().plusDays(1) + "\"}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE"));
+
+        SharingAgreementEntity persisted = sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow();
+        assertEquals(stored, persisted.getDistributorFileSentOn());
+        assertEquals(nameBefore, persisted.getName());
+        assertEquals(updatedAtBefore, persisted.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("SHA-001 an explicit null clears a stored distributor file sent date")
+    void anExplicitNullClearsTheDistributorFileSentOn() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        putSentOn(authHeader, draftAgreement, today().minusDays(1));
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithSentOn(null)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.distributorFileSentOn").value(nullValue()));
+
+        assertNull(sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow().getDistributorFileSentOn());
+    }
+
+    @Test
+    @DisplayName("SHA-001 omitting the distributor file sent date clears it, because the PUT replaces every updatable field, as with notes")
+    void omittingTheDistributorFileSentOnClearsIt() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        putSentOn(authHeader, draftAgreement, today().minusDays(1));
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("New name", "5.5")))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.distributorFileSentOn").value(nullValue()));
+
+        assertNull(sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow().getDistributorFileSentOn());
+    }
+
+    @Test
+    @DisplayName("SHA-001 a sent date later than the agreement's earliest coefficient validFrom is accepted: it is never checked against coefficient dates")
+    void acceptsASentDateLaterThanTheEarliestCoefficientValidFrom() throws Exception {
+        SharingAgreementEntity published = createAgreement(plantA, SharingAgreementStatus.PUBLISHED);
+        LocalDate appliedOn = today().minusDays(20);
+        persistCoefficient(createSupply(communityA), published, BigDecimal.ONE,
+                appliedOn.atStartOfDay(zoneResolver.resolveApplicationZoneId()).toInstant(), null);
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        putSentOn(authHeader, published, appliedOn.plusDays(5));
+
+        assertEquals(appliedOn.plusDays(5), sharingAgreementRepository.findById(published.getId()).orElseThrow()
+                .getDistributorFileSentOn());
+    }
+
+    @Test
+    @DisplayName("SHA-001 the distributor file sent date is read back by getSharingAgreementById and getSharingAgreements")
+    void theDistributorFileSentOnIsReadBack() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+        LocalDate sentOn = today().minusDays(2);
+        putSentOn(authHeader, draftAgreement, sentOn);
+
+        mockMvc.perform(get(url(plantA.getId(), draftAgreement.getId())).header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.distributorFileSentOn").value(sentOn.toString()));
+        mockMvc.perform(get("/api/v1/plants/" + plantA.getId() + "/sharing-agreements")
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == '" + draftAgreement.getId() + "')].distributorFileSentOn")
+                        .value(contains(sentOn.toString())));
+    }
+
+    @Test
+    @DisplayName("SHA-001 a community member cannot set the distributor file sent date: 403, and nothing is stored")
+    void communityMemberCannotSetTheDistributorFileSentOn() throws Exception {
+        String authHeader = loginAsCommunityMember(communityA.getId());
+
+        mockMvc.perform(put(url(plantA.getId(), draftAgreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithSentOn(today().minusDays(1).toString())))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        assertNull(sharingAgreementRepository.findById(draftAgreement.getId()).orElseThrow().getDistributorFileSentOn());
+    }
+
     private Plant createPlant(Community community) {
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);
@@ -326,6 +483,7 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
         return createPlantRepository.create(plant, SupplyId.of(supply.getId()));
     }
 
+    // Saves the entity directly: no repository creates an agreement already PUBLISHED or SUPERSEDED.
     private SharingAgreementEntity createAgreement(Plant plant, SharingAgreementStatus status) {
         PlantEntity plantEntity = plantRepository.getReferenceById(plant.getId());
         SharingAgreementEntity agreement = new SharingAgreementEntity();
@@ -361,6 +519,24 @@ class UpdateSharingAgreementControllerTest extends BaseControllerTest {
 
     private String body(String name, String nominalPowerKW) {
         return "{\"name\":\"" + name + "\",\"nominalPowerKW\":" + nominalPowerKW + "}";
+    }
+
+    private String bodyWithSentOn(String sentOn) {
+        return "{\"name\":\"New name\",\"nominalPowerKW\":5.5,\"distributorFileSentOn\":"
+                + (sentOn == null ? "null" : "\"" + sentOn + "\"") + "}";
+    }
+
+    private LocalDate today() {
+        return LocalDate.now(clock.withZone(zoneResolver.resolveApplicationZoneId()));
+    }
+
+    private void putSentOn(String authHeader, SharingAgreementEntity agreement, LocalDate sentOn) throws Exception {
+        mockMvc.perform(put(url(plantA.getId(), agreement.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bodyWithSentOn(sentOn.toString())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.distributorFileSentOn").value(sentOn.toString()));
     }
 
     private String url(UUID plantId, UUID agreementId) {
