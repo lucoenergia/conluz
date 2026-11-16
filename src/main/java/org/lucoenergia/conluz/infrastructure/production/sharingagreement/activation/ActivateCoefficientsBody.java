@@ -12,8 +12,9 @@ import java.util.UUID;
 public class ActivateCoefficientsBody {
 
     @NotNull
-    @Schema(description = "The date the distributor applied these coefficients (or the corrected " +
-            "date, if any of them are already active). Backdating is allowed; future dates are rejected.",
+    @Schema(description = "First day the coefficient applies; stored as validFrom. The date the " +
+            "distributor applied these coefficients (or the corrected date, if any of them are already " +
+            "active). Backdating is allowed; future dates are rejected.",
             example = "2026-03-01")
     private LocalDate appliedOn;
 

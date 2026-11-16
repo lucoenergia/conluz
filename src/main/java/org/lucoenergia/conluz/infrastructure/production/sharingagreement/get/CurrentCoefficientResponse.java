@@ -18,7 +18,8 @@ public class CurrentCoefficientResponse {
     @Schema(description = "The coefficient value currently in force, on a 0-1 scale", example = "0.030763")
     private final BigDecimal coefficient;
 
-    @Schema(description = "When this coefficient took effect (inclusive)", example = "2024-05-23T00:00:00Z")
+    @Schema(description = "First day the coefficient applies (inclusive), at local midnight in the application time zone.",
+            example = "2024-05-22T22:00:00Z")
     private final Instant validFrom;
 
     @Schema(description = "The agreement that authored the coefficient currently in force. May be the " +

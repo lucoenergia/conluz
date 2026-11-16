@@ -12,8 +12,9 @@ import java.util.UUID;
 public class CloseCoefficientsBody {
 
     @NotNull
-    @Schema(description = "The date this coefficient's coverage ends (the exit case: the supply left " +
-            "the distribution), or the corrected date if it was already closed by an earlier call.",
+    @Schema(description = "First day the coefficient no longer applies (exclusive); stored as validTo. " +
+            "Used for the exit case (the supply left the distribution), or as the corrected date if it " +
+            "was already closed by an earlier call.",
             example = "2026-03-01")
     private LocalDate closedOn;
 

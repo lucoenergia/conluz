@@ -48,7 +48,7 @@
       "ActivateCoefficientsBody" : {
         "properties" : {
           "appliedOn" : {
-            "description" : "The date the distributor applied these coefficients (or the corrected date, if any of them are already active). Backdating is allowed; future dates are rejected.",
+            "description" : "First day the coefficient applies; stored as validFrom. The date the distributor applied these coefficients (or the corrected date, if any of them are already active). Backdating is allowed; future dates are rejected.",
             "example" : "2026-03-01",
             "format" : "date",
             "type" : "string"
@@ -90,7 +90,7 @@
       "CloseCoefficientsBody" : {
         "properties" : {
           "closedOn" : {
-            "description" : "The date this coefficient's coverage ends (the exit case: the supply left the distribution), or the corrected date if it was already closed by an earlier call.",
+            "description" : "First day the coefficient no longer applies (exclusive); stored as validTo. Used for the exit case (the supply left the distribution), or as the corrected date if it was already closed by an earlier call.",
             "example" : "2026-03-01",
             "format" : "date",
             "type" : "string"
@@ -1155,8 +1155,8 @@
             "description" : "The agreement that authored the coefficient currently in force. May be the agreement being viewed, or an earlier one."
           },
           "validFrom" : {
-            "description" : "When this coefficient took effect (inclusive)",
-            "example" : "2024-05-23T00:00:00Z",
+            "description" : "First day the coefficient applies (inclusive), at local midnight in the application time zone.",
+            "example" : "2024-05-22T22:00:00Z",
             "format" : "date-time",
             "type" : "string"
           }
@@ -3161,8 +3161,8 @@
             "description" : "Supply this coefficient belongs to"
           },
           "validFrom" : {
-            "description" : "Start of the period during which this coefficient is active (inclusive). Null means this is a pending coefficient, materialised but not yet activated.",
-            "example" : "2024-05-23T00:00:00Z",
+            "description" : "First day the coefficient applies (inclusive), at local midnight in the application time zone. Null means this is a pending coefficient, materialised but not yet activated.",
+            "example" : "2024-05-22T22:00:00Z",
             "format" : "date-time",
             "type" : [
               "string",
@@ -3170,8 +3170,8 @@
             ]
           },
           "validTo" : {
-            "description" : "End of the period (exclusive). Null means the period is still open; combined with a non-null validFrom that makes this the currently active coefficient for its plant.",
-            "example" : "2025-01-01T00:00:00Z",
+            "description" : "First day the coefficient no longer applies (exclusive end of a half-open period [validFrom, validTo)). Null when the period is open; combined with a non-null validFrom that makes this the currently active coefficient for its plant.",
+            "example" : "2024-12-31T23:00:00Z",
             "format" : "date-time",
             "type" : [
               "string",
@@ -4528,8 +4528,8 @@
             ]
           },
           "endDate" : {
-            "description" : "The effective end of this coefficient's coverage. Present only when endState is DERIVED or CLOSED.",
-            "example" : "2025-01-01T00:00:00Z",
+            "description" : "The effective end of this coefficient's coverage: the first day the coefficient no longer applies (exclusive end of a half-open period [validFrom, endDate)). Present only when endState is DERIVED or CLOSED.",
+            "example" : "2024-12-31T23:00:00Z",
             "format" : "date-time",
             "type" : [
               "string",
@@ -4552,8 +4552,8 @@
             "description" : "Supply this coefficient belongs to"
           },
           "validFrom" : {
-            "description" : "Start of the period during which this coefficient is active (inclusive). Null means this is a pending coefficient, materialised but not yet activated.",
-            "example" : "2024-05-23T00:00:00Z",
+            "description" : "First day the coefficient applies (inclusive), at local midnight in the application time zone. Null means this is a pending coefficient, materialised but not yet activated.",
+            "example" : "2024-05-22T22:00:00Z",
             "format" : "date-time",
             "type" : [
               "string",
@@ -4561,8 +4561,8 @@
             ]
           },
           "validTo" : {
-            "description" : "End of the period (exclusive), as stored. Null unless explicitly closed.",
-            "example" : "2025-01-01T00:00:00Z",
+            "description" : "First day the coefficient no longer applies (exclusive end of a half-open period [validFrom, validTo)), as stored. Null when the period is open.",
+            "example" : "2024-12-31T23:00:00Z",
             "format" : "date-time",
             "type" : [
               "string",
