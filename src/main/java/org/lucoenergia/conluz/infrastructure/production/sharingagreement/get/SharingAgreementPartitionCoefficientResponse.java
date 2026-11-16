@@ -23,13 +23,14 @@ public class SharingAgreementPartitionCoefficientResponse {
     @Schema(description = "Partition coefficient value, on a 0-1 scale", example = "0.030763")
     private final BigDecimal coefficient;
 
-    @Schema(description = "Start of the period during which this coefficient is active (inclusive). " +
+    @Schema(description = "First day the coefficient applies (inclusive), at local midnight in the application time zone. " +
             "Null means this is a pending coefficient, materialised but not yet activated.",
-            example = "2024-05-23T00:00:00Z", types = {"string", "null"})
+            example = "2024-05-22T22:00:00Z", types = {"string", "null"})
     private final Instant validFrom;
 
-    @Schema(description = "End of the period (exclusive), as stored. Null unless explicitly closed.",
-            example = "2025-01-01T00:00:00Z", types = {"string", "null"})
+    @Schema(description = "First day the coefficient no longer applies (exclusive end of a half-open " +
+            "period [validFrom, validTo)), as stored. Null when the period is open.",
+            example = "2024-12-31T23:00:00Z", types = {"string", "null"})
     private final Instant validTo;
 
     @Schema(description = "Whether the distributor has applied this coefficient yet")
@@ -38,8 +39,9 @@ public class SharingAgreementPartitionCoefficientResponse {
     @Schema(description = "How/why this coefficient's coverage ends")
     private final CoefficientEndState endState;
 
-    @Schema(description = "The effective end of this coefficient's coverage. Present only when " +
-            "endState is DERIVED or CLOSED.", example = "2025-01-01T00:00:00Z", types = {"string", "null"})
+    @Schema(description = "The effective end of this coefficient's coverage: the first day the " +
+            "coefficient no longer applies (exclusive end of a half-open period [validFrom, endDate)). " +
+            "Present only when endState is DERIVED or CLOSED.", example = "2024-12-31T23:00:00Z", types = {"string", "null"})
     private final Instant endDate;
 
     @Schema(description = "The coefficient this supply is currently on in this agreement's plant -- " +
