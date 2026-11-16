@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreemen
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -23,6 +24,7 @@ public class SharingAgreement {
     private final UUID createdBy;
     private final Instant updatedAt;
     private final UUID updatedBy;
+    private final LocalDate distributorFileSentOn;
     private final SharingAgreementFileSummary file;
 
     private SharingAgreement(Builder builder) {
@@ -36,6 +38,7 @@ public class SharingAgreement {
         this.createdBy = builder.createdBy;
         this.updatedAt = builder.updatedAt;
         this.updatedBy = builder.updatedBy;
+        this.distributorFileSentOn = builder.distributorFileSentOn;
         this.file = builder.file;
     }
 
@@ -79,6 +82,14 @@ public class SharingAgreement {
         return updatedBy;
     }
 
+    /**
+     * The local date the agreement's distributor file was sent to the distributor. {@code null} means no
+     * sent date is recorded.
+     */
+    public LocalDate getDistributorFileSentOn() {
+        return distributorFileSentOn;
+    }
+
     public SharingAgreementFileSummary getFile() {
         return file;
     }
@@ -101,6 +112,7 @@ public class SharingAgreement {
                 .withCreatedBy(createdBy)
                 .withUpdatedAt(updatedAt)
                 .withUpdatedBy(updatedBy)
+                .withDistributorFileSentOn(distributorFileSentOn)
                 .withFile(file)
                 .build();
     }
@@ -155,6 +167,7 @@ public class SharingAgreement {
         private UUID createdBy;
         private Instant updatedAt;
         private UUID updatedBy;
+        private LocalDate distributorFileSentOn;
         private SharingAgreementFileSummary file;
 
         public Builder withId(UUID id) {
@@ -204,6 +217,11 @@ public class SharingAgreement {
 
         public Builder withUpdatedBy(UUID updatedBy) {
             this.updatedBy = updatedBy;
+            return this;
+        }
+
+        public Builder withDistributorFileSentOn(LocalDate distributorFileSentOn) {
+            this.distributorFileSentOn = distributorFileSentOn;
             return this;
         }
 

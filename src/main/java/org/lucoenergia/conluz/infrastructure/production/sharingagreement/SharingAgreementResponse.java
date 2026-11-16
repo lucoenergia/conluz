@@ -4,13 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.SharingAgreementCapabilitiesResponse;
 
-@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "nominalPowerKW", "createdAt", "createdBy", "updatedAt", "updatedBy", "file", "capabilities"})
+@Schema(requiredProperties = {"id", "plantId", "name", "notes", "status", "nominalPowerKW", "createdAt", "createdBy", "updatedAt", "updatedBy", "distributorFileSentOn", "file", "capabilities"})
 public class SharingAgreementResponse {
 
     @Schema(description = "Internal unique identifier of the sharing agreement", example = "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c")
@@ -33,6 +34,8 @@ public class SharingAgreementResponse {
     private final Instant updatedAt;
     @Schema(description = "Identifier of the user who last edited the agreement. Null means it has never been edited since creation", types = {"string", "null"})
     private final UUID updatedBy;
+    @Schema(description = "Day the agreement's distributor file was sent to the distributor (local date). Optional. Lower bound from which the distributor is expected to apply the coefficients.", types = {"string", "null"})
+    private final LocalDate distributorFileSentOn;
     @Schema(description = "Metadata of the latest evidence file uploaded for this agreement. Null means no file has been uploaded, never that it wasn't loaded", types = {"object", "null"})
     private final SharingAgreementFileResponse file;
 
@@ -51,6 +54,7 @@ public class SharingAgreementResponse {
         this.createdBy = sharingAgreement.getCreatedBy();
         this.updatedAt = sharingAgreement.getUpdatedAt();
         this.updatedBy = sharingAgreement.getUpdatedBy();
+        this.distributorFileSentOn = sharingAgreement.getDistributorFileSentOn();
         this.file = sharingAgreement.getFile() == null ? null : new SharingAgreementFileResponse(
                 sharingAgreement.getFile().getId(),
                 sharingAgreement.getFile().getFilename(),
@@ -96,6 +100,10 @@ public class SharingAgreementResponse {
 
     public UUID getUpdatedBy() {
         return updatedBy;
+    }
+
+    public LocalDate getDistributorFileSentOn() {
+        return distributorFileSentOn;
     }
 
     public SharingAgreementFileResponse getFile() {

@@ -44,6 +44,7 @@ public class UpdateSharingAgreementRepositoryDatabase implements UpdateSharingAg
         entity.setName(update.getName());
         entity.setNotes(update.getNotes());
         entity.setNominalPowerKW(update.getNominalPowerKW());
+        entity.setDistributorFileSentOn(update.getDistributorFileSentOn());
         entity.setUpdatedAt(clock.instant());
         entity.setUpdatedBy(update.getUpdatedBy());
 

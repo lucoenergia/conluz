@@ -1585,6 +1585,7 @@
               "SHARING_AGREEMENT_NOT_PUBLISHED",
               "SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT",
               "SHARING_AGREEMENT_DATE_IN_FUTURE",
+              "SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR",
               "SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR",
@@ -1821,6 +1822,7 @@
               "SHARING_AGREEMENT_NOT_PUBLISHED",
               "SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT",
               "SHARING_AGREEMENT_DATE_IN_FUTURE",
+              "SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR",
               "SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR",
@@ -4106,6 +4108,7 @@
               "SHARING_AGREEMENT_NOT_PUBLISHED",
               "SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT",
               "SHARING_AGREEMENT_DATE_IN_FUTURE",
+              "SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR",
               "SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR",
@@ -4288,6 +4291,7 @@
               "SHARING_AGREEMENT_NOT_PUBLISHED",
               "SHARING_AGREEMENT_COEFFICIENT_NOT_IN_AGREEMENT",
               "SHARING_AGREEMENT_DATE_IN_FUTURE",
+              "SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR",
               "SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR",
               "SHARING_AGREEMENT_COEFFICIENT_HAS_SUCCESSOR",
@@ -4633,6 +4637,14 @@
               "null"
             ]
           },
+          "distributorFileSentOn" : {
+            "description" : "Day the agreement's distributor file was sent to the distributor (local date). Optional. Lower bound from which the distributor is expected to apply the coefficients.",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "file" : {
             "$ref" : "#/components/schemas/SharingAgreementFileResponse",
             "description" : "Metadata of the latest evidence file uploaded for this agreement. Null means no file has been uploaded, never that it wasn't loaded",
@@ -4702,6 +4714,7 @@
           "capabilities",
           "createdAt",
           "createdBy",
+          "distributorFileSentOn",
           "file",
           "id",
           "name",
@@ -5692,6 +5705,15 @@
       },
       "UpdateSharingAgreementBody" : {
         "properties" : {
+          "distributorFileSentOn" : {
+            "description" : "Day the agreement's distributor file was sent to the distributor (local date). Optional. Lower bound from which the distributor is expected to apply the coefficients.",
+            "example" : "2026-03-01",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "name" : {
             "description" : "Human-readable label for the agreement",
             "example" : "Reparto 2025-2026",
@@ -18626,7 +18648,7 @@
         ]
       },
       "put" : {
-        "description" : "This endpoint replaces the name, notes and nominal power of a sharing agreement,\nregardless of its status: DRAFT, PUBLISHED and SUPERSEDED agreements can all be\nedited this way. All three fields must be provided; this is a full replacement of\nthe updatable fields, not a partial update. Its status, plant and creation metadata\ncan never be changed through this endpoint. The acting user and the time of the\nedit are recorded as updatedBy/updatedAt on the returned agreement.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "This endpoint replaces the name, notes, nominal power and distributor file sent date\nof a sharing agreement, regardless of its status: DRAFT, PUBLISHED and SUPERSEDED\nagreements can all be edited this way. This is a full replacement of the updatable\nfields, not a partial update: name and nominal power must be provided, and notes or\nthe distributor file sent date, when omitted or null, are cleared. A distributor file\nsent date after today, in the application time zone, is rejected with 400\n(SHARING_AGREEMENT_DISTRIBUTOR_FILE_SENT_ON_IN_FUTURE). Its status, plant and creation metadata\ncan never be changed through this endpoint. The acting user and the time of the\nedit are recorded as updatedBy/updatedAt on the returned agreement.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "updateSharingAgreement",
         "parameters" : [
           {
@@ -18764,7 +18786,7 @@
             "bearerToken" : [ ]
           }
         ],
-        "summary" : "Replaces a sharing agreement's name, notes and nominal power",
+        "summary" : "Replaces a sharing agreement's name, notes, nominal power and distributor file sent date",
         "tags" : [
           "Sharing agreements"
         ]

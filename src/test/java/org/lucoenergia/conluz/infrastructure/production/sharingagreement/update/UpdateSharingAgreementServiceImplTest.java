@@ -9,10 +9,14 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSh
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.update.UpdateSharingAgreementServiceImpl;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,9 +28,12 @@ class UpdateSharingAgreementServiceImplTest {
 
     @Mock
     private UpdateSharingAgreementRepository repository;
+    @Mock
+    private ZoneResolver zoneResolver;
+    private final Clock clock = Clock.fixed(Instant.parse("2026-03-10T10:00:00Z"), ZoneOffset.UTC);
 
     private UpdateSharingAgreementServiceImpl service() {
-        return new UpdateSharingAgreementServiceImpl(repository);
+        return new UpdateSharingAgreementServiceImpl(repository, zoneResolver, clock);
     }
 
     private UpdateSharingAgreement anUpdate() {

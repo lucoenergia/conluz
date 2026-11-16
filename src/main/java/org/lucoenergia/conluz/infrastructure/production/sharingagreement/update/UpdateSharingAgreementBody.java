@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreement;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Schema(requiredProperties = {"name", "nominalPowerKW"})
@@ -21,6 +22,10 @@ public class UpdateSharingAgreementBody {
     @NotNull
     @Positive
     private BigDecimal nominalPowerKW;
+    @Schema(description = "Day the agreement's distributor file was sent to the distributor (local date). Optional. "
+            + "Lower bound from which the distributor is expected to apply the coefficients.",
+            example = "2026-03-01", types = {"string", "null"})
+    private LocalDate distributorFileSentOn;
 
     public String getName() {
         return name;
@@ -46,11 +51,20 @@ public class UpdateSharingAgreementBody {
         this.nominalPowerKW = nominalPowerKW;
     }
 
+    public LocalDate getDistributorFileSentOn() {
+        return distributorFileSentOn;
+    }
+
+    public void setDistributorFileSentOn(LocalDate distributorFileSentOn) {
+        this.distributorFileSentOn = distributorFileSentOn;
+    }
+
     public UpdateSharingAgreement mapToUpdateSharingAgreement(UUID updatedBy) {
         return new UpdateSharingAgreement.Builder()
                 .withName(name)
                 .withNotes(notes)
                 .withNominalPowerKW(nominalPowerKW)
+                .withDistributorFileSentOn(distributorFileSentOn)
                 .withUpdatedBy(updatedBy)
                 .build();
     }
