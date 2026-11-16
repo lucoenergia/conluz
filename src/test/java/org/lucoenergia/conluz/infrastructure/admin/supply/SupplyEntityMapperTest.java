@@ -40,4 +40,15 @@ class SupplyEntityMapperTest {
         Assertions.assertEquals(shelly.getId(), result.getShelly().getId());
         Assertions.assertEquals(shelly.getMqttPrefix(), result.getShelly().getMqttPrefix());
     }
+
+    @Test
+    void aSupplyWithoutAnOwnerMapsToNoUser() {
+        SupplyEntity entity = SupplyEntityMother.random();
+        entity.setUser(null);
+
+        Supply result = mapper.map(entity);
+
+        Assertions.assertNull(result.getUser());
+        Assertions.assertEquals(entity.getCode(), result.getCode());
+    }
 }

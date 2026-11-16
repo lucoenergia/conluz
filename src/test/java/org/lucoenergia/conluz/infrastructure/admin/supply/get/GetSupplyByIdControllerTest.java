@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
@@ -21,6 +22,7 @@ import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticat
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -46,6 +48,10 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CommunityMembershipJpaRepository communityMembershipJpaRepository;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private EntityManager entityManager;
 
     @Test
     void testGetSupplyByIdSuccess() throws Exception {
@@ -81,6 +87,25 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.community.id").value(community.getId().toString()))
                 .andExpect(jsonPath("$.community.name").value(community.getName()));
+    }
+
+    @Test
+    void aCommunityAdminReadsASupplyWithoutAnOwner() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User user = createUserRepository.create(UserMother.randomUser());
+        Supply supply = createSupplyRepository.create(SupplyMother.random(user).build(),
+                UserId.of(user.getId()), community.getId());
+        // No repository creates a supply without an owner: only deletions before #412 left them
+        entityManager.flush();
+        jdbcTemplate.update("UPDATE supplies SET user_id = NULL WHERE id = ?", supply.getId());
+        entityManager.clear();
+
+        mockMvc.perform(get(URL + "/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(supply.getId().toString()))
+                .andExpect(jsonPath("$.user").isEmpty())
+                .andExpect(jsonPath("$.ownerRecord").isEmpty());
     }
 
     @Test
