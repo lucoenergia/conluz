@@ -32,7 +32,7 @@ public class SupplyEntityMapper extends BaseMapper<SupplyEntity, Supply> {
                 .withAddress(entity.getAddress())
                 .withAddressRef(entity.getAddressRef())
                 .withEnabled(entity.getEnabled())
-                .withUser(userEntityMapper.map(entity.getUser()))
+                .withUser(entity.getUser() != null ? userEntityMapper.map(entity.getUser()) : null)
                 .withCommunity(entity.getCommunity() != null ? communityEntityMapper.map(entity.getCommunity()) : null)
 
                 .withShelly(mapShelly(entity.getShelly()))

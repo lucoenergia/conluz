@@ -94,6 +94,13 @@ class CommunityAccessGuardImplDelegationTest {
     }
 
     @Test
+    void canTransferSupplyOwnership_isDelegatedToTheSupplyGuard() {
+        UUID supplyId = givenMissingSupply();
+
+        assertThrows(SupplyNotFoundException.class, () -> guard().canTransferSupplyOwnership(supplyId));
+    }
+
+    @Test
     void isCommunityAdminOfSupply_isDelegatedToTheSupplyGuard() {
         // The one supply method that never throws: a missing supply is simply false.
         UUID supplyId = givenMissingSupply();

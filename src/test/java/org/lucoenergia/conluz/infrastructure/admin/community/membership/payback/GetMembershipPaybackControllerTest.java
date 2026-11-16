@@ -1,5 +1,14 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.payback;
 
+import org.lucoenergia.conluz.domain.shared.UserId;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.junit.jupiter.api.DisplayName;
+import java.time.LocalDate;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,6 +92,11 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
     @Autowired
     private DatadisConsumptionInfluxFixture influxFixture;
+
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -416,6 +430,47 @@ class GetMembershipPaybackControllerTest extends BaseControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.traceId").exists());
+    }
+
+    @Test
+    @DisplayName("SUP-012 after a transfer, the supply's savings count in the new owner's payback and no longer in "
+            + "the previous owner's, also for the months they owned it")
+    void aTransferredSupplyCountsInTheNewOwnersPaybackOnly() throws Exception {
+        CommunityEntity community = persistSharingCommunity();
+        User previous = persistMember(community.getId());
+        User next = persistMember(community.getId());
+        User admin = persistMember(community.getId());
+        // Larger, so counting it on the wrong side would be unmistakable.
+        Supply transferred = supplyWithSelfConsumption(previous, community, 1000f);
+        supplyWithSelfConsumption(previous, community, 200f);
+        supplyWithSelfConsumption(next, community, 100f);
+
+        // The savings are of 2025-02-01, when the previous owner owned the supply
+        transferSupplyOwnershipService.transfer(SupplyId.of(transferred.getId()),
+                UserPersonalId.of(next.getPersonalId()), LocalDate.of(2025, 4, 1), UserId.of(admin.getId()));
+
+        // 200 kWh * 0.15
+        mockMvc.perform(get(PAYBACK_PATH, community.getId(), previous.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(previous)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savedEur").value(30.00));
+        // (1000 + 100) kWh * 0.15
+        mockMvc.perform(get(PAYBACK_PATH, community.getId(), next.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(next)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.savedEur").value(165.00));
+    }
+
+    /**
+     * Like {@link #givenSupplyWithSelfConsumption}, with the supply created as production creates it.
+     */
+    private Supply supplyWithSelfConsumption(User owner, CommunityEntity community, float selfConsumptionKWh) {
+        Supply supply = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(owner.getId()),
+                community.getId());
+        influxFixture.write(List.of(DatadisConsumptionInfluxFixture.hourlyRecord(
+                supply.getCode(), "2025/02/01", "01:00", selfConsumptionKWh, selfConsumptionKWh, 0f)));
+        writtenCups.add(supply.getCode());
+        return supply;
     }
 
     // --- fixtures ---

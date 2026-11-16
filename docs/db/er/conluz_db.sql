@@ -725,6 +725,78 @@ CREATE TABLE public.supplies_shelly (
 
 
 --
+-- Name: supply_ownership_transfers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.supply_ownership_transfers (
+    id uuid NOT NULL,
+    supply_id uuid NOT NULL,
+    previous_user_id uuid,
+    new_user_id uuid NOT NULL,
+    effective_date date NOT NULL,
+    history_included boolean NOT NULL,
+    transferred_by uuid NOT NULL,
+    transferred_at timestamp with time zone NOT NULL
+);
+
+
+--
+-- Name: TABLE supply_ownership_transfers; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.supply_ownership_transfers IS 'Each change of a supply''s owner, as it was made. Rows are never updated.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.supply_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.supply_id IS 'The supply whose owner changed.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.previous_user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.previous_user_id IS 'The owner before the transfer. NULL if the supply had no owner.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.new_user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.new_user_id IS 'The owner after the transfer.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.effective_date; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.effective_date IS 'The date the new owner became the supply''s holder at the distributor.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.history_included; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.history_included IS 'Whether the new owner received the supply''s history from before the effective date.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.transferred_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.transferred_by IS 'The user who made the transfer.';
+
+
+--
+-- Name: COLUMN supply_ownership_transfers.transferred_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.supply_ownership_transfers.transferred_at IS 'The instant the transfer was made.';
+
+
+--
 -- Name: supply_partition_coefficient; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1036,6 +1108,14 @@ ALTER TABLE ONLY public.supplies_shelly
 
 
 --
+-- Name: supply_ownership_transfers supply_ownership_transfers_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supply_ownership_transfers
+    ADD CONSTRAINT supply_ownership_transfers_id_pk PRIMARY KEY (id);
+
+
+--
 -- Name: supply_partition_coefficient supply_partition_coefficient_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1120,6 +1200,13 @@ CREATE INDEX one_time_token_user_purpose_created_at_idx ON public.one_time_token
 --
 
 CREATE UNIQUE INDEX platform_admin_invitation_user_id_pending_uq ON public.platform_admin_invitation USING btree (user_id) WHERE (accepted_at IS NULL);
+
+
+--
+-- Name: supply_ownership_transfers_supply_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX supply_ownership_transfers_supply_id_idx ON public.supply_ownership_transfers USING btree (supply_id);
 
 
 --
@@ -1304,6 +1391,38 @@ ALTER TABLE ONLY public.supplies_shelly
 
 ALTER TABLE ONLY public.supplies
     ADD CONSTRAINT supplies_user_id_fk FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: supply_ownership_transfers supply_ownership_transfers_new_user_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supply_ownership_transfers
+    ADD CONSTRAINT supply_ownership_transfers_new_user_id_fk FOREIGN KEY (new_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: supply_ownership_transfers supply_ownership_transfers_previous_user_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supply_ownership_transfers
+    ADD CONSTRAINT supply_ownership_transfers_previous_user_id_fk FOREIGN KEY (previous_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: supply_ownership_transfers supply_ownership_transfers_supply_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supply_ownership_transfers
+    ADD CONSTRAINT supply_ownership_transfers_supply_id_fk FOREIGN KEY (supply_id) REFERENCES public.supplies(id) ON DELETE CASCADE;
+
+
+--
+-- Name: supply_ownership_transfers supply_ownership_transfers_transferred_by_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supply_ownership_transfers
+    ADD CONSTRAINT supply_ownership_transfers_transferred_by_fk FOREIGN KEY (transferred_by) REFERENCES public.users(id);
 
 
 --

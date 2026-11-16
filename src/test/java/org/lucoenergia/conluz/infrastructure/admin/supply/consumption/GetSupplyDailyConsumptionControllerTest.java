@@ -1,5 +1,8 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.consumption;
 
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +50,9 @@ import static org.lucoenergia.conluz.infrastructure.shared.web.KWhJson.assertKWh
 
 @Transactional
 class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
+
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     private static final String URL = "/api/v1/supplies";
     private static final String START_DATE = "2023-04-01T00:00:00Z";
@@ -489,5 +495,39 @@ class GetSupplyDailyConsumptionControllerTest extends BaseControllerTest {
         } finally {
             influxFixture.clear(supply.getCode());
         }
+    }
+
+    @Test
+    @DisplayName("SUP-012 after a transfer, the previous owner is answered not found and the new owner reads the "
+            + "supply's series from before the effective date")
+    void afterATransferTheNewOwnerReadsTheSeriesFromBeforeTheEffectiveDate() throws Exception {
+        User previous = memberOfDefaultCommunity(CommunityRole.COMMUNITY_MEMBER);
+        User next = memberOfDefaultCommunity(CommunityRole.COMMUNITY_MEMBER);
+        User admin = memberOfDefaultCommunity(CommunityRole.COMMUNITY_ADMIN);
+        Supply supply = createSupplyRepository.create(SupplyMother.random(previous).withCode(CUPS_CODE).build(),
+                UserId.of(previous.getId()), DEFAULT_COMMUNITY_ID);
+
+        transferSupplyOwnershipService.transfer(SupplyId.of(supply.getId()),
+                UserPersonalId.of(next.getPersonalId()), LocalDate.of(2025, 6, 1), UserId.of(admin.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(previous))
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get(URL + "/" + supply.getId() + "/consumption/daily")
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(next))
+                        .queryParam("startDate", START_DATE)
+                        .queryParam("endDate", END_DATE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].cups").value(CUPS_CODE));
+    }
+
+    private User memberOfDefaultCommunity(CommunityRole role) {
+        User user = UserMother.randomUser();
+        user.enable();
+        createUserRepository.create(user);
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, user.getId(), role);
+        return user;
     }
 }

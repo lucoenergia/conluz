@@ -49,6 +49,15 @@ class SupplyAccessGuardImpl implements SupplyAccessGuard {
     }
 
     @Override
+    public boolean canTransferSupplyOwnership(UUID supplyId) {
+        User user = helper.getCurrentUser().orElse(null);
+        if (user == null || supplyId == null) {
+            return false;
+        }
+        return resolve(policy.canTransferOwnership(user, findSupply(supplyId)), supplyId);
+    }
+
+    @Override
     public boolean canReadSupplyPartitionCoefficients(UUID supplyId) {
         User user = helper.getCurrentUser().orElse(null);
         if (user == null || supplyId == null) {

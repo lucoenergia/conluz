@@ -9,6 +9,10 @@ import org.lucoenergia.conluz.domain.admin.supply.create.SupplyImportFileRefused
 import org.lucoenergia.conluz.domain.admin.supply.SupplyNotFoundException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPartitionCoefficientsException;
 import org.lucoenergia.conluz.domain.admin.supply.delete.SupplyHasPlantsException;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.SupplyAlreadyOwnedByUserException;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.SupplyTransferDateInFutureException;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.SupplyTransferDateNotAfterPreviousException;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.SupplyTransferOwnerNotFoundException;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
@@ -122,6 +126,43 @@ public class SupplyExceptionHandler {
     @ExceptionHandler(SupplyOwnerNotFoundException.class)
     public ResponseEntity<RestError> handleException(SupplyOwnerNotFoundException e) {
         return refused("error.supply.owner.not.found", RestErrorCode.SUPPLY_OWNER_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * A 404: the new owner of a supply being transferred is unknown, or not a member of its community; the two are
+     * answered alike (SUP-009), with the code of the creation's refusal and a message about the transfer.
+     */
+    @ExceptionHandler(SupplyTransferOwnerNotFoundException.class)
+    public ResponseEntity<RestError> handleException(SupplyTransferOwnerNotFoundException e) {
+        return refused("error.supply.transfer.owner.not.found", RestErrorCode.SUPPLY_OWNER_NOT_FOUND,
+                HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * A 409: the supply is being transferred to the user who already owns it (SUP-009).
+     */
+    @ExceptionHandler(SupplyAlreadyOwnedByUserException.class)
+    public ResponseEntity<RestError> handleException(SupplyAlreadyOwnedByUserException e) {
+        return refused("error.supply.already.owned.by.user", RestErrorCode.SUPPLY_ALREADY_OWNED_BY_USER,
+                HttpStatus.CONFLICT);
+    }
+
+    /**
+     * A 400: the transfer's effective date is after today (SUP-010).
+     */
+    @ExceptionHandler(SupplyTransferDateInFutureException.class)
+    public ResponseEntity<RestError> handleException(SupplyTransferDateInFutureException e) {
+        return refused("error.supply.transfer.date.in.future", RestErrorCode.SUPPLY_TRANSFER_DATE_IN_FUTURE,
+                HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 409: the transfer's effective date is on or before the supply's previous transfer's (SUP-010).
+     */
+    @ExceptionHandler(SupplyTransferDateNotAfterPreviousException.class)
+    public ResponseEntity<RestError> handleException(SupplyTransferDateNotAfterPreviousException e) {
+        return refused("error.supply.transfer.date.not.after.previous",
+                RestErrorCode.SUPPLY_TRANSFER_DATE_NOT_AFTER_PREVIOUS, HttpStatus.CONFLICT);
     }
 
     /**

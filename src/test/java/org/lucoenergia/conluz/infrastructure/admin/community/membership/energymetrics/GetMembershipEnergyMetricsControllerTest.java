@@ -1,5 +1,10 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.energymetrics;
 
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.community.Community;
+import java.time.LocalDate;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -89,6 +94,10 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
     private CreatePlantRepository createPlantRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     private final List<String> writtenCups = new ArrayList<>();
 
@@ -176,6 +185,46 @@ class GetMembershipEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(2.0, TOLERANCE)))
                 .andExpect(jsonPath("$.coverage.supplyCount").value(1));
+    }
+
+    @Test
+    @DisplayName("SUP-012 after a transfer, the supply counts in the new owner's figures for its whole history, and "
+            + "no longer in the previous owner's, also for the periods they owned it")
+    void aTransferredSupplyCountsForTheNewOwnerAndNoLongerForThePreviousOne() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        User previous = persistMember(community.getId());
+        User next = persistMember(community.getId());
+        User admin = persistMember(community.getId());
+        Supply transferred = createSupplyRepository.create(SupplyMother.random().build(),
+                UserId.of(previous.getId()), community.getId());
+        Supply kept = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(previous.getId()),
+                community.getId());
+        Supply nextsOwn = createSupplyRepository.create(SupplyMother.random().build(), UserId.of(next.getId()),
+                community.getId());
+        writtenCups.addAll(List.of(transferred.getCode(), kept.getCode(), nextsOwn.getCode()));
+        // Larger, so counting it on the wrong side would be unmistakable.
+        writeRecord(transferred, "2026/05/10", "11:00", 1f, 1000f, 0f);
+        writeRecord(kept, "2026/05/10", "11:00", 1f, 2f, 0f);
+        writeRecord(nextsOwn, "2026/05/10", "12:00", 1f, 3f, 0f);
+
+        // The figures are of 2026-05-10, a day the previous owner owned the supply
+        transferSupplyOwnershipService.transfer(SupplyId.of(transferred.getId()),
+                UserPersonalId.of(next.getPersonalId()), LocalDate.of(2026, 9, 1), UserId.of(admin.getId()));
+
+        mockMvc.perform(get(PATH, community.getId(), previous.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(previous))
+                        .queryParam("startDate", DAY_START)
+                        .queryParam("endDate", DAY_END))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(2.0, TOLERANCE)))
+                .andExpect(jsonPath("$.coverage.supplyCount").value(1));
+        mockMvc.perform(get(PATH, community.getId(), next.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(next))
+                        .queryParam("startDate", DAY_START)
+                        .queryParam("endDate", DAY_END))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.energy.selfConsumptionKWh").value(closeTo(1003.0, TOLERANCE)))
+                .andExpect(jsonPath("$.coverage.supplyCount").value(2));
     }
 
     // --- Coverage ---

@@ -16,7 +16,10 @@ public class SupplyEntity {
     private UUID id;
     private String code;
 
+    // Never written by an update of the entity: only UpdateSupplyOwnerRepository changes the owner (#585), so a save
+    // of a supply loaded before a transfer cannot write the previous owner back.
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", updatable = false)
     private UserEntity user;
 
     @ManyToOne(fetch = FetchType.LAZY)
