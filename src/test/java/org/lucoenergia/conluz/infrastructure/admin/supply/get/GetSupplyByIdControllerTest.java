@@ -1,5 +1,9 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.get;
 
+import java.time.LocalDate;
+import org.lucoenergia.conluz.domain.shared.UserPersonalId;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
@@ -35,6 +39,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @Transactional
 class GetSupplyByIdControllerTest extends BaseControllerTest {
+
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     private static final String URL = "/api/v1/supplies";
 
@@ -211,5 +218,30 @@ class GetSupplyByIdControllerTest extends BaseControllerTest {
         createUserRepository.create(owner);
         createMembershipRepository.create(DEFAULT_COMMUNITY_ID, owner.getId(), CommunityRole.COMMUNITY_MEMBER);
         return owner;
+    }
+
+    @Test
+    @DisplayName("SUP-012 after a transfer, the previous owner is answered not found and the new owner reads the "
+            + "supply")
+    void afterATransferThePreviousOwnerIsAnsweredNotFoundAndTheNewOwnerReadsTheSupply() throws Exception {
+        User previous = createOwnerMemberOfDefaultCommunity();
+        User next = createOwnerMemberOfDefaultCommunity();
+        Supply supply = createSupplyRepository.create(SupplyMother.random(previous).build(),
+                UserId.of(previous.getId()), DEFAULT_COMMUNITY_ID);
+        User admin = createUserRepository.create(UserMother.randomUser());
+        createMembershipRepository.create(DEFAULT_COMMUNITY_ID, admin.getId(), CommunityRole.COMMUNITY_ADMIN);
+
+        transferSupplyOwnershipService.transfer(SupplyId.of(supply.getId()),
+                UserPersonalId.of(next.getPersonalId()), LocalDate.of(2025, 6, 1), UserId.of(admin.getId()));
+
+        mockMvc.perform(get(URL + "/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(previous)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get(URL + "/" + supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginUser(next)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.id").value(next.getId().toString()))
+                .andExpect(jsonPath("$.ownerRecord.fullName").value(next.getFullName()))
+                .andExpect(jsonPath("$.capabilities.canTransferOwnership").value(false));
     }
 }

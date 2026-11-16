@@ -98,6 +98,55 @@ class SupplyAccessPolicyTest {
 
     // --- canEdit ---
 
+    // --- canTransferOwnership ---
+
+    @Test
+    @DisplayName("SUP-008 canTransferOwnership allows an enabled community admin of the supply's community")
+    void canTransferOwnership_allows_anEnabledCommunityAdmin() {
+        Community community = PolicyFixtures.community();
+        assertEquals(AccessDecision.ALLOWED, policy.canTransferOwnership(PolicyFixtures.adminOf(community),
+                PolicyFixtures.supplyIn(community, UUID.randomUUID())));
+    }
+
+    @Test
+    @DisplayName("SUP-008 canTransferOwnership forbids the owner who is not a community admin")
+    void canTransferOwnership_forbids_theOwner() {
+        Community community = PolicyFixtures.community();
+        User owner = PolicyFixtures.memberOf(community);
+        assertEquals(AccessDecision.FORBIDDEN,
+                policy.canTransferOwnership(owner, PolicyFixtures.supplyIn(community, owner.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-008 canTransferOwnership is not visible for an owner whose membership is disabled or pending")
+    void canTransferOwnership_isNotVisible_forAnOwnerWhoseMembershipIsNotActive() {
+        Community community = PolicyFixtures.community();
+        User disabled = PolicyFixtures.disabledMemberOf(community);
+        User pending = PolicyFixtures.pendingMemberOf(community);
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(disabled, PolicyFixtures.supplyIn(community, disabled.getId())));
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(pending, PolicyFixtures.supplyIn(community, pending.getId())));
+    }
+
+    @Test
+    @DisplayName("SUP-008 canTransferOwnership is not visible for a platform admin, an admin of another community, a "
+            + "plain member, a disabled admin, or a supply that does not exist")
+    void canTransferOwnership_isNotVisible_forAnyoneWhoCannotSeeTheSupply() {
+        Community community = PolicyFixtures.community();
+        Supply supply = PolicyFixtures.supplyIn(community, UUID.randomUUID());
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(PolicyFixtures.platformAdmin(), supply));
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(PolicyFixtures.adminOf(PolicyFixtures.community()), supply));
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(PolicyFixtures.memberOf(community), supply));
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(PolicyFixtures.disabledAdminOf(community), supply));
+        assertEquals(AccessDecision.NOT_VISIBLE,
+                policy.canTransferOwnership(PolicyFixtures.adminOf(community), null));
+    }
+
     @Test
     void canEdit_allows_anEnabledCommunityAdmin() {
         Community community = PolicyFixtures.community();

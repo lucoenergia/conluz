@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.delete;
 
+import java.time.LocalDate;
+import org.lucoenergia.conluz.domain.admin.supply.transfer.TransferSupplyOwnershipService;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -69,6 +71,8 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
     private EntityManager entityManager;
     @Autowired
     private DeleteUserService deleteUserService;
+    @Autowired
+    private TransferSupplyOwnershipService transferSupplyOwnershipService;
 
     @Test
     @DisplayName("SUP-001 deleting a supply deletes it with its contract, distributor and Shelly details, and keeps its "
@@ -92,6 +96,33 @@ class DeleteSupplyControllerTest extends BaseControllerTest {
         assertEquals(1, count("SELECT count(*) FROM users WHERE id = ?", owner.getId()));
         assertEquals(1, count("SELECT count(*) FROM community_memberships WHERE user_id = ? AND community_id = ?",
                 owner.getId(), community.getId()));
+    }
+
+    @Test
+    @DisplayName("SUP-011 deleting a transferred supply deletes its transfer records, and no other supply's")
+    void deletingATransferredSupplyDeletesItsTransferRecords() throws Exception {
+        Community community = newCommunity();
+        User first = newMemberOf(community);
+        User second = newMemberOf(community);
+        User admin = newMemberOf(community);
+        Supply supply = createSupply(first, community);
+        Supply other = createSupply(first, community);
+        transfer(supply, second, LocalDate.of(2025, 3, 1), admin);
+        transfer(supply, first, LocalDate.of(2025, 6, 1), admin);
+        transfer(other, second, LocalDate.of(2025, 6, 1), admin);
+
+        mockMvc.perform(delete(PATH, supply.getId())
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId())))
+                .andExpect(status().isOk());
+
+        assertEquals(0, count("SELECT count(*) FROM supplies WHERE id = ?", supply.getId()));
+        assertEquals(0, count("SELECT count(*) FROM supply_ownership_transfers WHERE supply_id = ?", supply.getId()));
+        assertEquals(1, count("SELECT count(*) FROM supply_ownership_transfers WHERE supply_id = ?", other.getId()));
+    }
+
+    private void transfer(Supply supply, User next, LocalDate effectiveDate, User admin) {
+        transferSupplyOwnershipService.transfer(SupplyId.of(supply.getId()),
+                UserPersonalId.of(next.getPersonalId()), effectiveDate, UserId.of(admin.getId()));
     }
 
     @Test
