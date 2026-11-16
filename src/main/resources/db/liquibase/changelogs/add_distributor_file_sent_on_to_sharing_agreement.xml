@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- The day a sharing agreement's distributor file was sent to the distributor (#580). Nothing
+         recorded it before, so an agreement could not say from when the distributor is expected to
+         apply its coefficients. It is a local date in the application time zone, not an instant: the
+         sending is recorded per day. NULL means no sent date is recorded, as for every existing row
+         after this changeset. -->
+    <changeSet id="add_distributor_file_sent_on_to_sharing_agreement" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add sharing_agreement.distributor_file_sent_on: the sharing_agreement table is missing or the column already exists. Nothing was changed.">
+            <tableExists tableName="sharing_agreement"/>
+            <not>
+                <columnExists tableName="sharing_agreement" columnName="distributor_file_sent_on"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="sharing_agreement">
+            <column name="distributor_file_sent_on" type="DATE"
+                    remarks="The local date the agreement's distributor file was sent to the distributor.">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="sharing_agreement" columnName="distributor_file_sent_on"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

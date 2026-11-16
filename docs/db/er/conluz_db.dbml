@@ -177,6 +177,7 @@ Table "sharing_agreement" {
   "created_by" uuid [note: '''The user who created the agreement. NULL means the agreement was created by the system (a migration), not by a person, or that the creator\'s account has been deleted. Not filled with a synthetic \'system\' user: such a row could not authenticate and would appear in member listings.''']
   "updated_at" timestamp [note: 'When the agreement was last edited. NULL means it has never been edited since creation.']
   "updated_by" uuid [note: 'The user who last edited the agreement. NULL means it has never been edited since creation.']
+  "distributor_file_sent_on" date [note: '''The local date the agreement\'s distributor file was sent to the distributor.''']
 
   Checks {
     `(status = ANY (ARRAY['DRAFT'::text, 'PUBLISHED'::text, 'SUPERSEDED'::text]))` [name: 'sharing_agreement_status_check']
