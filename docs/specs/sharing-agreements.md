@@ -61,8 +61,8 @@ periods during which a coefficient applies, and how setting a coefficient's star
   coefficient) MUST place it chronologically within the timeline of its (plant, supply), whatever order the
   agreements are activated in. It ends at the validFrom of the next coefficient of that timeline, or stays open if
   there is none. The previous coefficient's validTo is moved back to the new validFrom only when it is open or later
-  than it; a validTo on or before it is kept, and so is the gap after it. Placing a coefficient never extends a
-  period. Pending coefficients are not part of the timeline.
+  than it; a validTo on or before it is kept, and so is the gap after it. Placing a coefficient never extends another
+  period; the join of a correction is governed by SHA-004. Pending coefficients are not part of the timeline.
 - **Rationale:** Allows reconstructing history in any order without overlaps: an older agreement can be activated
   while a newer one is open, bounded by its neighbours on both sides. Never extending a period keeps authored
   closes: a close is the community's record that a supply left, which a later activation must not erase.
