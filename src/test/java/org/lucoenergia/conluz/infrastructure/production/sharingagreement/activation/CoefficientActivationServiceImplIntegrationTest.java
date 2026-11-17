@@ -142,7 +142,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
 
         // Flush so the setup rows actually reach the database, then detach both entities so
         // setValidFrom must reload them itself, in its own code order (successor via fetch() first,
-        // predecessor via findPredecessor() second) -- the exact ordering that caused the reported
+        // predecessor via the timeline query second) -- the exact ordering that caused the reported
         // production failure. The setup above happens to load predecessor first, which would let a
         // broken flush-ordering assumption pass by accident; clearing the persistence context
         // removes that accident.

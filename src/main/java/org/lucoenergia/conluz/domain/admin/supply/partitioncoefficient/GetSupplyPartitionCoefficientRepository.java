@@ -77,11 +77,10 @@ public interface GetSupplyPartitionCoefficientRepository {
     List<SupplyPartitionCoefficient> findAllByIdAndSharingAgreementId(List<UUID> ids, UUID sharingAgreementId);
 
     /**
-     * The coefficient, for {@code (plantId, supplyId)}, whose current {@code validTo} equals
-     * {@code boundaryValidTo} -- or, when {@code boundaryValidTo} is {@code null}, the currently open
-     * row. Used by deactivation to splice the chain: the row that ends where the deactivated
-     * coefficient starts takes over its former {@code validTo}. {@code excludeCoefficientId} excludes
-     * the row being written itself.
+     * The activated coefficient, for {@code (plantId, supplyId)}, whose current {@code validTo} equals
+     * {@code boundaryValidTo}, which must not be null. Used by deactivation to splice the chain: the
+     * row that ends where the deactivated coefficient starts takes over its former {@code validTo}.
+     * {@code excludeCoefficientId} excludes the row being written itself.
      */
     Optional<SupplyPartitionCoefficient> findPredecessor(UUID plantId, UUID supplyId, UUID excludeCoefficientId,
                                                            Instant boundaryValidTo);

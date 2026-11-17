@@ -274,21 +274,6 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
     }
 
     @Test
-    void findPredecessorReturnsOpenRowWhenBoundaryIsNull() {
-        SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
-        SupplyPartitionCoefficient open = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(),
-                BigDecimal.ONE, Instant.parse("2024-01-01T00:00:00Z"), null);
-        UUID unrelatedCoefficientId = UUID.randomUUID();
-
-        Optional<SupplyPartitionCoefficient> result = repository.findPredecessor(
-                agreement.getPlant().getId(), supply.getId(), unrelatedCoefficientId, null);
-
-        assertTrue(result.isPresent());
-        assertEquals(open.getId(), result.get().getId());
-    }
-
-    @Test
     void findPredecessorReturnsRowEndingAtBoundaryWhenBoundaryNonNull() {
         SupplyEntity supply = persistSupply();
         SharingAgreementEntity agreementA = persistPlantAndPublishedAgreement(supply);
@@ -304,20 +289,6 @@ class GetSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegratio
 
         assertTrue(result.isPresent());
         assertEquals(predecessor.getId(), result.get().getId());
-    }
-
-    @Test
-    void findPredecessorExcludesPendingRowsEvenWhenValidToIsNull() {
-        SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
-        // A pending row also has validTo == null, but must never be returned as an "open predecessor".
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.ONE, null, null);
-        UUID excludeId = UUID.randomUUID();
-
-        Optional<SupplyPartitionCoefficient> result = repository.findPredecessor(
-                agreement.getPlant().getId(), supply.getId(), excludeId, null);
-
-        assertTrue(result.isEmpty());
     }
 
     @Test
