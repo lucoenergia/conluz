@@ -62,6 +62,15 @@ public interface PlantRepository extends JpaRepository<PlantEntity, UUID> {
     @Query(value = "SELECT id FROM plants WHERE id = :plantId FOR KEY SHARE", nativeQuery = true)
     Optional<UUID> lockAsReferencedById(@Param("plantId") UUID plantId);
 
+    /**
+     * {@code FOR NO KEY UPDATE} conflicts with itself, so two writers of the plant's coefficient dates run one after
+     * another. It also conflicts with the {@code FOR UPDATE} of {@link #lockById} and with an update of the plant, but
+     * not with the {@code FOR KEY SHARE} of {@link #lockAsReferencedById}, so writers of rows that only reference the
+     * plant are not held up by it.
+     */
+    @Query(value = "SELECT id FROM plants WHERE id = :plantId FOR NO KEY UPDATE", nativeQuery = true)
+    Optional<UUID> lockForCoefficientDatesById(@Param("plantId") UUID plantId);
+
     @EntityGraph(attributePaths = {"supply", "supply.user", "supply.community", "supply.contract",
             "supply.distributor", "supply.shelly"})
     Optional<PlantEntity> findByProviderCode(String providerCode);

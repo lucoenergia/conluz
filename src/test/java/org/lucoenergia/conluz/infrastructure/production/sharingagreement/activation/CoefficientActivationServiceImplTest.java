@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -10,6 +11,8 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.lock.LockPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.RecomputeSharingAgreementStatusRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
@@ -18,9 +21,11 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationErrorCode;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation.CoefficientActivationServiceImpl;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,9 +48,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -66,11 +73,14 @@ class CoefficientActivationServiceImplTest {
     private ZoneResolver zoneResolver;
     @Mock
     private CoefficientOverlapCheckRepository overlapCheckRepository;
+    @Mock
+    private LockPlantRepository lockPlantRepository;
 
     private CoefficientActivationServiceImpl service() {
+        when(lockPlantRepository.lockForCoefficientDates(PlantId.of(PLANT_ID))).thenReturn(true);
         return new CoefficientActivationServiceImpl(getSharingAgreementService, getCoefficientRepository,
                 saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository, zoneResolver,
-                overlapCheckRepository, CLOCK);
+                overlapCheckRepository, lockPlantRepository, CLOCK);
     }
 
     private static final UUID PLANT_ID = UUID.randomUUID();
@@ -102,6 +112,53 @@ class CoefficientActivationServiceImplTest {
 
     private void stubSave() {
         when(saveCoefficientRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    // ---- per-plant serialisation ----
+
+    @Test
+    @DisplayName("SHA-007 an activation locks the plant before it reads the agreement or any coefficient")
+    void setValidFrom_locksThePlantBeforeReadingAnything() {
+        UUID agreementId = UUID.randomUUID();
+        when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
+        stubFound(agreementId);
+
+        service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of());
+
+        InOrder inOrder = inOrder(lockPlantRepository, getSharingAgreementService, getCoefficientRepository);
+        inOrder.verify(lockPlantRepository).lockForCoefficientDates(PlantId.of(PLANT_ID));
+        inOrder.verify(getSharingAgreementService).findById(agreementId);
+        inOrder.verify(getCoefficientRepository).findAllByIdAndSharingAgreementId(anyList(), eq(agreementId));
+    }
+
+    @Test
+    @DisplayName("SHA-007 a close locks the plant before it reads the agreement or any coefficient")
+    void setValidTo_locksThePlantBeforeReadingAnything() {
+        UUID agreementId = UUID.randomUUID();
+        when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, SharingAgreementStatus.PUBLISHED));
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
+        stubFound(agreementId);
+
+        service().setValidTo(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of());
+
+        InOrder inOrder = inOrder(lockPlantRepository, getSharingAgreementService, getCoefficientRepository);
+        inOrder.verify(lockPlantRepository).lockForCoefficientDates(PlantId.of(PLANT_ID));
+        inOrder.verify(getSharingAgreementService).findById(agreementId);
+        inOrder.verify(getCoefficientRepository).findAllByIdAndSharingAgreementId(anyList(), eq(agreementId));
+    }
+
+    @Test
+    void setValidFrom_throwsPlantNotFound_andReadsNothing_whenThePlantIsGone() {
+        UUID agreementId = UUID.randomUUID();
+        when(lockPlantRepository.lockForCoefficientDates(PlantId.of(PLANT_ID))).thenReturn(false);
+        CoefficientActivationServiceImpl serviceUnderTest = new CoefficientActivationServiceImpl(getSharingAgreementService,
+                getCoefficientRepository, saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository,
+                zoneResolver, overlapCheckRepository, lockPlantRepository, CLOCK);
+
+        assertThrows(PlantNotFoundException.class,
+                () -> serviceUnderTest.setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of(UUID.randomUUID())));
+        verifyNoInteractions(getSharingAgreementService, getCoefficientRepository, saveCoefficientRepository);
     }
 
     // ---- agreement-status guard ----
@@ -803,9 +860,10 @@ class CoefficientActivationServiceImplTest {
         ArgumentCaptor<SupplyPartitionCoefficient> captor = ArgumentCaptor.forClass(SupplyPartitionCoefficient.class);
         when(saveRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
+        when(lockPlantRepository.lockForCoefficientDates(PlantId.of(PLANT_ID))).thenReturn(true);
         CoefficientActivationServiceImpl serviceUnderTest = new CoefficientActivationServiceImpl(
                 agreementService, coefficientRepository, saveRepository, recomputeStatusRepository, getSupplyRepository,
-                resolver, overlapCheckRepository, CLOCK);
+                resolver, overlapCheckRepository, lockPlantRepository, CLOCK);
         serviceUnderTest.setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
 
         return captor.getValue().getValidFrom();

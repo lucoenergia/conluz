@@ -8,6 +8,8 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.lock.LockPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.RecomputeSharingAgreementStatusRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
@@ -16,6 +18,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.activation.Coef
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
+import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.springframework.stereotype.Service;
@@ -47,6 +50,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     private final GetSupplyRepository getSupplyRepository;
     private final ZoneResolver zoneResolver;
     private final CoefficientOverlapCheckRepository overlapCheckRepository;
+    private final LockPlantRepository lockPlantRepository;
     private final Clock clock;
 
     public CoefficientActivationServiceImpl(GetSharingAgreementService getSharingAgreementService,
@@ -56,6 +60,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                                              GetSupplyRepository getSupplyRepository,
                                              ZoneResolver zoneResolver,
                                              CoefficientOverlapCheckRepository overlapCheckRepository,
+                                             LockPlantRepository lockPlantRepository,
                                              Clock clock) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getCoefficientRepository = getCoefficientRepository;
@@ -64,12 +69,14 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         this.getSupplyRepository = getSupplyRepository;
         this.zoneResolver = zoneResolver;
         this.overlapCheckRepository = overlapCheckRepository;
+        this.lockPlantRepository = lockPlantRepository;
         this.clock = clock;
     }
 
     @Override
     public List<SupplyPartitionCoefficient> setValidFrom(UUID plantId, UUID sharingAgreementId, LocalDate appliedOn,
                                                            List<UUID> coefficientIds) {
+        lockCoefficientDates(plantId);
         loadAgreement(plantId, sharingAgreementId);
         ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
         LocalDate today = LocalDate.now(clock.withZone(zoneId));
@@ -132,6 +139,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     @Override
     public List<SupplyPartitionCoefficient> setValidTo(UUID plantId, UUID sharingAgreementId, LocalDate closedOn,
                                                          List<UUID> coefficientIds) {
+        lockCoefficientDates(plantId);
         loadAgreement(plantId, sharingAgreementId);
         ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
         LocalDate today = LocalDate.now(clock.withZone(zoneId));
@@ -197,6 +205,17 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         }
 
         return applyAndRecompute(writes);
+    }
+
+    /**
+     * Taken before anything is read, so a date write that waited here reads the timeline the one before it left
+     * (SHA-007). The exclusion constraint alone does not protect that: two writes can each leave a timeline without
+     * overlaps and still undo each other's cascade.
+     */
+    private void lockCoefficientDates(UUID plantId) {
+        if (!lockPlantRepository.lockForCoefficientDates(PlantId.of(plantId))) {
+            throw new PlantNotFoundException(PlantId.of(plantId));
+        }
     }
 
     private SharingAgreement loadAgreement(UUID plantId, UUID sharingAgreementId) {
