@@ -108,6 +108,37 @@ class CoefficientDateWriteConcurrencyTest extends BaseIntegrationTest {
                 new Period(later.getId(), at(LATER_ACTIVATION), null));
     }
 
+    /**
+     * Without the lock, the placement between the two would read the first row as still open and give the new
+     * coefficient no end, overlapping the one appended at the same time.
+     */
+    @Test
+    @DisplayName("SHA-007 a coefficient placed between two while the later one is appended at the same time ends where the appended one starts")
+    void placementBetweenWhileAppending_seesTheAppendedCoefficient() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Plant plant = createPlant(community);
+        Supply supply = createSupply(community);
+        SharingAgreement firstAgreement = publishedAgreement(plant);
+        SupplyPartitionCoefficient first = pending(supply, plant, firstAgreement);
+        service.setValidFrom(plant.getId(), firstAgreement.getId(), FIRST_START, List.of(first.getId()));
+        SharingAgreement appendedAgreement = publishedAgreement(plant);
+        SupplyPartitionCoefficient appended = pending(supply, plant, appendedAgreement);
+        SharingAgreement betweenAgreement = publishedAgreement(plant);
+        SupplyPartitionCoefficient between = pending(supply, plant, betweenAgreement);
+
+        Throwable secondOutcome = LockWaitTestSupport.runWhileHeld(transactionManager, jdbcTemplate,
+                () -> service.setValidFrom(plant.getId(), appendedAgreement.getId(), LATER_ACTIVATION,
+                        List.of(appended.getId())),
+                () -> service.setValidFrom(plant.getId(), betweenAgreement.getId(), EARLIER_ACTIVATION,
+                        List.of(between.getId())));
+
+        assertThat(secondOutcome).isNull();
+        assertThat(timeline(plant, supply)).containsExactly(
+                new Period(first.getId(), at(FIRST_START), at(EARLIER_ACTIVATION)),
+                new Period(between.getId(), at(EARLIER_ACTIVATION), at(LATER_ACTIVATION)),
+                new Period(appended.getId(), at(LATER_ACTIVATION), null));
+    }
+
     private record Period(UUID id, Instant validFrom, Instant validTo) {
     }
 
