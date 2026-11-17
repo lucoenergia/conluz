@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapCheckRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapDetector;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientPlacement;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -85,6 +87,10 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         Map<UUID, SupplyPartitionCoefficient> foundById = fetch(sharingAgreementId, coefficientIds);
         List<CoefficientActivationError> errors = new ArrayList<>();
         List<SupplyPartitionCoefficient> writes = new ArrayList<>();
+        // Activation and correction place each coefficient within the timeline of its (plant, supply), as the
+        // writes staged so far leave it, so every item is validated against the projected result.
+        Map<UUID, SupplyPartitionCoefficient> timeline = newValidFrom == null
+                ? new LinkedHashMap<>() : loadTimeline(plantId, foundById.values());
 
         for (UUID id : distinct(coefficientIds)) {
             SupplyPartitionCoefficient coefficient = foundById.get(id);
@@ -100,30 +106,30 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                 continue;
             }
 
-            // Same boundary-match lookup for activate, correct, AND revert: "the row whose validTo
-            // currently equals this coefficient's own current validFrom" -- with a null current
-            // validFrom (pure activation) naturally resolving to "the currently open row" instead.
-            Optional<SupplyPartitionCoefficient> predecessor = getCoefficientRepository.findPredecessor(
-                    plantId, coefficient.getSupplyId(), coefficient.getId(), coefficient.getValidFrom());
-
             if (newValidFrom == null) {
-                // Revert to pending -- the splice. predecessor.validTo takes over coefficient's own
-                // former validTo (which may itself be null, reopening the predecessor to infinity).
+                // Revert to pending -- the splice. The row whose validTo equals this coefficient's
+                // validFrom takes over the coefficient's own former validTo (which may itself be null,
+                // reopening that row to infinity).
+                Optional<SupplyPartitionCoefficient> predecessor = getCoefficientRepository.findPredecessor(
+                        plantId, coefficient.getSupplyId(), coefficient.getId(), coefficient.getValidFrom());
                 writes.add(withValidFromTo(coefficient, null, null));
                 predecessor.ifPresent(p -> writes.add(withValidFromTo(p, p.getValidFrom(), coefficient.getValidTo())));
-            } else {
-                // Activate (coefficient.getValidFrom() was null) or correct (already set) -- same path.
-                if (predecessor.isPresent() && !newValidFrom.isAfter(predecessor.get().getValidFrom())) {
-                    // Also catches the empty-range case newValidFrom == predecessor.validFrom.
-                    errors.add(error(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_AFTER_PREDECESSOR, coefficient));
-                    continue;
-                }
-                if (coefficient.getValidTo() != null && !newValidFrom.isBefore(coefficient.getValidTo())) {
-                    errors.add(error(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR, coefficient));
-                    continue;
-                }
-                writes.add(withValidFromTo(coefficient, newValidFrom, coefficient.getValidTo()));
-                predecessor.ifPresent(p -> writes.add(withValidFromTo(p, p.getValidFrom(), newValidFrom)));
+                continue;
+            }
+
+            // Activate (coefficient.getValidFrom() was null) or correct (already set) -- same path.
+            List<SupplyPartitionCoefficient> supplyTimeline = timeline.values().stream()
+                    .filter(row -> row.getSupplyId().equals(coefficient.getSupplyId()))
+                    .toList();
+            CoefficientPlacement.Result placement = CoefficientPlacement.place(supplyTimeline,
+                    timeline.getOrDefault(coefficient.getId(), coefficient), newValidFrom);
+            if (placement instanceof CoefficientPlacement.StartTaken startTaken) {
+                errors.add(errorWithConflict(coefficient, startTaken.conflictingWith()));
+            } else if (placement instanceof CoefficientPlacement.NotBeforeOwnClose) {
+                errors.add(error(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR, coefficient));
+            } else if (placement instanceof CoefficientPlacement.Placed placed) {
+                writes.addAll(placed.writes());
+                placed.writes().forEach(write -> timeline.put(write.getId(), write));
             }
         }
 
@@ -238,17 +244,35 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         return byId;
     }
 
+    /**
+     * Every row of the plant's timelines for the supplies of {@code coefficients}, in one query, keyed by id so the
+     * writes of each placement can be projected onto it before the next one.
+     */
+    private Map<UUID, SupplyPartitionCoefficient> loadTimeline(UUID plantId,
+                                                                Collection<SupplyPartitionCoefficient> coefficients) {
+        Map<UUID, SupplyPartitionCoefficient> byId = new LinkedHashMap<>();
+        if (coefficients.isEmpty()) {
+            return byId;
+        }
+        Set<UUID> supplyIds = coefficients.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet());
+        for (SupplyPartitionCoefficient row : getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds)) {
+            byId.put(row.getId(), row);
+        }
+        return byId;
+    }
+
     private List<UUID> distinct(List<UUID> coefficientIds) {
         return new ArrayList<>(new LinkedHashSet<>(coefficientIds));
     }
 
     /**
      * Projects this batch's writes onto the full history of every supply they touch (one query),
-     * and rejects with a precise, per-coefficient error if the projected end state overlaps --
-     * catching a collision with a row further back in the chain than the immediate predecessor/
-     * successor the checks above already compare against. Run after those checks: it only ever
-     * sees coefficients that already passed them (writes contains only successfully-validated
-     * items), so it can never fire for a case one of them already named precisely.
+     * and rejects with a precise, per-coefficient error if the projected end state overlaps. An
+     * activation or correction is already placed against the whole timeline, so for those this is
+     * the backstop; for a deactivation, a close or a reopen, it catches a collision with a row further
+     * back in the chain than the neighbour the checks above compare against. Run after those checks:
+     * it only ever sees coefficients that already passed them (writes contains only successfully-
+     * validated items), so it can never fire for a case one of them already named precisely.
      */
     private void checkNoProjectedOverlap(List<SupplyPartitionCoefficient> writes, List<CoefficientActivationError> errors) {
         if (writes.isEmpty()) {

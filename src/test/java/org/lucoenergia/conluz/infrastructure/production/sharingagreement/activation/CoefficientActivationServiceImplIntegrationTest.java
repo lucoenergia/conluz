@@ -191,45 +191,58 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
     }
 
     @Test
-    void activationRejectedWhenItOverlapsARowFurtherBackInTheChainThanTheImmediatePredecessor() {
+    @DisplayName("SHA-003 an activation inside a row further back in the chain than the open one is placed there: that row ends at it, and it ends where the next row starts")
+    void activationInsideARowFurtherBackInTheChainIsPlacedThere() {
         SupplyEntity supply = persistSupply();
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
 
         // Row1: closed, cascade-adjacent to Row2.
         SharingAgreementEntity agreement1 = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
-        persistCoefficient(supply, plant, agreement1,
+        SupplyPartitionCoefficient row1 = persistCoefficient(supply, plant, agreement1,
                 Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
 
         // Row2: closed by a self-authored exit, NOT adjacent to anything after it -- leaves a gap,
-        // so findOpenPredecessor finds nothing for a later pure activation of the same supply.
+        // so there is no open row for a later activation of the same supply to close.
         SharingAgreementEntity agreement2 = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
-        persistCoefficient(supply, plant, agreement2,
+        SupplyPartitionCoefficient row2 = persistCoefficient(supply, plant, agreement2,
                 Instant.parse("2021-01-01T00:00:00Z"), Instant.parse("2022-01-01T00:00:00Z"));
 
-        // Row3: pending, a third agreement. No open predecessor exists, so the existing per-item
-        // checks (which compare only against the immediate predecessor/successor) have nothing to
-        // compare against -- only the projected-state check reaches back far enough to catch this.
+        // Row3: pending, a third agreement.
         SharingAgreementEntity agreement3 = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
         SupplyPartitionCoefficient row3 = persistCoefficient(supply, plant, agreement3, null, null);
 
         LocalDate appliedOn = LocalDate.of(2020, 6, 1); // lands inside Row1's range, two rows back.
+        Instant placedAt = appliedOn.atStartOfDay(zone()).toInstant();
 
-        CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
-                () -> service.setValidFrom(plant.getId(), agreement3.getId(), appliedOn, List.of(row3.getId())));
+        service.setValidFrom(plant.getId(), agreement3.getId(), appliedOn, List.of(row3.getId()));
+        entityManager.flush();
+        entityManager.clear();
 
-        assertTrue(exception.getErrors().stream()
-                .allMatch(e -> e.getCode() == CoefficientActivationErrorCode.PERIOD_OVERLAP));
-        assertTrue(exception.getErrors().stream()
-                .anyMatch(e -> row3.getId().toString().equals(e.getParams().get("coefficientId"))));
+        List<SupplyPartitionCoefficient> timeline = getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(
+                plant.getId(), List.of(supply.getId()));
+        SupplyPartitionCoefficient reread1 = byId(timeline, row1.getId());
+        SupplyPartitionCoefficient reread2 = byId(timeline, row2.getId());
+        SupplyPartitionCoefficient reread3 = byId(timeline, row3.getId());
+        assertEquals(placedAt, reread1.getValidTo());
+        assertEquals(placedAt, reread3.getValidFrom());
+        assertEquals(row2.getValidFrom(), reread3.getValidTo());
+        assertEquals(row2.getValidTo(), reread2.getValidTo());
+    }
+
+    private static SupplyPartitionCoefficient byId(List<SupplyPartitionCoefficient> rows, UUID id) {
+        return rows.stream().filter(row -> row.getId().equals(id)).findFirst().orElseThrow();
     }
 
     @Test
+    @DisplayName("SHA-005 a correction to another coefficient's start is refused before reaching PostgreSQL, and no row is written")
     void emptyRangeCorrectionRejectedBeforeReachingPostgresNoRowWritten() {
         SupplyEntity supply = persistSupply();
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
         SharingAgreementEntity predecessorAgreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
-        Instant predecessorValidFrom = Instant.parse("2024-01-01T00:00:00Z");
-        Instant boundary = Instant.parse("2024-06-01T00:00:00Z");
+        // Local midnights, as every write path stores them (SHA-002), so the requested date is exactly the
+        // predecessor's start.
+        Instant predecessorValidFrom = LocalDate.of(2024, 1, 1).atStartOfDay(zone()).toInstant();
+        Instant boundary = LocalDate.of(2024, 6, 1).atStartOfDay(zone()).toInstant();
         SupplyPartitionCoefficient predecessor = persistCoefficient(supply, plant, predecessorAgreement, predecessorValidFrom, boundary);
         SharingAgreementEntity successorAgreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
         SupplyPartitionCoefficient successor = persistCoefficient(supply, plant, successorAgreement, boundary, null);
@@ -240,7 +253,8 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         CoefficientActivationException exception = assertThrows(CoefficientActivationException.class,
                 () -> service.setValidFrom(plant.getId(), successorAgreement.getId(), emptyRangeDate, List.of(successor.getId())));
 
-        assertEquals(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_AFTER_PREDECESSOR, exception.getErrors().get(0).getCode());
+        assertEquals(CoefficientActivationErrorCode.PERIOD_OVERLAP, exception.getErrors().get(0).getCode());
+        assertEquals(predecessor.getId().toString(), exception.getErrors().get(0).getParams().get("conflictingCoefficientId"));
         // Nothing was written: both rows are exactly as they were before the rejected call.
         List<SupplyPartitionCoefficient> reread = getCoefficientRepository.findAllByIdAndSharingAgreementId(
                 List.of(successor.getId()), successorAgreement.getId());
