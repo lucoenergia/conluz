@@ -62,13 +62,12 @@ final class AgreementObservationSummarizer {
             List<LeavingObservation> leavings = new ArrayList<>();
             for (ObservedSupply supply : context.supplies()) {
                 SupplyRows rows = context.rows().get(supply.id());
-                // Every row of the supply in the agreement rests on the same window, so they share one value.
-                ObservedBeta observedBeta = observedBeta(context.betas().get(supply.id()), window);
+                NavigableMap<LocalDate, Double> betas = context.betas().get(supply.id());
                 for (CoefficientObservation row : rows.coefficients().getOrDefault(agreement.id(), List.of())) {
                     coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
                             row.storedValidFrom(), row.storedValidTo(), row.status(), row.observedDate(),
                             row.status() == ObservationStatus.NOT_DISTINGUISHABLE ? mostFrequent : row.proposedDate(),
-                            observedBeta));
+                            observedBeta(betas, row.observedDate(), window)));
                 }
                 LeavingObservation leaving = rows.leavings().get(agreement.id());
                 if (leaving != null) {
@@ -77,7 +76,7 @@ final class AgreementObservationSummarizer {
                             leaving.observedLeavingDate(), leaving.storedValidTo(), leaving.status(),
                             leaving.status() == ObservationStatus.NOT_DISTINGUISHABLE
                                     ? mostFrequent : leaving.proposedDate(),
-                            observedBeta));
+                            observedBeta(betas, leaving.observedLeavingDate(), window)));
                 }
             }
             List<SharingAnomaly> anomalies = context.anomalies().stream()
@@ -113,14 +112,21 @@ final class AgreementObservationSummarizer {
     }
 
     /**
-     * What a supply received over the agreement's window (OBS-009): the median of its observed β on its valid
-     * days in it. {@link ObservedBeta#NONE} when the agreement has no window or the supply no valid day in it.
+     * What a supply received under a row (OBS-009): the median of its observed β on its valid days from the row's
+     * observed date (the last day it may have started) to the end of the agreement's window, or over the whole
+     * window when the row has no observed date. {@link ObservedBeta#NONE} when the agreement has no window, the
+     * row starts after it ends, or the supply has no valid day in between.
      */
-    private static ObservedBeta observedBeta(NavigableMap<LocalDate, Double> betas, LocalDate[] window) {
+    private static ObservedBeta observedBeta(NavigableMap<LocalDate, Double> betas, ObservedDate observed,
+                                             LocalDate[] window) {
         if (window == null || window[1].isBefore(window[0])) {
             return ObservedBeta.NONE;
         }
-        return ObservedBeta.of(betas.subMap(window[0], true, window[1], true).values());
+        LocalDate from = observed == null ? window[0] : observed.to();
+        if (from.isAfter(window[1])) {
+            return ObservedBeta.NONE;
+        }
+        return ObservedBeta.of(betas.subMap(from, true, window[1], true).values());
     }
 
     /**

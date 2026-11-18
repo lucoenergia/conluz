@@ -47,11 +47,14 @@ public class LeavingObservationResponse {
             "Null otherwise, or when nothing of the agreement was observed.", types = {"object", "null"})
     private final ObservedDateResponse proposedDate;
 
-    @Schema(description = "Median of the supply's daily observed β (E / G) over its valid days in the agreement's " +
-            "applied window, which runs from the agreement's most frequent observed application date to the day " +
-            "before the next agreement's, or to the end of the analysed range. On a 0-1 scale, rounded half-up to 6 " +
-            "decimals; for an even number of days, the mean of the two middle values. Null when the agreement has " +
-            "no applied window or the supply has no valid day in it.", example = "0.030012",
+    @Schema(description = "Median of the supply's daily observed β (E / G) over its valid days from the row's " +
+            "observed leaving date (the latest day of a range or of an open date) to the end of the agreement's " +
+            "applied window, or over the whole applied window when the row has no observed date. The applied " +
+            "window runs from the agreement's most frequent observed application date to the day before the next " +
+            "agreement's, or to the end of the analysed range. On a 0-1 scale, rounded half-up to 6 decimals; for " +
+            "an even number of days, the mean of the two middle values. Null when the agreement has no applied " +
+            "window, the row's start falls after its end, or the supply has no valid day in between.",
+            example = "0.030012",
             types = {"number", "null"})
     private final BigDecimal observedBeta;
 

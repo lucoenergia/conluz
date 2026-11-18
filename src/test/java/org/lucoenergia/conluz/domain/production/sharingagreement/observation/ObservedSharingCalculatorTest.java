@@ -989,8 +989,8 @@ class ObservedSharingCalculatorTest {
         }
 
         @Test
-        @DisplayName("OBS-009 the window is the agreement's, not the row's: a supply applied later gets what it received most of the time")
-        void windowIsTheAgreements() {
+        @DisplayName("OBS-009 a row with an observed date rests on the supply's days from that date to the end of the agreement's window")
+        void observedRowStartsOnItsObservedDate() {
             ObservationFixture fixture = new ObservationFixture(FROM, TO);
             ObservedSupply first = fixture.supply("S1");
             ObservedSupply second = fixture.supply("S2");
@@ -1005,19 +1005,19 @@ class ObservedSharingCalculatorTest {
             ObservedCoefficient thirdInB = fixture.row(third, b, "0.06", CHANGE, null);
             fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04);
             fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
-            // S3 moves to B ten days after the others: 10 of B's 52 days still at A's value.
+            // S3 moves to B ten days after the others: its row leaves out the 10 days still at A's value.
             fixture.beta(third, FROM, day("2024-05-19"), 0.01).beta(third, day("2024-05-20"), TO, 0.06);
 
             PlantSharingObservation result = fixture.calculate();
 
             assertThat(rowOf(result, thirdInB).observedDate()).isEqualTo(ObservedDate.exact(day("2024-05-20")));
             assertThat(rowOf(result, thirdInB).observedBeta())
-                    .isEqualTo(new ObservedBeta(new BigDecimal("0.060000"), 52));
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.060000"), 42));
         }
 
         @Test
-        @DisplayName("OBS-009 several rows of one supply in an agreement report the same value, over the agreement's window")
-        void severalRowsOfOneSupplyShareTheValue() {
+        @DisplayName("OBS-009 several rows of one supply in an agreement each start on their own observed date; rows never observed share the agreement's window")
+        void severalRowsOfOneSupply() {
             ObservationFixture fixture = new ObservationFixture(FROM, TO);
             ObservedSupply first = fixture.supply("S1");
             ObservedSupply second = fixture.supply("S2");
@@ -1027,6 +1027,7 @@ class ObservedSharingCalculatorTest {
             fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
             ObservedCoefficient firstInBBefore = fixture.row(first, b, "0.04", CHANGE, day("2024-06-01"));
             ObservedCoefficient firstInBAfter = fixture.row(first, b, "0.05", day("2024-06-01"), null);
+            ObservedCoefficient firstInBNever = fixture.row(first, b, "0.07", day("2024-06-01"), null);
             fixture.row(second, b, "0.05", CHANGE, null);
             fixture.beta(first, FROM, day("2024-05-09"), 0.03)
                     .beta(first, CHANGE, day("2024-05-31"), 0.04)
@@ -1035,10 +1036,14 @@ class ObservedSharingCalculatorTest {
 
             PlantSharingObservation result = fixture.calculate();
 
-            // B's window holds 22 days at 4 % and 30 at 5 %.
-            ObservedBeta expected = new ObservedBeta(new BigDecimal("0.050000"), 52);
-            assertThat(rowOf(result, firstInBBefore).observedBeta()).isEqualTo(expected);
-            assertThat(rowOf(result, firstInBAfter).observedBeta()).isEqualTo(expected);
+            // B's window holds 22 days at 4 % and then 30 at 5 %.
+            assertThat(rowOf(result, firstInBBefore).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 52));
+            assertThat(rowOf(result, firstInBAfter).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 30));
+            assertThat(rowOf(result, firstInBNever).observedDate()).isNull();
+            assertThat(rowOf(result, firstInBNever).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 52));
         }
 
         @Test
