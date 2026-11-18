@@ -16,8 +16,10 @@ import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Transactional(readOnly = true)
@@ -110,6 +112,19 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     @Override
     public List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds) {
         return mapper.mapList(jpaRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds));
+    }
+
+    @Override
+    public List<SupplyPartitionCoefficient> findAllByPlantId(UUID plantId) {
+        return mapper.mapList(jpaRepository.findAllByPlantId(plantId));
+    }
+
+    @Override
+    public Set<UUID> findSupplyIdsWithCoefficientsInOtherPlants(UUID plantId, Collection<UUID> supplyIds) {
+        if (supplyIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(jpaRepository.findSupplyIdsWithCoefficientsInOtherPlants(plantId, supplyIds));
     }
 
     @Override

@@ -161,6 +161,73 @@
         ],
         "type" : "object"
       },
+      "CoefficientObservationResponse" : {
+        "properties" : {
+          "coefficient" : {
+            "description" : "Registered coefficient, on a 0-1 scale",
+            "example" : 0.030763,
+            "type" : "number"
+          },
+          "coefficientId" : {
+            "description" : "Identifier of the coefficient row",
+            "example" : "b3d1a2f0-1234-5678-abcd-000000000001",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "observedDate" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "When the distributor was observed to start applying it. Null when not observed.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "proposedDate" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "For NOT_DISTINGUISHABLE, the agreement's most frequent observed application date. Null otherwise, or when nothing of the agreement was observed.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "status" : {
+            "description" : "How its observed application compares with what is stored",
+            "enum" : [
+              "APPLIED_SAME_DATE",
+              "APPLIED_DIFFERENT_DATE",
+              "PENDING_APPLICATION",
+              "NOT_DISTINGUISHABLE",
+              "NOT_OBSERVED",
+              "NO_DATA"
+            ],
+            "example" : "APPLIED_SAME_DATE",
+            "type" : "string"
+          },
+          "storedValidFrom" : {
+            "description" : "Local day the coefficient is stored to start applying. Null when pending.",
+            "example" : "2024-05-10",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "Supply the coefficient belongs to"
+          }
+        },
+        "required" : [
+          "coefficient",
+          "coefficientId",
+          "observedDate",
+          "proposedDate",
+          "status",
+          "storedValidFrom",
+          "supply"
+        ],
+        "type" : "object"
+      },
       "CommunityAdminResponse" : {
         "description" : "A community's admin: this community's member record, the personal id, and the state of the membership and its invitation.",
         "properties" : {
@@ -1595,6 +1662,7 @@
               "SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT",
               "SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION",
               "SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP",
+              "SHARING_AGREEMENT_NOT_OBSERVABLE",
               "DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID",
               "DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING",
               "DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH",
@@ -1834,6 +1902,7 @@
               "SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT",
               "SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION",
               "SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP",
+              "SHARING_AGREEMENT_NOT_OBSERVABLE",
               "DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID",
               "DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING",
               "DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH",
@@ -2065,6 +2134,78 @@
         "required" : [
           "confirmationCode",
           "platformAdmin"
+        ],
+        "type" : "object"
+      },
+      "LeavingObservationResponse" : {
+        "properties" : {
+          "observedLeavingDate" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "When the distributor was observed to stop giving the supply production. Null when not observed.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "previousCoefficient" : {
+            "description" : "The supply's coefficient in the previous agreement, on a 0-1 scale",
+            "example" : 0.05,
+            "type" : "number"
+          },
+          "previousCoefficientId" : {
+            "description" : "Identifier of the supply's coefficient row in the previous agreement",
+            "example" : "b3d1a2f0-1234-5678-abcd-000000000001",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "previousSharingAgreement" : {
+            "$ref" : "#/components/schemas/SharingAgreementReferenceResponse",
+            "description" : "Agreement observed applied for the supply before this one"
+          },
+          "proposedDate" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "For NOT_DISTINGUISHABLE, the agreement's most frequent observed application date. Null otherwise, or when nothing of the agreement was observed.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "status" : {
+            "description" : "How the observed leaving compares with the stored end of the previous coefficient",
+            "enum" : [
+              "APPLIED_SAME_DATE",
+              "APPLIED_DIFFERENT_DATE",
+              "PENDING_APPLICATION",
+              "NOT_DISTINGUISHABLE",
+              "NOT_OBSERVED",
+              "NO_DATA"
+            ],
+            "example" : "APPLIED_DIFFERENT_DATE",
+            "type" : "string"
+          },
+          "storedValidTo" : {
+            "description" : "Local day the previous coefficient is stored to stop applying (exclusive end). Null when its period is open.",
+            "example" : "2025-04-01",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "Supply leaving the distribution"
+          }
+        },
+        "required" : [
+          "observedLeavingDate",
+          "previousCoefficient",
+          "previousCoefficientId",
+          "previousSharingAgreement",
+          "proposedDate",
+          "status",
+          "storedValidTo",
+          "supply"
         ],
         "type" : "object"
       },
@@ -2987,6 +3128,79 @@
         ],
         "type" : "object"
       },
+      "ObservationStatusCountsResponse" : {
+        "properties" : {
+          "appliedDifferentDate" : {
+            "description" : "Rows observed applied on another date than the stored one, or without one",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "appliedSameDate" : {
+            "description" : "Rows observed applied on their stored date",
+            "example" : 12,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "noData" : {
+            "description" : "Rows of supplies without any valid day",
+            "example" : 1,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "notDistinguishable" : {
+            "description" : "Rows whose value equals the supply's value in the agreement observed before, so their application cannot be observed",
+            "example" : 5,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "notObserved" : {
+            "description" : "Rows not observed, of an agreement whose distributor file was not sent",
+            "example" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pendingApplication" : {
+            "description" : "Rows not observed, of an agreement whose distributor file was sent",
+            "example" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "appliedDifferentDate",
+          "appliedSameDate",
+          "noData",
+          "notDistinguishable",
+          "notObserved",
+          "pendingApplication"
+        ],
+        "type" : "object"
+      },
+      "ObservedDateResponse" : {
+        "properties" : {
+          "from" : {
+            "description" : "Earliest possible local day. Null when open: the observation starts on the first valid day of the data, so it may have started earlier.",
+            "example" : "2024-05-08",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "to" : {
+            "description" : "Latest possible local day: the first day the observation rests on.",
+            "example" : "2024-05-10",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "from",
+          "to"
+        ],
+        "type" : "object"
+      },
       "OperatorContactResponse" : {
         "properties" : {
           "email" : {
@@ -3667,6 +3881,41 @@
         ],
         "type" : "object"
       },
+      "PlantSharingObservationResponse" : {
+        "properties" : {
+          "analysis" : {
+            "$ref" : "#/components/schemas/SharingObservationAnalysisResponse",
+            "description" : "What could be analysed"
+          },
+          "consecutiveDays" : {
+            "description" : "The consecutive valid days a run must last to be observed, and an anomaly to be reported",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sharingAgreements" : {
+            "description" : "The plant's PUBLISHED and SUPERSEDED agreements, in registered order",
+            "items" : {
+              "$ref" : "#/components/schemas/SharingAgreementObservationSummaryResponse"
+            },
+            "type" : "array"
+          },
+          "unattributedAnomalies" : {
+            "description" : "Anomalies attributed to no agreement: observed before anything was observed applied for the supply",
+            "items" : {
+              "$ref" : "#/components/schemas/SharingAnomalyResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "analysis",
+          "consecutiveDays",
+          "sharingAgreements",
+          "unattributedAnomalies"
+        ],
+        "type" : "object"
+      },
       "PlatformAdminCapabilitiesResponse" : {
         "description" : "What the caller may do with this platform admin.",
         "properties" : {
@@ -4122,6 +4371,7 @@
               "SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT",
               "SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION",
               "SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP",
+              "SHARING_AGREEMENT_NOT_OBSERVABLE",
               "DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID",
               "DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING",
               "DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH",
@@ -4307,6 +4557,7 @@
               "SHARING_AGREEMENT_COEFFICIENT_OVERLAP_CONFLICT",
               "SHARING_AGREEMENT_CLOSURE_DATE_NOT_AFTER_ACTIVATION",
               "SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP",
+              "SHARING_AGREEMENT_NOT_OBSERVABLE",
               "DISTRIBUTOR_FILE_FILENAME_SHAPE_INVALID",
               "DISTRIBUTOR_FILE_PLANT_REGULATORY_CODE_MISSING",
               "DISTRIBUTOR_FILE_FILENAME_REGULATORY_CODE_MISMATCH",
@@ -4507,6 +4758,132 @@
           "filename",
           "id",
           "uploadedAt"
+        ],
+        "type" : "object"
+      },
+      "SharingAgreementObservationResponse" : {
+        "properties" : {
+          "analysis" : {
+            "$ref" : "#/components/schemas/SharingObservationAnalysisResponse",
+            "description" : "What could be analysed for the plant"
+          },
+          "coefficients" : {
+            "description" : "Its coefficient rows of the analysed supplies, ordered by supply code",
+            "items" : {
+              "$ref" : "#/components/schemas/CoefficientObservationResponse"
+            },
+            "type" : "array"
+          },
+          "consecutiveDays" : {
+            "description" : "The consecutive valid days a run must last to be observed, and an anomaly to be reported",
+            "example" : 3,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "leavingRows" : {
+            "description" : "Supplies absent from it that had a non-zero value in the agreement observed before, ordered by supply code",
+            "items" : {
+              "$ref" : "#/components/schemas/LeavingObservationResponse"
+            },
+            "type" : "array"
+          },
+          "summary" : {
+            "$ref" : "#/components/schemas/SharingAgreementObservationSummaryResponse",
+            "description" : "The agreement's summary, the same as its item in the plant's observed sharing"
+          }
+        },
+        "required" : [
+          "analysis",
+          "coefficients",
+          "consecutiveDays",
+          "leavingRows",
+          "summary"
+        ],
+        "type" : "object"
+      },
+      "SharingAgreementObservationSummaryResponse" : {
+        "properties" : {
+          "anomalies" : {
+            "description" : "Anomalies attributed to the agreement",
+            "items" : {
+              "$ref" : "#/components/schemas/SharingAnomalyResponse"
+            },
+            "type" : "array"
+          },
+          "anomalyCounts" : {
+            "$ref" : "#/components/schemas/SharingAnomalyCountsResponse",
+            "description" : "Number of anomalies attributed to the agreement, per type"
+          },
+          "coefficientStatusCounts" : {
+            "$ref" : "#/components/schemas/ObservationStatusCountsResponse",
+            "description" : "Number of its coefficient rows in each status"
+          },
+          "distributorFileSentOn" : {
+            "description" : "Local day the agreement's distributor file was sent. Null when not recorded.",
+            "example" : "2024-04-25",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "earliestObservedDate" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "Earliest observed application date of its coefficients. Null when none was observed.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "leavingStatusCounts" : {
+            "$ref" : "#/components/schemas/ObservationStatusCountsResponse",
+            "description" : "Number of its leaving rows in each status"
+          },
+          "mostFrequentObservedDate" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "Most frequent observed application date of its coefficients. Null when none was observed.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "recommendations" : {
+            "description" : "What to do with the agreement, in this order: SET_DATES, DEACTIVATE, REVIEW_ANOMALIES; NONE when none applies. Empty when the plant is not computable. Never a coefficient value.",
+            "items" : {
+              "enum" : [
+                "SET_DATES",
+                "DEACTIVATE",
+                "REVIEW_ANOMALIES",
+                "NONE"
+              ],
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "sharingAgreement" : {
+            "$ref" : "#/components/schemas/SharingAgreementReferenceResponse",
+            "description" : "The agreement"
+          },
+          "unallocatedShare" : {
+            "$ref" : "#/components/schemas/UnallocatedShareResponse",
+            "description" : "The production no supply with data received while the agreement was applied. Null when it was never observed applied, or no valid day falls while it was.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "anomalies",
+          "anomalyCounts",
+          "coefficientStatusCounts",
+          "distributorFileSentOn",
+          "earliestObservedDate",
+          "leavingStatusCounts",
+          "mostFrequentObservedDate",
+          "recommendations",
+          "sharingAgreement",
+          "unallocatedShare"
         ],
         "type" : "object"
       },
@@ -4732,6 +5109,163 @@
           "status",
           "updatedAt",
           "updatedBy"
+        ],
+        "type" : "object"
+      },
+      "SharingAnomalyCountsResponse" : {
+        "properties" : {
+          "appliedBeforeSent" : {
+            "description" : "Anomalies of type APPLIED_BEFORE_SENT",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "energyOutsideAgreement" : {
+            "description" : "Anomalies of type ENERGY_OUTSIDE_AGREEMENT",
+            "example" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "noEnergyInAgreement" : {
+            "description" : "Anomalies of type NO_ENERGY_IN_AGREEMENT",
+            "example" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reverted" : {
+            "description" : "Anomalies of type REVERTED",
+            "example" : 0,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "unknownCoefficient" : {
+            "description" : "Anomalies of type UNKNOWN_COEFFICIENT",
+            "example" : 1,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [
+          "appliedBeforeSent",
+          "energyOutsideAgreement",
+          "noEnergyInAgreement",
+          "reverted",
+          "unknownCoefficient"
+        ],
+        "type" : "object"
+      },
+      "SharingAnomalyResponse" : {
+        "properties" : {
+          "end" : {
+            "description" : "Its last local day. Null when it lasts until the end of the analysed data.",
+            "example" : "2024-05-14",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "id" : {
+            "description" : "Identifier derived from the supply, the type and the first anomalous day: the same anomaly keeps it from one read to the next",
+            "example" : "5f0c2d4e-8a1b-3c9d-9e7f-1a2b3c4d5e6f",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "start" : {
+            "$ref" : "#/components/schemas/ObservedDateResponse",
+            "description" : "When it started"
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "Supply the anomaly was observed on"
+          },
+          "type" : {
+            "description" : "Kind of anomaly",
+            "enum" : [
+              "UNKNOWN_COEFFICIENT",
+              "ENERGY_OUTSIDE_AGREEMENT",
+              "NO_ENERGY_IN_AGREEMENT",
+              "REVERTED",
+              "APPLIED_BEFORE_SENT"
+            ],
+            "example" : "UNKNOWN_COEFFICIENT",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "end",
+          "id",
+          "start",
+          "supply",
+          "type"
+        ],
+        "type" : "object"
+      },
+      "SharingObservationAnalysisResponse" : {
+        "properties" : {
+          "analysedFrom" : {
+            "description" : "First local day analysed: the day of the plant supply's first production record. Null when not computable.",
+            "example" : "2024-02-01",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "analysedTo" : {
+            "description" : "Last local day analysed: the end of the latest month published for the plant supply. Null when not computable.",
+            "example" : "2026-10-31",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "computable" : {
+            "description" : "False when nothing could be observed, because the plant supply has no data",
+            "type" : "boolean"
+          },
+          "notComputableReason" : {
+            "description" : "Why nothing could be observed. Null when computable.",
+            "enum" : [
+              "PLANT_SUPPLY_WITHOUT_DATA"
+            ],
+            "example" : "PLANT_SUPPLY_WITHOUT_DATA",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "notComputableSupplies" : {
+            "description" : "Supplies that also hold coefficients in another plant: the energy they receive cannot be attributed to this plant alone, so they are not analysed",
+            "items" : {
+              "$ref" : "#/components/schemas/SupplyReferenceResponse"
+            },
+            "type" : "array"
+          },
+          "suppliesWithValidDays" : {
+            "description" : "Analysed supplies with at least one valid day",
+            "items" : {
+              "$ref" : "#/components/schemas/SupplyReferenceResponse"
+            },
+            "type" : "array"
+          },
+          "suppliesWithoutValidDays" : {
+            "description" : "Analysed supplies without any valid day",
+            "items" : {
+              "$ref" : "#/components/schemas/SupplyReferenceResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "analysedFrom",
+          "analysedTo",
+          "computable",
+          "notComputableReason",
+          "notComputableSupplies",
+          "suppliesWithValidDays",
+          "suppliesWithoutValidDays"
         ],
         "type" : "object"
       },
@@ -5569,6 +6103,34 @@
         "required" : [
           "effectiveDate",
           "newOwnerPersonalId"
+        ],
+        "type" : "object"
+      },
+      "UnallocatedShareResponse" : {
+        "properties" : {
+          "days" : {
+            "description" : "Number of the plant's valid days the figures rest on",
+            "example" : 184,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "registeredShareWithoutData" : {
+            "description" : "The share the agreement registers for the supplies without data on each day, on a 0-1 scale, weighted by the plant's daily production",
+            "example" : 0.0533,
+            "format" : "double",
+            "type" : "number"
+          },
+          "unallocated" : {
+            "description" : "1 − Σβ: the production no supply with data received, on a 0-1 scale, weighted by the plant's daily production",
+            "example" : 0.0565,
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [
+          "days",
+          "registeredShareWithoutData",
+          "unallocated"
         ],
         "type" : "object"
       },
@@ -18401,6 +18963,133 @@
         ]
       }
     },
+    "/api/v1/plants/{plantId}/sharing-agreements/observation" : {
+      "get" : {
+        "description" : "Compares, day by day, the share of the plant's production each supply of its community\nreceived according to Datadis with the coefficients of the plant's PUBLISHED and SUPERSEDED\nagreements. For each agreement it reports when its coefficients were observed applied, how\nthat compares with the stored dates, the anomalies attributed to it and what to do with it.\nDRAFT agreements are ignored. Computed on every request from the stored daily data; nothing\nis written, and no coefficient is ever proposed.\n\nWhen the plant supply has no data, the response says the plant is not computable.\n\n**Required: community admin of the plant's community.**\n\nReturns 404 if the plant does not exist or if the caller is not a member of its community,\nto avoid leaking the existence of plants by ID. Returns 403 if the caller is an active member\nof the plant's community but not a community admin.\n\nAuthentication is required using a Bearer token.\n",
+        "operationId" : "getPlantSharingObservation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlantSharingObservationResponse"
+                }
+              }
+            },
+            "description" : "Observed sharing computed successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Observes how the distributor applies the plant's sharing agreements",
+        "tags" : [
+          "Sharing agreements"
+        ]
+      }
+    },
     "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}" : {
       "delete" : {
         "description" : "This endpoint removes a sharing agreement. Only DRAFT agreements can be deleted:\ndeleting a PUBLISHED agreement would destroy the historical basis of past billing.\n\n**Required: Community Admin**\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the agreement is not in DRAFT status.\n\nAuthentication is required using a Bearer token.\n",
@@ -19299,6 +19988,164 @@
           }
         ],
         "summary" : "Generates the distributor coefficient-partition file for a sharing agreement",
+        "tags" : [
+          "Sharing agreements"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/observation" : {
+      "get" : {
+        "description" : "One agreement's part of the plant's observed sharing (getPlantSharingObservation): the same\nsummary, with the observation of each of its coefficient rows and its leaving rows, the\nsupplies absent from it that had a non-zero value in the agreement observed before. Computed\non every request from the stored daily data; nothing is written.\n\n**Required: community admin of the plant's community.**\n\nReturns 404 if the plant does not exist, if the caller is not a member of its community, or if\nthe sharing agreement does not exist or does not belong to this plant, to avoid leaking the\nexistence of plants or agreements by ID. Returns 403 if the caller is an active member of the\nplant's community but not a community admin. Returns 409 with code\nSHARING_AGREEMENT_NOT_OBSERVABLE if the agreement is a DRAFT, which is not in force.\n\nAuthentication is required using a Bearer token.\n",
+        "operationId" : "getSharingAgreementObservation",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "sharingAgreementId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SharingAgreementObservationResponse"
+                }
+              }
+            },
+            "description" : "Observed sharing of the agreement computed successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "errors" : [
+                    {
+                      "code" : "SHARING_AGREEMENT_NOT_OBSERVABLE",
+                      "message" : "Sharing agreement 'ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c' is DRAFT; only published and superseded agreements are observed."
+                    }
+                  ],
+                  "message" : "Sharing agreement 'ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c' is DRAFT; only published and superseded agreements are observed.",
+                  "status" : 409,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The agreement is a DRAFT, so it is not observed."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Observes how the distributor applies one sharing agreement",
         "tags" : [
           "Sharing agreements"
         ]
