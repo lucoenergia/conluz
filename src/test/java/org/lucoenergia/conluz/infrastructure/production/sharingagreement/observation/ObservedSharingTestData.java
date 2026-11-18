@@ -17,8 +17,6 @@ import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantReposito
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
-import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreement;
-import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
@@ -48,7 +46,6 @@ final class ObservedSharingTestData {
     private final CreateSupplyRepository createSupplyRepository;
     private final CreatePlantRepository createPlantRepository;
     private final CreateSharingAgreementRepository createSharingAgreementRepository;
-    private final UpdateSharingAgreementRepository updateSharingAgreementRepository;
     private final SaveSupplyPartitionCoefficientRepository saveSupplyPartitionCoefficientRepository;
     private final DatadisConsumptionInfluxFixture consumptionFixture;
     private final DatadisProductionInfluxFixture productionFixture;
@@ -60,7 +57,6 @@ final class ObservedSharingTestData {
                             CreateSupplyRepository createSupplyRepository,
                             CreatePlantRepository createPlantRepository,
                             CreateSharingAgreementRepository createSharingAgreementRepository,
-                            UpdateSharingAgreementRepository updateSharingAgreementRepository,
                             SaveSupplyPartitionCoefficientRepository saveSupplyPartitionCoefficientRepository,
                             DatadisConsumptionInfluxFixture consumptionFixture,
                             DatadisProductionInfluxFixture productionFixture) {
@@ -69,7 +65,6 @@ final class ObservedSharingTestData {
         this.createSupplyRepository = createSupplyRepository;
         this.createPlantRepository = createPlantRepository;
         this.createSharingAgreementRepository = createSharingAgreementRepository;
-        this.updateSharingAgreementRepository = updateSharingAgreementRepository;
         this.saveSupplyPartitionCoefficientRepository = saveSupplyPartitionCoefficientRepository;
         this.consumptionFixture = consumptionFixture;
         this.productionFixture = productionFixture;
@@ -100,18 +95,10 @@ final class ObservedSharingTestData {
                 .withStatus(status)
                 .withNominalPowerKW(BigDecimal.TEN)
                 .withCreatedAt(nextCreatedAt)
+                .withDistributorFileSentOn(sentOn)
                 .build());
         nextCreatedAt = nextCreatedAt.plusSeconds(3600);
-        if (sentOn == null) {
-            return agreement;
-        }
-        // Creating an agreement does not record a sent date; production records it with an update.
-        return updateSharingAgreementRepository.update(plant.getId(), agreement.getId(),
-                new UpdateSharingAgreement.Builder()
-                        .withName(name)
-                        .withNominalPowerKW(BigDecimal.TEN)
-                        .withDistributorFileSentOn(sentOn)
-                        .build());
+        return agreement;
     }
 
     SupplyPartitionCoefficient coefficient(Supply supply, Plant plant, SharingAgreement agreement, String value,

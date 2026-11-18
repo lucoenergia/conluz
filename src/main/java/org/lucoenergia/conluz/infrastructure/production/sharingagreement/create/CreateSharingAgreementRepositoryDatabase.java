@@ -42,6 +42,7 @@ public class CreateSharingAgreementRepositoryDatabase implements CreateSharingAg
         entity.setNominalPowerKW(agreement.getNominalPowerKW());
         entity.setCreatedAt(agreement.getCreatedAt());
         entity.setCreatedBy(agreement.getCreatedBy());
+        entity.setDistributorFileSentOn(agreement.getDistributorFileSentOn());
 
         // No file lookup here: a freshly created agreement cannot yet have an uploaded file --
         // upload is a separate, later call that requires the agreement to already exist -- so

@@ -19,7 +19,6 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
-import org.lucoenergia.conluz.domain.production.sharingagreement.update.UpdateSharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -65,8 +64,6 @@ class SharingObservationControllerTest extends BaseControllerTest {
     @Autowired
     private CreateSharingAgreementRepository createSharingAgreementRepository;
     @Autowired
-    private UpdateSharingAgreementRepository updateSharingAgreementRepository;
-    @Autowired
     private SaveSupplyPartitionCoefficientRepository saveSupplyPartitionCoefficientRepository;
     @Autowired
     private GetSharingAgreementRepository getSharingAgreementRepository;
@@ -93,7 +90,7 @@ class SharingObservationControllerTest extends BaseControllerTest {
     @BeforeEach
     void setUp() {
         data = new ObservedSharingTestData(createUserRepository, createCommunityRepository, createSupplyRepository,
-                createPlantRepository, createSharingAgreementRepository, updateSharingAgreementRepository,
+                createPlantRepository, createSharingAgreementRepository,
                 saveSupplyPartitionCoefficientRepository, consumptionFixture, productionFixture);
         community = data.community();
         otherCommunity = data.community();
