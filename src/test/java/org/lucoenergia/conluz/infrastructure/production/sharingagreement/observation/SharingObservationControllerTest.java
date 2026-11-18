@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -187,6 +188,8 @@ class SharingObservationControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("OBS-007 the agreement's observed sharing is exactly its slice of the plant's")
     void agreementIsTheSliceOfThePlant() throws Exception {
+        // An anomaly attributed to B, so the slice carries its observed β too.
+        supplyWithAnUnknownCoefficientInB();
         String admin = loginAsCommunityAdmin(community.getId());
 
         JsonNode plantResult = read(perform(plantUrl(plant.getId()), admin).andExpect(status().isOk()));
@@ -205,6 +208,67 @@ class SharingObservationControllerTest extends BaseControllerTest {
             assertThat(agreementResult.get("coefficients").size()).isEqualTo(sum(item.get("coefficientStatusCounts")));
             assertThat(agreementResult.get("leavingRows").size()).isEqualTo(sum(item.get("leavingStatusCounts")));
         }
+    }
+
+    @Test
+    @DisplayName("OBS-009 the agreement's rows report the median of their supply's daily β over its applied window")
+    void rowsReportTheirObservedBeta() throws Exception {
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        // B's applied window is November and December: 61 valid days.
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[0].observedBeta").value(1.0))
+                .andExpect(jsonPath("$.coefficients[0].observedValidDays").value(61))
+                .andExpect(jsonPath("$.leavingRows[0].observedBeta").value(0.0))
+                .andExpect(jsonPath("$.leavingRows[0].observedValidDays").value(61));
+        // The silent supply has no valid day in A's window.
+        data.coefficient(silent, plant, a, "0.1", LocalDate.parse("2025-08-25"), CHANGE);
+        perform(agreementUrl(plant.getId(), a.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + staying.getId() + "')].observedBeta")
+                        .value(contains(0.6)))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + staying.getId() + "')].observedValidDays")
+                        .value(contains(61)))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].observedBeta")
+                        .value(contains(nullValue())))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].observedValidDays")
+                        .value(contains(0)));
+    }
+
+    @Test
+    @DisplayName("OBS-009 the plant's agreement summaries report the observed β of their anomalies")
+    void plantSummariesReportTheObservedBetaOfAnomalies() throws Exception {
+        Supply deviating = supplyWithAnUnknownCoefficientInB();
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        perform(plantUrl(plant.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sharingAgreements[1].anomalies").value(hasSize(1)))
+                .andExpect(jsonPath("$.sharingAgreements[1].anomalies[0].supply.id").value(deviating.getId().toString()))
+                .andExpect(jsonPath("$.sharingAgreements[1].anomalies[0].type").value("UNKNOWN_COEFFICIENT"))
+                .andExpect(jsonPath("$.sharingAgreements[1].anomalies[0].observedBeta").value(0.0412))
+                .andExpect(jsonPath("$.sharingAgreements[1].anomalies[0].observedValidDays").value(5));
+    }
+
+    @Test
+    @DisplayName("OBS-010 a coefficient row reports its stored end as an exclusive local day, null when open")
+    void rowsReportTheirStoredEnd() throws Exception {
+        // Stored at 00:00 UTC of the change, 01:00 in Madrid: the same local day.
+        data.coefficientAt(silent, plant, a, "0.1", LocalDate.parse("2025-08-25").atStartOfDay(ObservedSharingTestData.ZONE)
+                .toInstant(), CHANGE.atStartOfDay(java.time.ZoneOffset.UTC).toInstant());
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        perform(agreementUrl(plant.getId(), a.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + staying.getId() + "')].storedValidTo")
+                        .value(contains("2025-11-01")))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].storedValidTo")
+                        .value(contains("2025-11-01")));
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[0].storedValidFrom").value("2025-11-01"))
+                .andExpect(jsonPath("$.coefficients[0].storedValidTo").value(nullValue()));
     }
 
     @Test
@@ -320,6 +384,21 @@ class SharingObservationControllerTest extends BaseControllerTest {
         perform(agreementUrl(plant.getId(), UUID.randomUUID()), admin)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_NOT_FOUND"));
+    }
+
+    /**
+     * A supply observed at its value in A, then in B, that receives 4.12 % of the production on 1-5 December:
+     * an unknown coefficient attributed to B.
+     */
+    private Supply supplyWithAnUnknownCoefficientInB() {
+        Supply deviating = data.supply(community);
+        data.coefficient(deviating, plant, a, "0.05", LocalDate.parse("2025-08-25"), CHANGE);
+        data.coefficient(deviating, plant, b, "0.06", CHANGE, null);
+        data.supplyReceives(deviating, FIRST_DAY, CHANGE.minusDays(1), 0.05f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(deviating, CHANGE, LAST_DAY, 0.06f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(deviating, LocalDate.parse("2025-12-01"), LocalDate.parse("2025-12-05"),
+                0.0412f * HOURLY_PRODUCTION_KWH);
+        return deviating;
     }
 
     private List<String> bothUrls() {

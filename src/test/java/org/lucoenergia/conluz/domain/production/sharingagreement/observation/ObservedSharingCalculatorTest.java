@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -953,6 +955,338 @@ class ObservedSharingCalculatorTest {
             });
             assertThat(anomaliesOf(result, leaving)).isEmpty();
             return rows.get(0);
+        }
+    }
+
+    @Nested
+    class ObservedBetas {
+
+        private static final LocalDate CHANGE = day("2024-05-10");
+
+        @Test
+        @DisplayName("OBS-009 a coefficient row reports the median of its supply's daily β over the agreement's window, an odd count")
+        void rowOverAnOddCount() {
+            Rows rows = twoAgreements();
+
+            // A's window runs from its open date (on or before FROM) to the day before B's: 19 days at 2.98 % and
+            // 20 at 3.02 %, so the 20th of 39 is the first at 3.02 %.
+            assertThat(rowOf(rows.result(), rows.firstInA()).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.030200"), 39));
+            assertThat(rowOf(rows.result(), rows.secondInA()).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.020000"), 39));
+        }
+
+        @Test
+        @DisplayName("OBS-009 a coefficient row reports the median of its supply's daily β over the agreement's window, an even count")
+        void rowOverAnEvenCount() {
+            Rows rows = twoAgreements();
+
+            // B's window runs from its observed date to the end of the range: 26 days at 3.99 % and 26 at 4.01 %.
+            assertThat(rowOf(rows.result(), rows.firstInB()).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.040000"), 52));
+            assertThat(rowOf(rows.result(), rows.secondInB()).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 52));
+        }
+
+        @Test
+        @DisplayName("OBS-009 the window is the agreement's, not the row's: a supply applied later gets what it received most of the time")
+        void windowIsTheAgreements() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply third = fixture.supply("S3");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(third, a, "0.01", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.row(second, b, "0.05", CHANGE, null);
+            ObservedCoefficient thirdInB = fixture.row(third, b, "0.06", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
+            // S3 moves to B ten days after the others: 10 of B's 52 days still at A's value.
+            fixture.beta(third, FROM, day("2024-05-19"), 0.01).beta(third, day("2024-05-20"), TO, 0.06);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, thirdInB).observedDate()).isEqualTo(ObservedDate.exact(day("2024-05-20")));
+            assertThat(rowOf(result, thirdInB).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.060000"), 52));
+        }
+
+        @Test
+        @DisplayName("OBS-009 several rows of one supply in an agreement report the same value, over the agreement's window")
+        void severalRowsOfOneSupplyShareTheValue() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            ObservedCoefficient firstInBBefore = fixture.row(first, b, "0.04", CHANGE, day("2024-06-01"));
+            ObservedCoefficient firstInBAfter = fixture.row(first, b, "0.05", day("2024-06-01"), null);
+            fixture.row(second, b, "0.05", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03)
+                    .beta(first, CHANGE, day("2024-05-31"), 0.04)
+                    .beta(first, day("2024-06-01"), TO, 0.05);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            // B's window holds 22 days at 4 % and 30 at 5 %.
+            ObservedBeta expected = new ObservedBeta(new BigDecimal("0.050000"), 52);
+            assertThat(rowOf(result, firstInBBefore).observedBeta()).isEqualTo(expected);
+            assertThat(rowOf(result, firstInBAfter).observedBeta()).isEqualTo(expected);
+        }
+
+        @Test
+        @DisplayName("OBS-009 a leaving row reports the median over the leaving agreement's window: 0 after the leaving")
+        void leavingRowOverTheLeavingAgreementsWindow() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply staying = fixture.supply("S1");
+            ObservedSupply leaving = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(staying, a, "0.95", day("2024-03-01"), CHANGE);
+            fixture.row(leaving, a, "0.05", day("2024-03-01"), CHANGE);
+            fixture.row(staying, b, "1", CHANGE, null);
+            fixture.beta(staying, FROM, day("2024-05-09"), 0.95).beta(staying, CHANGE, TO, 1.0);
+            // A trickle on the first two days after the leaving does not move the median.
+            fixture.beta(leaving, FROM, day("2024-05-09"), 0.05).beta(leaving, CHANGE, TO, 0.0)
+                    .beta(leaving, CHANGE, day("2024-05-11"), 0.0005);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(leavingsOf(result, b, leaving)).singleElement().satisfies(row ->
+                    assertThat(row.observedBeta()).isEqualTo(new ObservedBeta(new BigDecimal("0.000000"), 52)));
+        }
+
+        @Test
+        @DisplayName("OBS-009 an anomaly reports the median over its own valid days: a 5-day unknown coefficient at 4.12 % reports 4.12 %")
+        void streakOverItsValidDays() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", null);
+            fixture.row(first, a, "0.03", day("2024-03-01"), null);
+            fixture.row(second, a, "0.02", day("2024-03-01"), null);
+            fixture.row(first, b, "0.04", (LocalDate) null, null);
+            fixture.row(second, b, "0.02", (LocalDate) null, null);
+            fixture.beta(first, FROM, TO, 0.03).beta(first, day("2024-05-10"), day("2024-05-15"), 0.0412);
+            fixture.beta(second, FROM, TO, 0.02);
+            // Not a valid day: inside the anomaly's dates, but not one of its days.
+            fixture.production(day("2024-05-12"), 1.0);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.UNKNOWN_COEFFICIENT);
+                assertThat(anomaly.observedBeta()).isEqualTo(new ObservedBeta(new BigDecimal("0.041200"), 5));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-009 an anomaly open until the end of the data reports the median up to the supply's last valid day")
+        void openStreakUpToTheLastValidDay() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", null);
+            fixture.row(first, a, "0.03", day("2024-03-01"), null);
+            fixture.row(second, a, "0.02", day("2024-03-01"), null);
+            fixture.row(first, b, "0.04", (LocalDate) null, null);
+            fixture.row(second, b, "0.02", (LocalDate) null, null);
+            fixture.beta(first, FROM, TO, 0.03).beta(first, day("2024-06-25"), TO, 0.0);
+            fixture.beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.NO_ENERGY_IN_AGREEMENT);
+                assertThat(anomaly.end()).isNull();
+                assertThat(anomaly.observedBeta()).isEqualTo(new ObservedBeta(new BigDecimal("0.000000"), 6));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-009 a reverted application reports the median over the valid days it lasted")
+        void revertedOverItsExtent() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-04-25"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(second, a, "0.02", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(first, b, "0.04", day("2024-05-01"), null);
+            fixture.row(second, b, "0.02", day("2024-05-01"), null);
+            fixture.beta(first, FROM, day("2024-04-30"), 0.03)
+                    .beta(first, day("2024-05-01"), day("2024-05-31"), 0.04)
+                    .beta(first, day("2024-06-01"), day("2024-06-10"), 0.0302)
+                    .beta(first, day("2024-06-11"), TO, 0.04);
+            fixture.beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.REVERTED);
+                assertThat(anomaly.observedBeta()).isEqualTo(new ObservedBeta(new BigDecimal("0.030200"), 10));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-009 an application before the sent date reports the median over the valid days before the sent date")
+        void appliedBeforeSentOverItsExtent() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-15"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.row(second, b, "0.02", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03)
+                    .beta(first, CHANGE, day("2024-05-14"), 0.0402)
+                    .beta(first, day("2024-05-15"), TO, 0.04);
+            fixture.beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.APPLIED_BEFORE_SENT);
+                assertThat(anomaly.observedBeta()).isEqualTo(new ObservedBeta(new BigDecimal("0.040200"), 5));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-009 the rows of an agreement never observed applied report null over 0 days, like its 1 − Σβ")
+        void agreementWithoutWindowIsNull() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            fixture.agreement("B", day("2024-05-01"));
+            ObservedAgreement never = fixture.agreement("C", null);
+            fixture.row(first, a, "0.03", day("2024-03-01"), null);
+            fixture.row(second, a, "0.02", day("2024-03-01"), null);
+            fixture.row(first, never, "0.07", (LocalDate) null, null);
+            fixture.row(second, never, "0.02", (LocalDate) null, null);
+            fixture.beta(first, FROM, TO, 0.03).beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(agreementOf(result, never).unallocatedShare()).isNull();
+            assertThat(agreementOf(result, never).coefficients()).hasSize(2)
+                    .allSatisfy(row -> assertThat(row.observedBeta()).isEqualTo(new ObservedBeta(null, 0)));
+        }
+
+        @Test
+        @DisplayName("OBS-009 a supply without a valid day in the agreement's window reports null over 0 days")
+        void supplyWithoutValidDayInTheWindowIsNull() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply gone = fixture.supply("S2");
+            ObservedSupply silent = fixture.supply("S3");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            ObservedCoefficient goneInA = fixture.row(gone, a, "0.01", day("2024-03-01"), CHANGE);
+            ObservedCoefficient silentInA = fixture.row(silent, a, "0.01", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            ObservedCoefficient goneInB = fixture.row(gone, b, "0.01", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04);
+            // S2's data stops before B's window; S3 has none.
+            fixture.beta(gone, FROM, day("2024-05-09"), 0.01);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, goneInA).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.010000"), 39));
+            assertThat(rowOf(result, goneInB).observedBeta()).isEqualTo(new ObservedBeta(null, 0));
+            assertThat(rowOf(result, silentInA).status()).isEqualTo(ObservationStatus.NO_DATA);
+            assertThat(rowOf(result, silentInA).observedBeta()).isEqualTo(new ObservedBeta(null, 0));
+        }
+
+        @Test
+        @DisplayName("OBS-009 a plant that is not computable has no row and no anomaly to report an observed β on")
+        void notComputablePlantHasNothingToReportOn() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO).plantWithoutData();
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.beta(first, FROM, TO, 0.0412).beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(result.analysis().computable()).isFalse();
+            assertThat(result.unattributedAnomalies()).isEmpty();
+            assertThat(result.agreements()).hasSize(2).allSatisfy(observation -> {
+                assertThat(observation.coefficients()).isEmpty();
+                assertThat(observation.leavingRows()).isEmpty();
+                assertThat(observation.anomalies()).isEmpty();
+            });
+        }
+
+        private Rows twoAgreements() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            ObservedCoefficient firstInA = fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            ObservedCoefficient secondInA = fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            ObservedCoefficient firstInB = fixture.row(first, b, "0.04", CHANGE, null);
+            ObservedCoefficient secondInB = fixture.row(second, b, "0.05", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-04-19"), 0.0298)
+                    .beta(first, day("2024-04-20"), day("2024-05-09"), 0.0302)
+                    .beta(first, CHANGE, day("2024-06-04"), 0.0399)
+                    .beta(first, day("2024-06-05"), TO, 0.0401);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
+            return new Rows(fixture.calculate(), firstInA, secondInA, firstInB, secondInB);
+        }
+
+        private record Rows(PlantSharingObservation result, ObservedCoefficient firstInA,
+                            ObservedCoefficient secondInA, ObservedCoefficient firstInB,
+                            ObservedCoefficient secondInB) {
+        }
+    }
+
+    @Nested
+    class StoredPeriods {
+
+        @Test
+        @DisplayName("OBS-010 a coefficient row reports its stored period as local days: a closed end exclusive, an open one null")
+        void storedPeriod() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            ObservedCoefficient closed = fixture.row(first, a, "0.03", day("2024-03-01"), day("2024-05-10"));
+            // Stored at 00:00 UTC, 02:00 in Madrid: the same local day.
+            ObservedCoefficient atUtcMidnight = fixture.rowAt(second, a, "0.02",
+                    Instant.parse("2024-03-01T00:00:00Z"), Instant.parse("2024-05-10T00:00:00Z"));
+            ObservedCoefficient open = fixture.row(first, b, "0.04", day("2024-05-10"), null);
+            fixture.row(second, b, "0.05", day("2024-05-10"), null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, day("2024-05-10"), TO, 0.04);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, day("2024-05-10"), TO, 0.05);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, closed).storedValidFrom()).isEqualTo(day("2024-03-01"));
+            assertThat(rowOf(result, closed).storedValidTo()).isEqualTo(day("2024-05-10"));
+            assertThat(rowOf(result, atUtcMidnight).storedValidFrom()).isEqualTo(day("2024-03-01"));
+            assertThat(rowOf(result, atUtcMidnight).storedValidTo()).isEqualTo(day("2024-05-10"));
+            assertThat(rowOf(result, open).storedValidTo()).isNull();
         }
     }
 }

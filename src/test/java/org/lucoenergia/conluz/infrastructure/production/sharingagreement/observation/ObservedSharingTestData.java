@@ -103,14 +103,21 @@ final class ObservedSharingTestData {
 
     SupplyPartitionCoefficient coefficient(Supply supply, Plant plant, SharingAgreement agreement, String value,
                                            LocalDate validFrom, LocalDate validTo) {
+        return coefficientAt(supply, plant, agreement, value,
+                validFrom == null ? null : validFrom.atStartOfDay(ZONE).toInstant(),
+                validTo == null ? null : validTo.atStartOfDay(ZONE).toInstant());
+    }
+
+    SupplyPartitionCoefficient coefficientAt(Supply supply, Plant plant, SharingAgreement agreement, String value,
+                                             Instant validFrom, Instant validTo) {
         return saveSupplyPartitionCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
                 .withSupplyId(supply.getId())
                 .withPlantId(plant.getId())
                 .withSharingAgreementId(agreement.getId())
                 .withCoefficient(new BigDecimal(value))
-                .withValidFrom(validFrom == null ? null : validFrom.atStartOfDay(ZONE).toInstant())
-                .withValidTo(validTo == null ? null : validTo.atStartOfDay(ZONE).toInstant())
+                .withValidFrom(validFrom)
+                .withValidTo(validTo)
                 .withCreatedAt(nextCreatedAt)
                 .build());
     }
