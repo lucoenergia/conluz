@@ -10,7 +10,8 @@ import java.util.UUID;
  * @param start                when it started
  * @param end                  its last day, or null when it lasts until the end of the data
  * @param attributedAgreementId the agreement it is attributed to, or null
+ * @param observedBeta         what the supply received over the anomaly's valid days
  */
 public record SharingAnomaly(UUID id, ObservedSupply supply, SharingAnomalyType type, ObservedDate start,
-                             LocalDate end, UUID attributedAgreementId) {
+                             LocalDate end, UUID attributedAgreementId, ObservedBeta observedBeta) {
 }

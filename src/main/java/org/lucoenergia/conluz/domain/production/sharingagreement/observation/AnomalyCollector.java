@@ -25,7 +25,7 @@ final class AnomalyCollector {
         collectStreaks(supply, timeline, anomalies);
         for (SupplyTimeline.Observation observation : timeline.observations()) {
             if (observation.reverted()) {
-                anomalies.add(anomaly(supply, SharingAnomalyType.REVERTED, observation.date(),
+                anomalies.add(anomaly(supply, timeline, SharingAnomalyType.REVERTED, observation.date(),
                         lastDayCurrent(timeline, observation), observation.previous().sharingAgreementId()));
             }
             if (observation.first()) {
@@ -36,8 +36,8 @@ final class AnomalyCollector {
                     LocalDate end = lastDayCurrent == null || lastDayCurrent.isAfter(dayBeforeSent)
                             ? dayBeforeSent : lastDayCurrent;
                     // Attributed to the agreement sent late, not to the one applied before it.
-                    anomalies.add(anomaly(supply, SharingAnomalyType.APPLIED_BEFORE_SENT, observation.date(), end,
-                            observation.candidate().sharingAgreementId()));
+                    anomalies.add(anomaly(supply, timeline, SharingAnomalyType.APPLIED_BEFORE_SENT, observation.date(),
+                            end, observation.candidate().sharingAgreementId()));
                 }
             }
         }
@@ -67,7 +67,8 @@ final class AnomalyCollector {
                         : new ObservedDate(days.get(i - 1).day().plusDays(1), days.get(i).day());
                 LocalDate end = last == types.length - 1 ? null : days.get(last).day();
                 Candidate current = timeline.currentBefore()[i];
-                anomalies.add(anomaly(supply, type, start, end, current == null ? null : current.sharingAgreementId()));
+                anomalies.add(anomaly(supply, timeline, type, start, end,
+                        current == null ? null : current.sharingAgreementId()));
             }
             i = last + 1;
         }
@@ -83,9 +84,22 @@ final class AnomalyCollector {
                 .orElse(null);
     }
 
-    private static SharingAnomaly anomaly(ObservedSupply supply, SharingAnomalyType type, ObservedDate start,
-                                          LocalDate end, UUID attributedAgreementId) {
-        return new SharingAnomaly(idOf(supply.id(), type, start.to()), supply, type, start, end, attributedAgreementId);
+    private static SharingAnomaly anomaly(ObservedSupply supply, SupplyTimeline timeline, SharingAnomalyType type,
+                                          ObservedDate start, LocalDate end, UUID attributedAgreementId) {
+        return new SharingAnomaly(idOf(supply.id(), type, start.to()), supply, type, start, end, attributedAgreementId,
+                observedBeta(timeline, start.to(), end));
+    }
+
+    /**
+     * What the supply received over the anomaly's valid days (OBS-009): from its first day (the end of a start
+     * range) to its last, or to the supply's last valid day when it is open. For a streak these are exactly the
+     * anomalous days.
+     */
+    private static ObservedBeta observedBeta(SupplyTimeline timeline, LocalDate first, LocalDate last) {
+        return ObservedBeta.of(timeline.days().stream()
+                .filter(day -> !day.day().isBefore(first) && (last == null || !day.day().isAfter(last)))
+                .map(ValidDay::beta)
+                .toList());
     }
 
     /**

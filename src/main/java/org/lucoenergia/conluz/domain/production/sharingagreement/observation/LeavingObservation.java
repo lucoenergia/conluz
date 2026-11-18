@@ -15,9 +15,11 @@ import java.util.UUID;
  * @param storedValidTo         the stored exclusive end of the previous row as a local day, or null when open
  * @param proposedDate          for {@link ObservationStatus#NOT_DISTINGUISHABLE}, the agreement's most frequent
  *                              observed date; otherwise null
+ * @param observedBeta          what the supply received over the agreement's applied window
  */
 public record LeavingObservation(ObservedSupply supply, ObservedAgreement previousAgreement,
                                  UUID previousCoefficientId, BigDecimal previousCoefficient,
                                  ObservedDate observedLeavingDate, LocalDate storedValidTo,
-                                 ObservationStatus status, ObservedDate proposedDate) {
+                                 ObservationStatus status, ObservedDate proposedDate,
+                                 ObservedBeta observedBeta) {
 }

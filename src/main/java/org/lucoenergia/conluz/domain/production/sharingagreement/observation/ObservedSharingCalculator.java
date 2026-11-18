@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -81,6 +82,7 @@ public final class ObservedSharingCalculator {
 
         Map<UUID, SupplyRows> rows = new HashMap<>();
         Map<UUID, Map<LocalDate, Double>> energy = new LinkedHashMap<>();
+        Map<UUID, NavigableMap<LocalDate, Double>> betas = new HashMap<>();
         List<SharingAnomaly> anomalies = new ArrayList<>();
         List<ObservedSupply> withData = new ArrayList<>();
         List<ObservedSupply> withoutData = new ArrayList<>();
@@ -93,13 +95,15 @@ public final class ObservedSharingCalculator {
             rows.put(supply.id(), resolver.resolve(supply, timeline, agreements, candidates));
             energy.put(supply.id(), days.stream()
                     .collect(Collectors.toMap(ValidDay::day, ValidDay::energyKWh, Double::sum, LinkedHashMap::new)));
+            betas.put(supply.id(), days.stream()
+                    .collect(Collectors.toMap(ValidDay::day, ValidDay::beta, (a, b) -> b, TreeMap::new)));
             (days.isEmpty() ? withoutData : withData).add(supply);
         }
         anomalies.sort(ANOMALY_ORDER);
 
         List<AgreementObservation> observations = new AgreementObservationSummarizer().summarize(
                 new AgreementObservationSummarizer.Context(agreements, supplies, rows, anomalies, plantValid, energy,
-                        coefficients, notComputable, input.analysedTo(), input.zone()));
+                        betas, coefficients, notComputable, input.analysedTo(), input.zone()));
         return new PlantSharingObservation(
                 new AnalysisStatus(true, null, input.analysedFrom(), input.analysedTo(), withData, withoutData,
                         notComputableSupplies),

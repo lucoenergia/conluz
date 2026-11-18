@@ -30,12 +30,14 @@ final class AgreementObservationSummarizer {
      * @param anomalies     the anomalies of every analysed supply
      * @param plantValid    the plant's valid days and their production
      * @param energy        each analysed supply's energy on its valid days, keyed by supply id
+     * @param betas         each analysed supply's observed β on its valid days, keyed by supply id
      * @param coefficients  the rows of the agreements in scope, not-computable supplies included
      * @param notComputable the supplies whose energy is not counted
      */
     record Context(List<ObservedAgreement> agreements, List<ObservedSupply> supplies, Map<UUID, SupplyRows> rows,
                    List<SharingAnomaly> anomalies, NavigableMap<LocalDate, Double> plantValid,
-                   Map<UUID, Map<LocalDate, Double>> energy, List<ObservedCoefficient> coefficients,
+                   Map<UUID, Map<LocalDate, Double>> energy, Map<UUID, NavigableMap<LocalDate, Double>> betas,
+                   List<ObservedCoefficient> coefficients,
                    Set<UUID> notComputable, LocalDate analysedTo, ZoneId zone) {
     }
 
@@ -55,23 +57,26 @@ final class AgreementObservationSummarizer {
         List<AgreementObservation> observations = new ArrayList<>();
         for (ObservedAgreement agreement : context.agreements()) {
             ObservedDate mostFrequent = datesByAgreement.get(agreement.id())[1];
+            LocalDate[] window = windows.get(agreement.id());
             List<CoefficientObservation> coefficients = new ArrayList<>();
             List<LeavingObservation> leavings = new ArrayList<>();
             for (ObservedSupply supply : context.supplies()) {
                 SupplyRows rows = context.rows().get(supply.id());
+                NavigableMap<LocalDate, Double> betas = context.betas().get(supply.id());
                 for (CoefficientObservation row : rows.coefficients().getOrDefault(agreement.id(), List.of())) {
-                    coefficients.add(row.status() == ObservationStatus.NOT_DISTINGUISHABLE
-                            ? new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
-                            row.storedValidFrom(), row.status(), row.observedDate(), mostFrequent)
-                            : row);
+                    coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
+                            row.storedValidFrom(), row.storedValidTo(), row.status(), row.observedDate(),
+                            row.status() == ObservationStatus.NOT_DISTINGUISHABLE ? mostFrequent : row.proposedDate(),
+                            observedBeta(betas, row.observedDate(), window)));
                 }
                 LeavingObservation leaving = rows.leavings().get(agreement.id());
                 if (leaving != null) {
-                    leavings.add(leaving.status() == ObservationStatus.NOT_DISTINGUISHABLE
-                            ? new LeavingObservation(leaving.supply(), leaving.previousAgreement(),
+                    leavings.add(new LeavingObservation(leaving.supply(), leaving.previousAgreement(),
                             leaving.previousCoefficientId(), leaving.previousCoefficient(),
-                            leaving.observedLeavingDate(), leaving.storedValidTo(), leaving.status(), mostFrequent)
-                            : leaving);
+                            leaving.observedLeavingDate(), leaving.storedValidTo(), leaving.status(),
+                            leaving.status() == ObservationStatus.NOT_DISTINGUISHABLE
+                                    ? mostFrequent : leaving.proposedDate(),
+                            observedBeta(betas, leaving.observedLeavingDate(), window)));
                 }
             }
             List<SharingAnomaly> anomalies = context.anomalies().stream()
@@ -80,7 +85,7 @@ final class AgreementObservationSummarizer {
             observations.add(new AgreementObservation(agreement, datesByAgreement.get(agreement.id())[0],
                     mostFrequent, countStatuses(coefficients.stream().map(CoefficientObservation::status).toList()),
                     countStatuses(leavings.stream().map(LeavingObservation::status).toList()), anomalies,
-                    countTypes(anomalies), unallocatedShare(context, agreement, windows.get(agreement.id())),
+                    countTypes(anomalies), unallocatedShare(context, agreement, window),
                     recommendations(agreement, coefficients, leavings, anomalies), coefficients, leavings));
         }
         return observations;
@@ -104,6 +109,24 @@ final class AgreementObservationSummarizer {
             windows.put(observed.get(i).id(), new LocalDate[]{from, to});
         }
         return windows;
+    }
+
+    /**
+     * What a supply received under a row (OBS-009): the median of its observed β on its valid days from the row's
+     * observed date (the last day it may have started) to the end of the agreement's window, or over the whole
+     * window when the row has no observed date. {@link ObservedBeta#NONE} when the agreement has no window, the
+     * row starts after it ends, or the supply has no valid day in between.
+     */
+    private static ObservedBeta observedBeta(NavigableMap<LocalDate, Double> betas, ObservedDate observed,
+                                             LocalDate[] window) {
+        if (window == null || window[1].isBefore(window[0])) {
+            return ObservedBeta.NONE;
+        }
+        LocalDate from = observed == null ? window[0] : observed.to();
+        if (from.isAfter(window[1])) {
+            return ObservedBeta.NONE;
+        }
+        return ObservedBeta.of(betas.subMap(from, true, window[1], true).values());
     }
 
     /**

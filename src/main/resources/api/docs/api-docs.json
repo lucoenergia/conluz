@@ -197,6 +197,14 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "observedBeta" : {
+            "description" : "Median of the supply's daily observed β (E / G) over its valid days from the row's observed application date (the latest day of a range or of an open date) to the end of the agreement's applied window, or over the whole applied window when the row has no observed date. The applied window runs from the agreement's most frequent observed application date to the day before the next agreement's, or to the end of the analysed range. On a 0-1 scale, rounded half-up to 6 decimals; for an even number of days, the mean of the two middle values. Null when the agreement has no applied window, the row's start falls after its end, or the supply has no valid day in between.",
+            "example" : 0.030012,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
           "observedDate" : {
             "$ref" : "#/components/schemas/ObservedDateResponse",
             "description" : "When the distributor was observed to start applying it. Null when not observed.",
@@ -204,6 +212,12 @@
               "object",
               "null"
             ]
+          },
+          "observedValidDays" : {
+            "description" : "Number of valid days the observed β rests on. 0 when it is null.",
+            "example" : 184,
+            "format" : "int32",
+            "type" : "integer"
           },
           "proposedDate" : {
             "$ref" : "#/components/schemas/ObservedDateResponse",
@@ -235,6 +249,15 @@
               "null"
             ]
           },
+          "storedValidTo" : {
+            "description" : "Local day the coefficient is stored to stop applying (exclusive end). Null when its period is open.",
+            "example" : "2025-04-01",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
           "supply" : {
             "$ref" : "#/components/schemas/SupplyReferenceResponse",
             "description" : "Supply the coefficient belongs to"
@@ -243,10 +266,13 @@
         "required" : [
           "coefficient",
           "coefficientId",
+          "observedBeta",
           "observedDate",
+          "observedValidDays",
           "proposedDate",
           "status",
           "storedValidFrom",
+          "storedValidTo",
           "supply"
         ],
         "type" : "object"
@@ -2164,6 +2190,14 @@
       },
       "LeavingObservationResponse" : {
         "properties" : {
+          "observedBeta" : {
+            "description" : "Median of the supply's daily observed β (E / G) over its valid days from the row's observed leaving date (the latest day of a range or of an open date) to the end of the agreement's applied window, or over the whole applied window when the row has no observed date. The applied window runs from the agreement's most frequent observed application date to the day before the next agreement's, or to the end of the analysed range. On a 0-1 scale, rounded half-up to 6 decimals; for an even number of days, the mean of the two middle values. Null when the agreement has no applied window, the row's start falls after its end, or the supply has no valid day in between.",
+            "example" : 0.030012,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
           "observedLeavingDate" : {
             "$ref" : "#/components/schemas/ObservedDateResponse",
             "description" : "When the distributor was observed to stop giving the supply production. Null when not observed.",
@@ -2171,6 +2205,12 @@
               "object",
               "null"
             ]
+          },
+          "observedValidDays" : {
+            "description" : "Number of valid days the observed β rests on. 0 when it is null.",
+            "example" : 184,
+            "format" : "int32",
+            "type" : "integer"
           },
           "previousCoefficient" : {
             "description" : "The supply's coefficient in the previous agreement, on a 0-1 scale",
@@ -2223,7 +2263,9 @@
           }
         },
         "required" : [
+          "observedBeta",
           "observedLeavingDate",
+          "observedValidDays",
           "previousCoefficient",
           "previousCoefficientId",
           "previousSharingAgreement",
@@ -5198,6 +5240,17 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "observedBeta" : {
+            "description" : "Median of the supply's daily observed β (E / G) over the anomaly's valid days, from the latest day of its start to its last day, or to the supply's last valid day when it lasts until the end of the analysed data. On a 0-1 scale, rounded half-up to 6 decimals; for an even number of days, the mean of the two middle values.",
+            "example" : 0.0412,
+            "type" : "number"
+          },
+          "observedValidDays" : {
+            "description" : "Number of valid days the observed β rests on",
+            "example" : 5,
+            "format" : "int32",
+            "type" : "integer"
+          },
           "start" : {
             "$ref" : "#/components/schemas/ObservedDateResponse",
             "description" : "When it started"
@@ -5222,6 +5275,8 @@
         "required" : [
           "end",
           "id",
+          "observedBeta",
+          "observedValidDays",
           "start",
           "supply",
           "type"
