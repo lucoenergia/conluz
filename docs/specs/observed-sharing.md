@@ -33,7 +33,8 @@ observes: it never writes, and never proposes a coefficient.
 | Observed date | The first day of a run: exact; a range when non-valid or ambiguous days precede it; or open ("on or before") when it is the supply's first valid day. Dates are local days of the application time zone. |
 | Registered order | The agreements ordered by their distributor file's sent date, else the earliest stored start of their rows as a local day; then by creation instant; then by id. |
 | Leaving row | A supply absent from an agreement, after the agreement observed applied before it gave the supply a non-zero value. |
-| Applied window | The days an agreement is taken as applied to the plant: from its most frequent observed application date to the day before the next agreement's in that order, or to the end of the analysed range. An agreement none of whose coefficient rows was observed has none. |
+| Applied window | The days an agreement is taken as applied to the plant: from its most frequent observed application date to the day before the next agreement's in that order, or to the end of the analysed range. An agreement none of whose coefficient rows was observed has none, nor one whose window would end before it starts. 1 − Σβ is computed over it. |
+| Row window | The days a coefficient or leaving row is taken as applied to its supply: from the row's observed application or leaving date (the end of a range, or the day of an open date) to the end of its agreement's applied window; the whole applied window when the row has no observed date. None when the agreement has no applied window or the row's start falls after its end. |
 
 ## Rules
 
@@ -163,17 +164,17 @@ observes: it never writes, and never proposes a coefficient.
 
 - **Status:** Active
 - **Rule:** Every coefficient row and every leaving row MUST report the observed β (median) of its supply over its
-  valid days in the applied window of the agreement it belongs to, and the number of those days; all the rows of
-  one supply in one agreement therefore report the same value. Every anomaly MUST report the observed β (median) of
+  valid days in its row window, and the number of those days. Every anomaly MUST report the observed β (median) of
   its supply over its own valid days, from the last day of its start (the end of a range) to its end, or to the
   supply's last valid day when it is open, and the number of those days. The value MUST be on the 0-1 scale of the
-  coefficients, rounded half-up to 6 decimals. It MUST be null, over 0 days, when the agreement has no applied
-  window or the supply has no valid day in it. It MUST be computed from the days the analysis already read, in the
+  coefficients, rounded half-up to 6 decimals. It MUST be null, over 0 days, when the row has no row window or the
+  supply has no valid day in it. It MUST be computed from the days the analysis already read, in the
   same computation, and MUST NOT change any status, date, anomaly, recommendation or 1 − Σβ.
-- **Rationale:** Admins must be able to verify every status and anomaly against the data before acting on it. The
-  window is the agreement's, the same 1 − Σβ uses, not the row's: a supply applied on another date still reports
-  what it received most of the time, and its date difference is already its status. The median keeps a few noisy
-  or revised days from moving the value.
+- **Rationale:** Admins must be able to verify every status and anomaly against the data before acting on it. A row
+  observed on its own date starts there: over the whole applied window, a row applied late would report the previous
+  coefficient's value whenever its delay exceeded half the window, which reads as a false mismatch. The window still
+  ends where the agreement's does, and a row never observed keeps the whole applied window, since it has no date of
+  its own. The median keeps a few noisy or revised days from moving the value.
 - **Source:** #597
 
 ### OBS-010 — Every coefficient row reports its stored period
