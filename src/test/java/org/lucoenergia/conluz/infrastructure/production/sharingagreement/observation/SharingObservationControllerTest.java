@@ -290,8 +290,11 @@ class SharingObservationControllerTest extends BaseControllerTest {
         String admin = loginAsCommunityAdmin(community.getId());
 
         perform(agreementUrl(plant.getId(), agreementOfTheOtherPlant.getId()), admin)
-                .andExpect(status().isNotFound());
-        perform(agreementUrl(plant.getId(), UUID.randomUUID()), admin).andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_NOT_FOUND"));
+        perform(agreementUrl(plant.getId(), UUID.randomUUID()), admin)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_NOT_FOUND"));
     }
 
     private List<String> bothUrls() {
