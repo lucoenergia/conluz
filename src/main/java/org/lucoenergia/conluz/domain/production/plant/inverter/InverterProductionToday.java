@@ -2,34 +2,20 @@ package org.lucoenergia.conluz.domain.production.plant.inverter;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Today's production of a plant's inverter, derived from the snapshots of the current local day and the last
- * snapshot of the previous one. Every figure is unrounded.
- *
- * <h2>Carry-over</h2>
- *
- * <p>The inverter's {@code day_power} resets at local midnight, but a snapshot taken at the boundary can still carry
- * the previous day's total. The leading run of today's snapshots whose {@code day_power} equals the previous day's
- * last one, when that is greater than 0, is carry-over: it counts as 0 kWh. The run ends at the first snapshot whose
- * value differs. Without a previous-day snapshot, or with a previous-day last value of 0, there is no carry-over.
+ * snapshot of the previous one, as {@link InverterSnapshotIntervals} reads them. Every figure is unrounded.
  *
  * <h2>Power curve</h2>
  *
- * <p>One point per pair of consecutive snapshots: the energy counted between them, carry-over counting as 0 and a
- * decrease as nothing, over the real time between them, at the later snapshot. An interval longer than
- * {@link #MAX_INTERVAL} is a gap, whose point is null: nothing is interpolated across missing snapshots.
+ * <p>One point per interval between consecutive snapshots: the energy counted in it over its real duration, at the
+ * later snapshot. A gap ({@link InverterInterval#isGap()}) has a null point: nothing is interpolated across missing
+ * snapshots.
  */
 public final class InverterProductionToday {
-
-    /**
-     * The longest interval between two snapshots that is still averaged. A single missing snapshot, about 10
-     * minutes, is averaged; more is a gap.
-     */
-    public static final Duration MAX_INTERVAL = Duration.ofMinutes(15);
 
     private static final double MILLIS_PER_HOUR = Duration.ofHours(1).toMillis();
 
@@ -51,39 +37,17 @@ public final class InverterProductionToday {
      */
     public static Optional<InverterProductionToday> of(Double previousDayLastKWh,
                                                        List<InverterSnapshot> todaySnapshots) {
-        if (todaySnapshots.isEmpty()) {
-            return Optional.empty();
-        }
-        double[] effectiveKWh = effectiveEnergy(previousDayLastKWh, todaySnapshots);
-
-        List<InverterPowerPoint> powerCurve = new ArrayList<>();
-        for (int i = 1; i < todaySnapshots.size(); i++) {
-            Instant from = todaySnapshots.get(i - 1).time();
-            Instant to = todaySnapshots.get(i).time();
-            Duration interval = Duration.between(from, to);
-            Double powerKW = interval.compareTo(MAX_INTERVAL) > 0
-                    ? null
-                    : Math.max(0, effectiveKWh[i] - effectiveKWh[i - 1]) / (interval.toMillis() / MILLIS_PER_HOUR);
-            powerCurve.add(new InverterPowerPoint(to, powerKW));
-        }
-
-        int last = todaySnapshots.size() - 1;
-        return Optional.of(new InverterProductionToday(effectiveKWh[last], List.copyOf(powerCurve),
-                todaySnapshots.get(last).time()));
+        return InverterSnapshotIntervals.of(previousDayLastKWh, todaySnapshots).map(InverterProductionToday::of);
     }
 
-    /**
-     * The energy each snapshot counts for today: 0 for a carry-over snapshot, its {@code day_power} otherwise.
-     */
-    private static double[] effectiveEnergy(Double previousDayLastKWh, List<InverterSnapshot> todaySnapshots) {
-        double[] effectiveKWh = new double[todaySnapshots.size()];
-        boolean carryOver = previousDayLastKWh != null && previousDayLastKWh > 0;
-        for (int i = 0; i < todaySnapshots.size(); i++) {
-            double dayPowerKWh = todaySnapshots.get(i).dayPowerKWh();
-            carryOver = carryOver && Double.compare(dayPowerKWh, previousDayLastKWh) == 0;
-            effectiveKWh[i] = carryOver ? 0 : dayPowerKWh;
-        }
-        return effectiveKWh;
+    private static InverterProductionToday of(InverterSnapshotIntervals snapshots) {
+        List<InverterPowerPoint> powerCurve = snapshots.getIntervals().stream()
+                .map(interval -> new InverterPowerPoint(interval.to(), interval.isGap()
+                        ? null
+                        : interval.energyKWh() / (interval.duration().toMillis() / MILLIS_PER_HOUR)))
+                .toList();
+        return new InverterProductionToday(snapshots.getLastEffectiveKWh(), powerCurve,
+                snapshots.getLastSnapshotAt());
     }
 
     /**
