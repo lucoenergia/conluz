@@ -107,7 +107,8 @@ public class DeactivateCoefficientsController {
             @PathVariable UUID plantId,
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody DeactivateCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, sharingAgreementId, null, body.getCoefficientIds());
+        List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, sharingAgreementId, null, body.getCoefficientIds())
+                .touched();
         List<SupplyPartitionCoefficientDetail> details = partitionCoefficientService.findDetailsInOrderOf(touched);
         return new CoefficientActivationResponse(details, capabilitiesAssembler.assembleAll(currentUser, details));
     }

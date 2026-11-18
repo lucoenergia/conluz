@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationResult;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.PartitionCoefficientService;
 import org.lucoenergia.conluz.infrastructure.admin.community.access.capability.PartitionCoefficientCapabilitiesAssembler;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(
@@ -69,6 +71,16 @@ public class ActivateCoefficientsController {
                     Correcting an active coefficient first joins its former neighbours, as `deactivate`
                     does, then places it at the new date. A close set on the coefficient itself is kept,
                     shortened to the next coefficient's start if that comes earlier.
+
+                    The first activation of an agreement (none of its coefficients had a `validFrom`
+                    before the request) also closes on `appliedOn`, in the same transaction, the
+                    coefficient in force on that day of every supply of the plant that has no coefficient
+                    in the agreement: a supply that leaves the distribution stops receiving production. A
+                    coefficient that ended on or before `appliedOn`, or starts on or after it, is not
+                    touched. Later activations of the agreement and corrections close nothing, and
+                    deactivating the agreement does not reopen these closures: use `reopen`.
+                    `leavingClosures` is the subset of `coefficients` closed because their supply is absent
+                    from the agreement.
 
                     Date writes on the same plant run one after another.
 
@@ -113,13 +125,16 @@ public class ActivateCoefficientsController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canManageSharingAgreement(#plantId, #sharingAgreementId)")
-    public CoefficientActivationResponse activateCoefficients(
+    public ActivateCoefficientsResponse activateCoefficients(
             @AuthenticationPrincipal User currentUser,
             @PathVariable UUID plantId,
             @PathVariable UUID sharingAgreementId,
             @Valid @RequestBody ActivateCoefficientsBody body) {
-        List<SupplyPartitionCoefficient> touched = service.setValidFrom(plantId, sharingAgreementId, body.getAppliedOn(), body.getCoefficientIds());
-        List<SupplyPartitionCoefficientDetail> details = partitionCoefficientService.findDetailsInOrderOf(touched);
-        return new CoefficientActivationResponse(details, capabilitiesAssembler.assembleAll(currentUser, details));
+        CoefficientActivationResult result = service.setValidFrom(plantId, sharingAgreementId, body.getAppliedOn(),
+                body.getCoefficientIds());
+        List<SupplyPartitionCoefficientDetail> details = partitionCoefficientService.findDetailsInOrderOf(result.touched());
+        return new ActivateCoefficientsResponse(details,
+                result.leavingClosures().stream().map(SupplyPartitionCoefficient::getId).collect(Collectors.toSet()),
+                capabilitiesAssembler.assembleAll(currentUser, details));
     }
 }

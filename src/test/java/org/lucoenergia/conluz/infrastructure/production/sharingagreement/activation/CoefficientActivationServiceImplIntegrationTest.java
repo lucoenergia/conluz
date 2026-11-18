@@ -114,7 +114,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
 
         LocalDate appliedOn = LocalDate.of(2025, 1, 1);
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), successorAgreement.getId(),
-                appliedOn, List.of(successor.getId()));
+                appliedOn, List.of(successor.getId())).touched();
 
         Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(successor.getId()) && expected.equals(c.getValidFrom())));
@@ -151,7 +151,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
 
         LocalDate appliedOn = LocalDate.of(2025, 1, 1);
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), successorAgreement.getId(),
-                appliedOn, List.of(successor.getId()));
+                appliedOn, List.of(successor.getId())).touched();
 
         Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(successor.getId()) && expected.equals(c.getValidFrom())));
@@ -183,7 +183,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
 
         LocalDate thirdAppliedOn = LocalDate.of(2025, 1, 1);
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), third.getId(), thirdAppliedOn,
-                List.of(thirdRow.getId()));
+                List.of(thirdRow.getId())).touched();
 
         Instant expected = thirdAppliedOn.atStartOfDay(zone()).toInstant();
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(thirdRow.getId()) && expected.equals(c.getValidFrom())));
@@ -325,7 +325,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         Instant expected = appliedOn.atStartOfDay(zone()).toInstant();
 
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), targetAgreement.getId(), appliedOn,
-                List.of(target1.getId(), target2.getId(), target3.getId()));
+                List.of(target1.getId(), target2.getId(), target3.getId())).touched();
 
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(target1.getId()) && expected.equals(c.getValidFrom())));
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessor1.getId()) && expected.equals(c.getValidTo())));
@@ -393,7 +393,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         // Activating N+1's coefficient cascades: closes N's row, N becomes SUPERSEDED.
         LocalDate activatedOn = boundary.atZone(zone()).toLocalDate();
         List<SupplyPartitionCoefficient> activated = service.setValidFrom(plant.getId(), agreementNPlus1.getId(), activatedOn,
-                List.of(successorPending.getId()));
+                List.of(successorPending.getId())).touched();
         UUID successorId = activated.stream().filter(c -> c.getSharingAgreementId().equals(agreementNPlus1.getId()))
                 .findFirst().orElseThrow().getId();
         assertEquals(SharingAgreementStatus.SUPERSEDED, sharingAgreementRepository.findById(agreementN.getId()).orElseThrow().getStatus());
@@ -416,7 +416,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
 
         LocalDate corrected = LocalDate.of(2024, 2, 1);
         List<SupplyPartitionCoefficient> result = service.setValidFrom(plant.getId(), agreement.getId(), corrected,
-                List.of(coefficient.getId()));
+                List.of(coefficient.getId())).touched();
 
         assertEquals(corrected.atStartOfDay(zone()).toInstant(), result.get(0).getValidFrom());
     }
@@ -431,7 +431,7 @@ class CoefficientActivationServiceImplIntegrationTest extends BaseIntegrationTes
         LocalDate appliedOn = LocalDate.of(2025, 1, 1);
         service.setValidFrom(plant.getId(), agreement.getId(), appliedOn, List.of(pending.getId()));
         List<SupplyPartitionCoefficient> secondCall = service.setValidFrom(plant.getId(), agreement.getId(), appliedOn,
-                List.of(pending.getId()));
+                List.of(pending.getId())).touched();
 
         assertTrue(secondCall.isEmpty()); // no-op: nothing changed, nothing re-written
     }

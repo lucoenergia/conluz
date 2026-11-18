@@ -69,6 +69,29 @@
         ],
         "type" : "object"
       },
+      "ActivateCoefficientsResponse" : {
+        "properties" : {
+          "coefficients" : {
+            "description" : "Every coefficient actually touched by this call -- the requested targets and any predecessor cascaded as a result, plus the leavingClosures. Empty when the whole batch was a no-op.",
+            "items" : {
+              "$ref" : "#/components/schemas/PartitionCoefficientResponse"
+            },
+            "type" : "array"
+          },
+          "leavingClosures" : {
+            "description" : "The subset of coefficients closed because their supply is absent from the agreement: on the agreement's first activation, the coefficient in force on appliedOn of every supply of the plant that has no coefficient in it, closed on appliedOn. Empty on any other activation.",
+            "items" : {
+              "$ref" : "#/components/schemas/PartitionCoefficientResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "coefficients",
+          "leavingClosures"
+        ],
+        "type" : "object"
+      },
       "ChangePasswordBody" : {
         "properties" : {
           "currentPassword" : {
@@ -20450,7 +20473,7 @@
     },
     "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/activate" : {
       "post" : {
-        "description" : "Sets `validFrom` for each of the given coefficients to `appliedOn` (activation), or\ncorrects it if already set. Each coefficient is placed chronologically within the\ntimeline of its (plant, supply), whatever order the agreements are activated in: it\nends where the next coefficient starts, or stays open if there is none, and the\nprevious coefficient's `validTo` is moved back to `appliedOn` in the same transaction\nwhen it is open or later. Placing a coefficient never extends a `validTo`: a close on\nor before `appliedOn` is kept, and so is the gap after it.\n\nCorrecting an active coefficient first joins its former neighbours, as `deactivate`\ndoes, then places it at the new date. A close set on the coefficient itself is kept,\nshortened to the next coefficient's start if that comes earlier.\n\nDate writes on the same plant run one after another.\n\n**Required: Community Admin**\n\nPUBLISHED or SUPERSEDED agreements only -- DRAFT is rejected (a DRAFT has not been\nfinalised, and a subsequent coefficient replacement would delete the activated row).\nThis is the one write allowed on a non-DRAFT agreement: it records WHEN the\ndistributor applied a coefficient, not WHICH coefficients exist (sealed at publish).\n\nIdempotent in effect: re-sending a batch that would produce no change is a no-op,\nnot an error. A failure on any item rejects the whole batch -- nothing is written.\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the agreement is DRAFT, or if any coefficient fails validation: it does\nnot belong to this agreement, the date is in the future, another coefficient of the\nsame (plant, supply) already starts on that date, or a correction's date is not before\nthe close set on the coefficient itself.\n\nAuthentication is required using a Bearer token.\n",
+        "description" : "Sets `validFrom` for each of the given coefficients to `appliedOn` (activation), or\ncorrects it if already set. Each coefficient is placed chronologically within the\ntimeline of its (plant, supply), whatever order the agreements are activated in: it\nends where the next coefficient starts, or stays open if there is none, and the\nprevious coefficient's `validTo` is moved back to `appliedOn` in the same transaction\nwhen it is open or later. Placing a coefficient never extends a `validTo`: a close on\nor before `appliedOn` is kept, and so is the gap after it.\n\nCorrecting an active coefficient first joins its former neighbours, as `deactivate`\ndoes, then places it at the new date. A close set on the coefficient itself is kept,\nshortened to the next coefficient's start if that comes earlier.\n\nThe first activation of an agreement (none of its coefficients had a `validFrom`\nbefore the request) also closes on `appliedOn`, in the same transaction, the\ncoefficient in force on that day of every supply of the plant that has no coefficient\nin the agreement: a supply that leaves the distribution stops receiving production. A\ncoefficient that ended on or before `appliedOn`, or starts on or after it, is not\ntouched. Later activations of the agreement and corrections close nothing, and\ndeactivating the agreement does not reopen these closures: use `reopen`.\n`leavingClosures` is the subset of `coefficients` closed because their supply is absent\nfrom the agreement.\n\nDate writes on the same plant run one after another.\n\n**Required: Community Admin**\n\nPUBLISHED or SUPERSEDED agreements only -- DRAFT is rejected (a DRAFT has not been\nfinalised, and a subsequent coefficient replacement would delete the activated row).\nThis is the one write allowed on a non-DRAFT agreement: it records WHEN the\ndistributor applied a coefficient, not WHICH coefficients exist (sealed at publish).\n\nIdempotent in effect: re-sending a batch that would produce no change is a no-op,\nnot an error. A failure on any item rejects the whole batch -- nothing is written.\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the agreement is DRAFT, or if any coefficient fails validation: it does\nnot belong to this agreement, the date is in the future, another coefficient of the\nsame (plant, supply) already starts on that date, or a correction's date is not before\nthe close set on the coefficient itself.\n\nAuthentication is required using a Bearer token.\n",
         "operationId" : "activatePartitionCoefficients",
         "parameters" : [
           {
@@ -20487,7 +20510,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/CoefficientActivationResponse"
+                  "$ref" : "#/components/schemas/ActivateCoefficientsResponse"
                 }
               }
             },
