@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -112,10 +113,12 @@ class CoefficientActivationServiceImplTest {
 
     /**
      * The rows of the plant's timelines that activation reads; any supply's rows may be given, the service
-     * keeps those of each coefficient's own supply.
+     * keeps those of each coefficient's own supply. The projected overlap check reads the same rows.
      */
     private void stubTimeline(SupplyPartitionCoefficient... rows) {
-        when(getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(eq(PLANT_ID), any())).thenReturn(List.of(rows));
+        when(getCoefficientRepository.findAllByPlantId(PLANT_ID)).thenReturn(List.of(rows));
+        lenient().when(getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(eq(PLANT_ID), any()))
+                .thenReturn(List.of(rows));
     }
 
     private void stubSave() {

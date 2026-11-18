@@ -30,7 +30,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -90,7 +89,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         // Activation and correction place each coefficient within the timeline of its (plant, supply), as the
         // writes staged so far leave it, so every item is validated against the projected result.
         Map<UUID, SupplyPartitionCoefficient> timeline = newValidFrom == null
-                ? new LinkedHashMap<>() : loadTimeline(plantId, foundById.values());
+                ? new LinkedHashMap<>() : loadTimeline(plantId);
 
         for (UUID id : distinct(coefficientIds)) {
             SupplyPartitionCoefficient coefficient = foundById.get(id);
@@ -245,17 +244,12 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     }
 
     /**
-     * Every row of the plant's timelines for the supplies of {@code coefficients}, in one query, keyed by id so the
-     * writes of each placement can be projected onto it before the next one.
+     * Every row of the plant's timelines, in one query, keyed by id so the writes of each placement can be projected
+     * onto it before the next one. A placement reads only the rows of its own supply.
      */
-    private Map<UUID, SupplyPartitionCoefficient> loadTimeline(UUID plantId,
-                                                                Collection<SupplyPartitionCoefficient> coefficients) {
+    private Map<UUID, SupplyPartitionCoefficient> loadTimeline(UUID plantId) {
         Map<UUID, SupplyPartitionCoefficient> byId = new LinkedHashMap<>();
-        if (coefficients.isEmpty()) {
-            return byId;
-        }
-        Set<UUID> supplyIds = coefficients.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet());
-        for (SupplyPartitionCoefficient row : getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds)) {
+        for (SupplyPartitionCoefficient row : getCoefficientRepository.findAllByPlantId(plantId)) {
             byId.put(row.getId(), row);
         }
         return byId;

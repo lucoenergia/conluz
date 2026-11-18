@@ -138,7 +138,7 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
                                                                            @Param("supplyIds") Collection<UUID> supplyIds);
 
     // Full history (any agreement, any time, pending or not) of plantId: what the observed sharing of #579 matches
-    // a plant's daily data against.
+    // a plant's daily data against, and the timeline an activation places its coefficients in.
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId")
     List<SupplyPartitionCoefficientEntity> findAllByPlantId(@Param("plantId") UUID plantId);
 
