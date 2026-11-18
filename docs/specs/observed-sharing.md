@@ -123,9 +123,12 @@ observes: it never writes, and never proposes a coefficient.
   on a DRAFT agreement MUST be refused with 409 and nothing computed. The plant's own supply MUST NOT be analysed as
   a consumer, nor any plant supply of the community. When the plant supply has no production record or no month
   published under ENM-001, the result MUST say the plant is not computable, with nothing observed. A supply holding
-  coefficients in another plant MUST be reported as not computable and left out of Σβ.
+  coefficients in this plant and in another one MUST be reported as not computable and left out of Σβ. A supply
+  holding coefficients only in another plant MUST be left out of the plant's analysis entirely: it is not listed and
+  its energy is not counted.
 - **Rationale:** Drafts are not in force. The energy of a supply shared by two plants cannot be attributed to one
-  of them. A silent estimate would look like an observation.
+  of them. A supply of another plant only is part of that plant's analysis; analysing it here would report the
+  other plant's production as energy outside the agreements. A silent estimate would look like an observation.
 - **Source:** #579, PLT-002, ENM-001
 
 ### OBS-007 — The analysis is read-only, admin-only, and one computation
