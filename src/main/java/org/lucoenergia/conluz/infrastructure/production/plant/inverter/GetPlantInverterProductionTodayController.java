@@ -58,7 +58,8 @@ public class GetPlantInverterProductionTodayController {
                       longer than 15 minutes is a gap: its point is `null`, and nothing is interpolated across
                       it. A single missing snapshot, about 10 minutes, is averaged.
                     - `lastUpdatedAt`: when the latest snapshot of today was taken.
-                    - `stale`: whether that snapshot is more than 60 minutes old.
+                    - `stale`: whether that snapshot is more than 15 minutes old; one exactly 15 minutes old is
+                      not stale.
 
                     Energy and power are rounded to 3 decimals, after computing.
 

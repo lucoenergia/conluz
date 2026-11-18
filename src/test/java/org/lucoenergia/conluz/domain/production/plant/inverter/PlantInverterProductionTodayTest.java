@@ -19,15 +19,15 @@ class PlantInverterProductionTodayTest {
     private static final Instant LAST_SNAPSHOT = Instant.parse("2026-09-15T10:00:00.250Z");
 
     @ParameterizedTest
-    @CsvSource({"59, false", "60, false", "61, true"})
-    @DisplayName("PIP-004 AC10 the latest snapshot is stale only when it is more than 60 minutes old")
-    void theLatestSnapshotIsStaleOnlyPastSixtyMinutes(long minutesOld, boolean stale) {
+    @CsvSource({"840000, false", "900000, false", "900001, true", "960000, true"})
+    @DisplayName("PIP-004 AC16 the latest snapshot is stale only when it is more than 15 minutes old")
+    void theLatestSnapshotIsStaleOnlyPastFifteenMinutes(long millisOld, boolean stale) {
         InverterProductionToday production = InverterProductionToday.of(null, List.of(
                 new InverterSnapshot(LAST_SNAPSHOT.minus(Duration.ofMinutes(5)), 1.0),
                 new InverterSnapshot(LAST_SNAPSHOT, 1.2))).orElseThrow();
 
         PlantInverterProductionToday today = PlantInverterProductionToday.available(production,
-                LAST_SNAPSHOT.plus(Duration.ofMinutes(minutesOld)), ZONE);
+                LAST_SNAPSHOT.plus(Duration.ofMillis(millisOld)), ZONE);
 
         assertEquals(stale, today.getStale());
     }

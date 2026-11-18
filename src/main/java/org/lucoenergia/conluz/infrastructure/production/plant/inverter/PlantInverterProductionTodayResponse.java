@@ -37,8 +37,8 @@ public class PlantInverterProductionTodayResponse {
             "community's time zone at that instant. Null unless the status is AVAILABLE.",
             example = "2026-09-15T13:05:00+02:00", format = "date-time", types = {"string", "null"})
     private final OffsetDateTime lastUpdatedAt;
-    @Schema(description = "True when the latest inverter snapshot of today is more than 60 minutes old; one exactly " +
-            "60 minutes old is not stale. Null unless the status is AVAILABLE.",
+    @Schema(description = "True when the latest inverter snapshot of today is more than 15 minutes old; one exactly " +
+            "15 minutes old is not stale. Null unless the status is AVAILABLE.",
             example = "false", types = {"boolean", "null"})
     private final Boolean stale;
 
