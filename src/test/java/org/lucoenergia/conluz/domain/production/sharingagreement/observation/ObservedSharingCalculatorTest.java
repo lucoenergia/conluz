@@ -1241,6 +1241,82 @@ class ObservedSharingCalculatorTest {
             });
         }
 
+        @Test
+        @DisplayName("OBS-009 a row applied after more than half of the agreement's window reports its registered value, not the previous one")
+        void lateRowReportsItsRegisteredValue() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply late = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(late, a, "0.01", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            ObservedCoefficient lateInB = fixture.row(late, b, "0.06", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04);
+            // B's window runs from 10 May to 30 June, 52 days: S2 is still at A's value on the first 31 of them.
+            fixture.beta(late, FROM, day("2024-06-09"), 0.01).beta(late, day("2024-06-10"), TO, 0.06);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, lateInB).status()).isEqualTo(ObservationStatus.APPLIED_DIFFERENT_DATE);
+            assertThat(rowOf(result, lateInB).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.060000"), 21));
+        }
+
+        @Test
+        @DisplayName("OBS-009 a leaving row reports ≈ 0 from its own leaving date, not over the days the supply still received energy")
+        void leavingRowFromItsOwnLeavingDate() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply staying = fixture.supply("S1");
+            ObservedSupply leaving = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(staying, a, "0.95", day("2024-03-01"), CHANGE);
+            fixture.row(leaving, a, "0.05", day("2024-03-01"), CHANGE);
+            fixture.row(staying, b, "1", CHANGE, null);
+            fixture.beta(staying, FROM, day("2024-05-09"), 0.95).beta(staying, CHANGE, TO, 1.0);
+            // S2 keeps receiving A's value for 31 of B's 52 days, then leaves on 10 June.
+            fixture.beta(leaving, FROM, day("2024-06-09"), 0.05).beta(leaving, day("2024-06-10"), TO, 0.0);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(leavingsOf(result, b, leaving)).singleElement().satisfies(row -> {
+                assertThat(row.observedLeavingDate()).isEqualTo(ObservedDate.exact(day("2024-06-10")));
+                assertThat(row.observedBeta()).isEqualTo(new ObservedBeta(new BigDecimal("0.000000"), 21));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-009 a row whose observed date falls after the end of the agreement's window reports null over 0 days")
+        void rowStartingAfterTheWindowIsNull() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply newcomer = fixture.supply("S3");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            ObservedCoefficient newcomerInA = fixture.row(newcomer, a, "0.07", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.row(second, b, "0.05", CHANGE, null);
+            ObservedCoefficient newcomerInB = fixture.row(newcomer, b, "0.07", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
+            // S3 receives nothing until 15 May, after A's window ends on 9 May.
+            fixture.beta(newcomer, FROM, day("2024-05-14"), 0.0).beta(newcomer, day("2024-05-15"), TO, 0.07);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, newcomerInA).observedDate()).isEqualTo(ObservedDate.exact(day("2024-05-15")));
+            assertThat(rowOf(result, newcomerInA).observedBeta()).isEqualTo(new ObservedBeta(null, 0));
+            // Not observed on its own, the row in B keeps B's whole window.
+            assertThat(rowOf(result, newcomerInB).status()).isEqualTo(ObservationStatus.NOT_DISTINGUISHABLE);
+            assertThat(rowOf(result, newcomerInB).observedBeta())
+                    .isEqualTo(new ObservedBeta(new BigDecimal("0.070000"), 52));
+        }
+
         private Rows twoAgreements() {
             ObservationFixture fixture = new ObservationFixture(FROM, TO);
             ObservedSupply first = fixture.supply("S1");
