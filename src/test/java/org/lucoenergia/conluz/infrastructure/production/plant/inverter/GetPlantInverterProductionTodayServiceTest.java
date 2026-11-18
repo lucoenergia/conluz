@@ -82,14 +82,14 @@ class GetPlantInverterProductionTodayServiceTest {
                 NOW)).thenReturn(new InverterProductionDay(323.36, List.of(
                 new InverterSnapshot(Instant.parse("2026-09-14T22:00:00.980Z"), 323.36),
                 new InverterSnapshot(Instant.parse("2026-09-14T22:05:00Z"), 0),
-                new InverterSnapshot(Instant.parse("2026-09-15T08:00:00Z"), 1.5))));
+                new InverterSnapshot(Instant.parse("2026-09-15T08:25:00Z"), 1.5))));
 
         PlantInverterProductionToday today = service.getToday(plant.getId());
 
         assertEquals(InverterProductionStatus.AVAILABLE, today.getStatus());
         assertEquals(1.5, today.getTodayEnergyKWh());
         assertEquals(2, today.getPowerCurve().size());
-        assertEquals(Instant.parse("2026-09-15T08:00:00Z"), today.getLastUpdatedAt());
+        assertEquals(Instant.parse("2026-09-15T08:25:00Z"), today.getLastUpdatedAt());
         assertEquals(false, today.getStale());
         assertEquals(ZONE, today.getZone());
     }
@@ -109,13 +109,13 @@ class GetPlantInverterProductionTodayServiceTest {
     }
 
     @Test
-    @DisplayName("PIP-004 AC10 a latest snapshot 61 minutes old is stale")
-    void aLatestSnapshotSixtyOneMinutesOldIsStale() {
+    @DisplayName("PIP-004 AC16 a latest snapshot 16 minutes old is stale")
+    void aLatestSnapshotSixteenMinutesOldIsStale() {
         when(getHuaweiConfigRepository.isEnabled(plant.getId())).thenReturn(true);
         when(getHuaweiProductionRepository.getProductionDay(plant.getProviderCode(), YESTERDAY_START, TODAY_START,
                 NOW)).thenReturn(new InverterProductionDay(null, List.of(
-                new InverterSnapshot(NOW.minusSeconds(66 * 60), 1.0),
-                new InverterSnapshot(NOW.minusSeconds(61 * 60), 1.1))));
+                new InverterSnapshot(NOW.minusSeconds(21 * 60), 1.0),
+                new InverterSnapshot(NOW.minusSeconds(16 * 60), 1.1))));
 
         assertEquals(true, service.getToday(plant.getId()).getStale());
     }

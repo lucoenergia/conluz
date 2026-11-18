@@ -90,7 +90,8 @@ class GetPlantInverterProductionTodayControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.powerCurve[96].powerKW").value(closeTo(0.48, TOLERANCE)))
                 .andExpect(jsonPath("$.powerCurve[97].powerKW").value(closeTo(0.48, TOLERANCE)))
                 .andExpect(jsonPath("$.lastUpdatedAt").value("2026-09-15T08:10:00+02:00"))
-                .andExpect(jsonPath("$.stale").value(false));
+                // 20 minutes before the clock: past the 15-minute threshold (PIP-004).
+                .andExpect(jsonPath("$.stale").value(true));
     }
 
     @Test
@@ -130,22 +131,22 @@ class GetPlantInverterProductionTodayControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("PIP-004 AC10 a latest snapshot 61 minutes old is stale, one 60 minutes old is not")
-    void aLatestSnapshotOlderThanSixtyMinutesIsStale() throws Exception {
+    @DisplayName("PIP-004 AC16 a latest snapshot 16 minutes old is stale, one 15 minutes old is not")
+    void aLatestSnapshotOlderThanFifteenMinutesIsStale() throws Exception {
         EnergyCommunity community = communityFixture.createCommunity();
         fixture.configure(community.north(), true);
         fixture.configure(community.south(), true);
-        fixture.writeSnapshots(community.north(), Map.of(local("07:20"), 1.0, local("07:29"), 1.1));
-        fixture.writeSnapshots(community.south(), Map.of(local("07:25"), 1.0, local("07:30"), 1.1));
+        fixture.writeSnapshots(community.north(), Map.of(local("08:10"), 1.0, local("08:14"), 1.1));
+        fixture.writeSnapshots(community.south(), Map.of(local("08:10"), 1.0, local("08:15"), 1.1));
         String admin = loginAsCommunityAdmin(community.id());
 
         today(community.north().getId(), admin)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lastUpdatedAt").value("2026-09-15T07:29:00+02:00"))
+                .andExpect(jsonPath("$.lastUpdatedAt").value("2026-09-15T08:14:00+02:00"))
                 .andExpect(jsonPath("$.stale").value(true));
         today(community.south().getId(), admin)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lastUpdatedAt").value("2026-09-15T07:30:00+02:00"))
+                .andExpect(jsonPath("$.lastUpdatedAt").value("2026-09-15T08:15:00+02:00"))
                 .andExpect(jsonPath("$.stale").value(false));
     }
 

@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.domain.production.plant.inverter;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -11,11 +10,6 @@ import java.util.List;
  * whether that snapshot is stale. Every other status leaves those null.
  */
 public final class PlantInverterProductionToday {
-
-    /**
-     * The age past which the latest snapshot is stale. A snapshot exactly this old is not.
-     */
-    public static final Duration STALE_AFTER = Duration.ofMinutes(60);
 
     private final InverterProductionStatus status;
     private final InverterProductionToday production;
@@ -44,7 +38,7 @@ public final class PlantInverterProductionToday {
      */
     public static PlantInverterProductionToday available(InverterProductionToday production, Instant now,
                                                          ZoneId zone) {
-        boolean stale = Duration.between(production.getLastSnapshotAt(), now).compareTo(STALE_AFTER) > 0;
+        boolean stale = InverterStaleness.isStale(production.getLastSnapshotAt(), now);
         return new PlantInverterProductionToday(InverterProductionStatus.AVAILABLE, production, stale, zone);
     }
 
@@ -74,7 +68,7 @@ public final class PlantInverterProductionToday {
     }
 
     /**
-     * Whether the latest snapshot is older than {@link #STALE_AFTER}, or null unless the status is available.
+     * Whether the latest snapshot is older than {@link InverterStaleness#STALE_AFTER}, or null unless the status is available.
      */
     public Boolean getStale() {
         return stale;

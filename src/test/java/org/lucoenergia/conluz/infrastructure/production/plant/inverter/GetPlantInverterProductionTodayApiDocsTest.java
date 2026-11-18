@@ -71,7 +71,7 @@ class GetPlantInverterProductionTodayApiDocsTest extends BaseControllerTest {
                 "The run ends at the first different value",
                 "An interval longer than 15 minutes is a gap: its point is null",
                 "Every other field is null unless the status is AVAILABLE",
-                "more than 60 minutes old",
+                "more than 15 minutes old",
                 "rounded to 3 decimals")) {
             assertTrue(description.contains(statement), () -> "does not state \"" + statement + "\": " + description);
         }
