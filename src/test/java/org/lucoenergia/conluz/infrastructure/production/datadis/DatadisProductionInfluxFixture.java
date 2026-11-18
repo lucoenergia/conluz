@@ -42,6 +42,23 @@ public class DatadisProductionInfluxFixture {
                 List.of(new DatadisHourlyRecord<>(time, production)));
     }
 
+    /**
+     * As {@link #writeAt(String, Instant, float)}, one record per instant, all with the same value, in a single
+     * batch.
+     */
+    public void writeAt(String cups, List<Instant> times, float productionKWh) {
+        List<DatadisHourlyRecord<DatadisProduction>> records = times.stream()
+                .map(time -> {
+                    DatadisProduction production = new DatadisProduction();
+                    production.setCups(cups);
+                    production.setProductionKWh(productionKWh);
+                    production.setObtainMethod("Real");
+                    return new DatadisHourlyRecord<>(time, production);
+                })
+                .toList();
+        persistDatadisProductionRepository.persistHourlyProductions(records);
+    }
+
     public void clear(String cups) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
             connection.query(new Query(String.format(
