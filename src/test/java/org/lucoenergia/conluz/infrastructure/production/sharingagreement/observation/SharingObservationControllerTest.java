@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -216,6 +217,33 @@ class SharingObservationControllerTest extends BaseControllerTest {
         perform(agreementUrl(plant.getId(), b.getId()), admin).andExpect(status().isOk());
 
         assertThat(snapshot()).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("OBS-006 a supply holding coefficients only in another plant of the community is left out of the plant's analysis")
+    void supplyOnlyInAnotherPlantIsLeftOut() throws Exception {
+        // The community's second plant shares its production with this supply, which receives a sizeable share
+        // while the observed plant applies B.
+        Supply elsewhere = data.supply(community);
+        data.coefficient(elsewhere, otherPlantOfTheCommunity, agreementOfTheOtherPlant, "1", CHANGE, null);
+        data.supplyReceives(elsewhere, CHANGE, LAST_DAY, 0.2f * HOURLY_PRODUCTION_KWH);
+        String admin = loginAsCommunityAdmin(community.getId());
+        String id = elsewhere.getId().toString();
+
+        perform(plantUrl(plant.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysis.suppliesWithValidDays[*].id").value(
+                        containsInAnyOrder(staying.getId().toString(), leaving.getId().toString())))
+                .andExpect(jsonPath("$.analysis.suppliesWithoutValidDays[*].id").value(
+                        containsInAnyOrder(silent.getId().toString())))
+                .andExpect(jsonPath("$.analysis.notComputableSupplies").value(hasSize(0)))
+                .andExpect(jsonPath("$..supply[?(@.id == '" + id + "')]").value(hasSize(0)))
+                // Counted, its 20 % would make the production no supply received negative.
+                .andExpect(jsonPath("$.sharingAgreements[1].unallocatedShare.unallocated")
+                        .value(closeTo(0.0, 1e-6)));
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$..supply[?(@.id == '" + id + "')]").value(hasSize(0)));
     }
 
     @Test

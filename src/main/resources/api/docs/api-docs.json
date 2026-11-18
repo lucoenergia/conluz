@@ -5241,7 +5241,7 @@
             ]
           },
           "notComputableSupplies" : {
-            "description" : "Supplies that also hold coefficients in another plant: the energy they receive cannot be attributed to this plant alone, so they are not analysed",
+            "description" : "Supplies holding coefficients in this plant and in another one: the energy they receive cannot be attributed to this plant alone, so they are not analysed. A supply holding coefficients only in another plant is not part of this plant's analysis and is not listed anywhere.",
             "items" : {
               "$ref" : "#/components/schemas/SupplyReferenceResponse"
             },

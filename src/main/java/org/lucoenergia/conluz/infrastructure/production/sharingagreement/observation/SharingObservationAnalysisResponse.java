@@ -37,8 +37,9 @@ public class SharingObservationAnalysisResponse {
     @Schema(description = "Analysed supplies without any valid day")
     private final List<SupplyReferenceResponse> suppliesWithoutValidDays;
 
-    @Schema(description = "Supplies that also hold coefficients in another plant: the energy they receive cannot " +
-            "be attributed to this plant alone, so they are not analysed")
+    @Schema(description = "Supplies holding coefficients in this plant and in another one: the energy they receive " +
+            "cannot be attributed to this plant alone, so they are not analysed. A supply holding coefficients only " +
+            "in another plant is not part of this plant's analysis and is not listed anywhere.")
     private final List<SupplyReferenceResponse> notComputableSupplies;
 
     public SharingObservationAnalysisResponse(AnalysisStatus analysis) {

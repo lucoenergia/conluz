@@ -52,9 +52,10 @@ import java.util.stream.Collectors;
  *
  * <h2>Analysed supplies</h2>
  *
- * <p>The supplies of the plant's community, without the community's plant supplies (PLT-002). A supply that
- * also holds a coefficient in another plant is not computable: the energy it receives cannot be attributed to
- * this plant alone.</p>
+ * <p>The supplies of the plant's community, without the community's plant supplies (PLT-002). A supply holding
+ * coefficients in this plant and in another one is not computable: the energy it receives cannot be attributed
+ * to this plant alone. A supply holding coefficients only in another plant belongs to that plant's analysis, not
+ * this one's, and is left out entirely.</p>
  *
  * <h2>Analysed range</h2>
  *
@@ -145,9 +146,10 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
                 .toList();
         Set<UUID> inOtherPlants = getSupplyPartitionCoefficientRepository.findSupplyIdsWithCoefficientsInOtherPlants(
                 plant.getId(), consumers.stream().map(Supply::getId).toList());
+        Set<UUID> inThisPlant = coefficients.stream().map(ObservedCoefficient::supplyId).collect(Collectors.toSet());
         List<Supply> analysed = consumers.stream().filter(supply -> !inOtherPlants.contains(supply.getId())).toList();
         List<ObservedSupply> notComputable = consumers.stream()
-                .filter(supply -> inOtherPlants.contains(supply.getId()))
+                .filter(supply -> inOtherPlants.contains(supply.getId()) && inThisPlant.contains(supply.getId()))
                 .map(GetSharingObservationServiceImpl::observed)
                 .toList();
         List<ObservedSupply> supplies = analysed.stream().map(GetSharingObservationServiceImpl::observed).toList();
