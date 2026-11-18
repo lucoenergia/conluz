@@ -28,16 +28,21 @@ public interface CoefficientActivationService {
      * rejected via {@link CoefficientActivationException} and nothing is persisted. A request that
      * would produce no change (the coefficient already holds the requested value) is a no-op for that
      * item -- not an error, and no cascade or status recompute fires for it.
+     * <p>
+     * The first activation of the agreement (no coefficient of it had a {@code validFrom} before the request) also
+     * closes at {@code appliedOn} the coefficient in force of every supply of the plant absent from the agreement
+     * (SHA-009), in the same transaction; deactivation never does.
      *
-     * @return every coefficient actually touched (targets and any cascaded predecessors), deduplicated
+     * @return every coefficient actually touched (targets, cascaded predecessors and leaving closures),
+     * deduplicated, and the leaving closures among them
      * @throws org.lucoenergia.conluz.domain.production.plant.sharingagreement.SharingAgreementPlantMismatchException
      *         if the agreement does not belong to {@code plantId}
      * @throws SharingAgreementNotPublishedException
      *         if the agreement is DRAFT
      * @throws CoefficientActivationException if any item fails validation
      */
-    List<SupplyPartitionCoefficient> setValidFrom(UUID plantId, UUID sharingAgreementId, LocalDate appliedOn,
-                                                    List<UUID> coefficientIds);
+    CoefficientActivationResult setValidFrom(UUID plantId, UUID sharingAgreementId, LocalDate appliedOn,
+                                             List<UUID> coefficientIds);
 
     /**
      * Sets, corrects, or clears {@code validTo} for each of {@code coefficientIds} (all must belong to

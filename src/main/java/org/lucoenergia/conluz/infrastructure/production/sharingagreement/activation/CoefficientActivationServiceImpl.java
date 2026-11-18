@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientPlacement;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.LeavingSupplyClosure;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
@@ -17,6 +18,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationError;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationErrorCode;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationResult;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
@@ -30,7 +32,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -76,8 +77,8 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     }
 
     @Override
-    public List<SupplyPartitionCoefficient> setValidFrom(UUID plantId, UUID sharingAgreementId, LocalDate appliedOn,
-                                                           List<UUID> coefficientIds) {
+    public CoefficientActivationResult setValidFrom(UUID plantId, UUID sharingAgreementId, LocalDate appliedOn,
+                                                    List<UUID> coefficientIds) {
         lockCoefficientDates(plantId);
         loadAgreement(plantId, sharingAgreementId);
         ZoneId zoneId = zoneResolver.resolveApplicationZoneId();
@@ -90,7 +91,11 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         // Activation and correction place each coefficient within the timeline of its (plant, supply), as the
         // writes staged so far leave it, so every item is validated against the projected result.
         Map<UUID, SupplyPartitionCoefficient> timeline = newValidFrom == null
-                ? new LinkedHashMap<>() : loadTimeline(plantId, foundById.values());
+                ? new LinkedHashMap<>() : loadTimeline(plantId);
+        // Read from the timeline as it stood before this request. A placement only writes rows of the supplies the
+        // agreement holds, so it never touches the row of a leaving supply.
+        List<SupplyPartitionCoefficient> leavingClosures = newValidFrom == null
+                ? List.of() : LeavingSupplyClosure.close(timeline.values(), sharingAgreementId, newValidFrom);
 
         for (UUID id : distinct(coefficientIds)) {
             SupplyPartitionCoefficient coefficient = foundById.get(id);
@@ -132,6 +137,10 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                 placed.writes().forEach(write -> timeline.put(write.getId(), write));
             }
         }
+        // Closed only when this request activated something: an empty batch is not the agreement's first activation.
+        if (!writes.isEmpty()) {
+            writes.addAll(leavingClosures);
+        }
 
         checkNoProjectedOverlap(writes, errors);
 
@@ -139,7 +148,12 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
             throw new CoefficientActivationException(errors);
         }
 
-        return applyAndRecompute(writes);
+        List<SupplyPartitionCoefficient> touched = applyAndRecompute(writes);
+        Set<UUID> leavingClosureIds = leavingClosures.stream()
+                .map(SupplyPartitionCoefficient::getId)
+                .collect(Collectors.toSet());
+        return new CoefficientActivationResult(touched,
+                touched.stream().filter(row -> leavingClosureIds.contains(row.getId())).toList());
     }
 
     @Override
@@ -245,17 +259,12 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     }
 
     /**
-     * Every row of the plant's timelines for the supplies of {@code coefficients}, in one query, keyed by id so the
-     * writes of each placement can be projected onto it before the next one.
+     * Every row of the plant's timelines, in one query, keyed by id so the writes of each placement can be projected
+     * onto it before the next one. A placement reads only the rows of its own supply.
      */
-    private Map<UUID, SupplyPartitionCoefficient> loadTimeline(UUID plantId,
-                                                                Collection<SupplyPartitionCoefficient> coefficients) {
+    private Map<UUID, SupplyPartitionCoefficient> loadTimeline(UUID plantId) {
         Map<UUID, SupplyPartitionCoefficient> byId = new LinkedHashMap<>();
-        if (coefficients.isEmpty()) {
-            return byId;
-        }
-        Set<UUID> supplyIds = coefficients.stream().map(SupplyPartitionCoefficient::getSupplyId).collect(Collectors.toSet());
-        for (SupplyPartitionCoefficient row : getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(plantId, supplyIds)) {
+        for (SupplyPartitionCoefficient row : getCoefficientRepository.findAllByPlantId(plantId)) {
             byId.put(row.getId(), row);
         }
         return byId;

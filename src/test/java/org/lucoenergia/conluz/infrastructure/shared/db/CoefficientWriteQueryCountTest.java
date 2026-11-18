@@ -110,7 +110,7 @@ class CoefficientWriteQueryCountTest extends BaseControllerTest {
                 fixture -> fixture.request(post(fixture.path("/activate")),
                         "{\"appliedOn\": \"" + APPLIED_ON + "\", \"coefficientIds\": " + json(fixture.ids) + "}"),
                 fixture -> activationService.setValidFrom(fixture.plant.getId(), fixture.agreement.getId(),
-                        APPLIED_ON, fixture.ids));
+                        APPLIED_ON, fixture.ids).touched());
     }
 
     @Test
@@ -120,7 +120,7 @@ class CoefficientWriteQueryCountTest extends BaseControllerTest {
                 fixture -> fixture.request(post(fixture.path("/deactivate")),
                         "{\"coefficientIds\": " + json(fixture.ids) + "}"),
                 fixture -> activationService.setValidFrom(fixture.plant.getId(), fixture.agreement.getId(),
-                        null, fixture.ids));
+                        null, fixture.ids).touched());
     }
 
     @Test

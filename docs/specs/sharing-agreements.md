@@ -6,14 +6,15 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `updateSharingAgreement`, `activatePartitionCoefficients`, `deactivatePartitionCoefficients`, `closePartitionCoefficients`, `reopenPartitionCoefficients`, `getSharingAgreementPartitionCoefficients` |
 | **Related ADRs** | ADR-0001 (`docs/architecture/adr/0001-deferred-exclusion-constraint-for-coefficient-periods.md`), ADR-0003 §11 (lock order) |
-| **Last reviewed against code** | #582 |
+| **Last reviewed against code** | #593 |
 
 ## Purpose
 
 A sharing agreement is the community's record of how a plant's production is shared among supplies: the partition
 coefficients authored together, the evidence they came from, and the distributor file sent to the distribution
-company. This spec covers only the rules #580, #581 and #582 touched: the day the distributor file was sent, the
-periods during which a coefficient applies, and how setting a coefficient's start places it in its supply's timeline.
+company. This spec covers only the rules #580, #581, #582 and #593 touched: the day the distributor file was sent,
+the periods during which a coefficient applies, how setting a coefficient's start places it in its supply's timeline,
+and how an agreement's first activation closes the coefficients of the supplies that leave the distribution.
 
 ## Glossary
 
@@ -25,6 +26,9 @@ periods during which a coefficient applies, and how setting a coefficient's star
 | Application time zone | The single time zone in which Conluz turns local dates into instants and decides what "today" is. |
 | Timeline | The activated coefficients of one supply in one plant, ordered by validFrom. Pending coefficients are not part of it. |
 | Authored close | A validTo set by closing a coefficient, as opposed to one the cascade wrote when the next coefficient was placed. Inferred from adjacency: a validTo where the next coefficient starts counts as cascade-derived. |
+| First activation | An activation of an agreement when none of its coefficients had a validFrom before the request. After a full deactivation, the next activation is a first activation again. |
+| Leaving supply | A supply of the plant that has no coefficient, pending or not, in the agreement being activated, and has a coefficient in force on its date. |
+| In force at D | A coefficient with validFrom before D and validTo null or after D. |
 
 ## Rules
 
@@ -123,6 +127,41 @@ periods during which a coefficient applies, and how setting a coefficient's star
   that coefficient does not succeed the open one, which is still in force.
 - **Source:** #582
 
+### SHA-009 — An agreement's first activation closes the coefficients of the supplies absent from it
+
+- **Status:** Active
+- **Rule:** The first activation of an agreement at D (`activatePartitionCoefficients`) MUST close at D, in the same
+  transaction, the coefficient in force at D of every supply of the plant that has no coefficient in that agreement.
+  A supply holding a coefficient of the agreement, even a pending one outside the batch, is not leaving. Every
+  agreement owning a closed coefficient MUST have its status recomputed (SHA-006), and the response MUST report each
+  closure (`leavingClosures`: supply, coefficient, agreement, new validTo). Any other activation of the agreement (a
+  later batch, a correction) MUST NOT close anything. If any item of the batch fails validation, the whole
+  activation MUST be refused and no closure written.
+- **Rationale:** A supply that leaves the distribution between two agreements has no row in the new one, so without
+  this its coefficient stays open and production keeps being attributed to it. Only the first activation decides,
+  because later batches and corrections must not re-close coefficients an admin has reopened; per-supply leaving
+  dates are a separate operation (#583).
+- **Source:** #593
+
+### SHA-010 — A leaving closure only shortens a period
+
+- **Status:** Active
+- **Rule:** A leaving closure (SHA-009) MUST only shorten a period: a coefficient that ended on or before D is not
+  touched, one that ends after D is shortened to D, and a coefficient that starts on or after D is never touched.
+- **Rationale:** Consistent with chronological placement (SHA-003): when an older agreement is activated while history
+  is reconstructed, the rows of a newer agreement start after D and are not in force there.
+- **Source:** #593
+
+### SHA-011 — Leaving closures are ordinary authored closes
+
+- **Status:** Active
+- **Rule:** A leaving closure MUST be stored as an ordinary close of the coefficient. Deactivating the agreement whose
+  activation closed it (`deactivatePartitionCoefficients`) MUST NOT reopen it; an admin reopens it with
+  `reopenPartitionCoefficients`.
+- **Rationale:** Reopening it automatically would require storing which activation caused each closure, a schema
+  change; the reopen operation already exists.
+- **Source:** #593
+
 ## Impossible states
 
 - A distributor file sent date in the future, as of the day it was written — prevented by SHA-001.
@@ -132,6 +171,8 @@ periods during which a coefficient applies, and how setting a coefficient's star
 - A placement that extends the period of another coefficient — prevented by SHA-003 (a correction's join, SHA-004,
   is the one write that extends a period, and only one that was cascade-derived).
 - Two date writes on one plant each undoing the other's cascade — prevented by SHA-007.
+- A leaving closure that extends a period, or touches a coefficient starting on or after the activation date —
+  prevented by SHA-010.
 
 ## Accepted exceptions
 

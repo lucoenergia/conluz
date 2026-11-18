@@ -338,7 +338,9 @@ class CoefficientActivationServicePlacementTest extends BaseIntegrationTest {
                             .containsEntry("coefficientId", third.id().toString());
                 });
         assertThat(timeline(placeable)).containsExactly(period(placeableOpen, "2024-05-23", null));
-        assertThat(timeline(alsoPlaceable)).containsExactly(period(alsoPlaceableOpen, "2022-01-01", null));
+        // Closed on 2023-04-12 by the first activation of taken's agreement, which alsoPlaceable is absent from
+        // (SHA-009), not by the refused batch: its coefficient second was not written.
+        assertThat(timeline(alsoPlaceable)).containsExactly(period(alsoPlaceableOpen, "2022-01-01", "2023-04-12"));
     }
 
     @Test

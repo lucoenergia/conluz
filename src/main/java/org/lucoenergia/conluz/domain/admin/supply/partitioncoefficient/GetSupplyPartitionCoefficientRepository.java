@@ -100,7 +100,7 @@ public interface GetSupplyPartitionCoefficientRepository {
      * an intermediate gap (e.g. an explicitly-closed exit-case row later followed by an unrelated,
      * non-adjacent activation for the same supply) would silently overlap it. {@code setValidFrom}
      * does not use this: it places a coefficient against the whole timeline of its supply
-     * ({@link CoefficientPlacement}), loaded with {@link #findAllByPlantIdAndSupplyIdIn}.
+     * ({@link CoefficientPlacement}), loaded with {@link #findAllByPlantId}.
      */
     Optional<SupplyPartitionCoefficient> findNextActivatedAfter(UUID plantId, UUID supplyId, UUID excludeCoefficientId,
                                                                    Instant afterInstant);

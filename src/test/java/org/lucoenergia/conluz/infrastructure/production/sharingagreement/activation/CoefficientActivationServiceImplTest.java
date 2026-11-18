@@ -49,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -112,10 +113,12 @@ class CoefficientActivationServiceImplTest {
 
     /**
      * The rows of the plant's timelines that activation reads; any supply's rows may be given, the service
-     * keeps those of each coefficient's own supply.
+     * keeps those of each coefficient's own supply. The projected overlap check reads the same rows.
      */
     private void stubTimeline(SupplyPartitionCoefficient... rows) {
-        when(getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(eq(PLANT_ID), any())).thenReturn(List.of(rows));
+        when(getCoefficientRepository.findAllByPlantId(PLANT_ID)).thenReturn(List.of(rows));
+        lenient().when(getCoefficientRepository.findAllByPlantIdAndSupplyIdIn(eq(PLANT_ID), any()))
+                .thenReturn(List.of(rows));
     }
 
     private void stubSave() {
@@ -189,7 +192,7 @@ class CoefficientActivationServiceImplTest {
         when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId);
 
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of());
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, LocalDate.now(CLOCK), List.of()).touched();
 
         assertTrue(result.isEmpty());
     }
@@ -221,7 +224,7 @@ class CoefficientActivationServiceImplTest {
         stubSave();
 
         LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(10);
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId)).touched();
 
         assertEquals(1, result.size());
         assertEquals(appliedOn.atStartOfDay(UTC).toInstant(), result.get(0).getValidFrom());
@@ -247,7 +250,7 @@ class CoefficientActivationServiceImplTest {
 
         LocalDate appliedOn = LocalDate.now(CLOCK).minusDays(1);
         Instant newValidFrom = appliedOn.atStartOfDay(UTC).toInstant();
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, targetAgreementId, appliedOn, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, targetAgreementId, appliedOn, List.of(coefficientId)).touched();
 
         assertEquals(2, result.size());
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(coefficientId) && newValidFrom.equals(c.getValidFrom())));
@@ -275,7 +278,7 @@ class CoefficientActivationServiceImplTest {
 
         LocalDate corrected = LocalDate.now(CLOCK).minusDays(5);
         Instant newValidFrom = corrected.atStartOfDay(UTC).toInstant();
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, corrected, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, corrected, List.of(coefficientId)).touched();
 
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessorId) && newValidFrom.equals(c.getValidTo())));
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(coefficientId) && newValidFrom.equals(c.getValidFrom())));
@@ -303,7 +306,7 @@ class CoefficientActivationServiceImplTest {
 
         LocalDate corrected = LocalDate.now(CLOCK).minusDays(15);
         Instant newValidFrom = corrected.atStartOfDay(UTC).toInstant();
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, corrected, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, corrected, List.of(coefficientId)).touched();
 
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(coefficientId)
                 && newValidFrom.equals(c.getValidFrom()) && ownValidTo.equals(c.getValidTo())));
@@ -359,7 +362,7 @@ class CoefficientActivationServiceImplTest {
         LocalDate beforePredecessor = predecessorValidFrom.atZone(UTC).toLocalDate().minusDays(1);
         Instant newValidFrom = beforePredecessor.atStartOfDay(UTC).toInstant();
         List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, beforePredecessor,
-                List.of(coefficientId));
+                List.of(coefficientId)).touched();
 
         assertEquals(2, result.size());
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(coefficientId)
@@ -410,7 +413,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.of(predecessor));
         stubSave();
 
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, null, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, null, List.of(coefficientId)).touched();
 
         assertEquals(2, result.size());
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(coefficientId) && c.getValidFrom() == null && c.getValidTo() == null));
@@ -435,7 +438,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.of(predecessor));
         stubSave();
 
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, null, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, null, List.of(coefficientId)).touched();
 
         assertTrue(result.stream().anyMatch(c -> c.getId().equals(predecessorId) && c.getValidTo() == null));
     }
@@ -456,7 +459,7 @@ class CoefficientActivationServiceImplTest {
                 .thenReturn(Optional.empty());
         stubSave();
 
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, null, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, null, List.of(coefficientId)).touched();
 
         assertEquals(1, result.size());
         verify(saveCoefficientRepository, times(1)).save(any());
@@ -497,7 +500,7 @@ class CoefficientActivationServiceImplTest {
         when(zoneResolver.resolveApplicationZoneId()).thenReturn(UTC);
         stubFound(agreementId, active);
 
-        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
+        List<SupplyPartitionCoefficient> result = service().setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId)).touched();
 
         assertTrue(result.isEmpty());
         verify(saveCoefficientRepository, never()).save(any());

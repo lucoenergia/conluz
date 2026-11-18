@@ -1,10 +1,28 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activate;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
+import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.publish.PublishSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
@@ -26,6 +44,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,6 +68,22 @@ class ActivateCoefficientsControllerTest extends BaseControllerTest {
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private SupplyPartitionCoefficientJpaRepository coefficientJpaRepository;
+    @Autowired
+    private CreateCommunityRepository createCommunityRepository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreatePlantRepository createPlantRepository;
+    @Autowired
+    private CreateSharingAgreementRepository createSharingAgreementRepository;
+    @Autowired
+    private PublishSharingAgreementRepository publishSharingAgreementRepository;
+    @Autowired
+    private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
+    @Autowired
+    private CoefficientActivationService activationService;
 
     private CommunityEntity communityA;
     private CommunityEntity communityB;
@@ -300,5 +336,78 @@ class ActivateCoefficientsControllerTest extends BaseControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(ids.size(), new java.util.HashSet<>(ids).size(),
                 "a coefficient id repeats in the response: " + ids);
         org.junit.jupiter.api.Assertions.assertTrue(ids.contains(predecessor.getId().toString()));
+    }
+
+    @Test
+    @DisplayName("SHA-009 the first activation reports each leaving closure, which is also among the coefficients")
+    void reportsEachLeavingClosure() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Supply plantSupply = createSupply(community);
+        Plant plant = createPlantRepository.create(PlantMother.random(plantSupply).build(),
+                SupplyId.of(plantSupply.getId()));
+        Supply x = createSupply(community);
+        Supply y = createSupply(community);
+        Supply z = createSupply(community);
+        SharingAgreement a = publishedAgreement(plant);
+        UUID xInA = pending(plant, a, x);
+        UUID yInA = pending(plant, a, y);
+        UUID zInA = pending(plant, a, z);
+        activationService.setValidFrom(plant.getId(), a.getId(), LocalDate.parse("2025-01-01"),
+                List.of(xInA, yInA, zInA));
+        SharingAgreement b = publishedAgreement(plant);
+        UUID xInB = pending(plant, b, x);
+
+        mockMvc.perform(post(url(plant.getId(), b.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(community.getId()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("2025-06-01", xInB)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[*].id", org.hamcrest.Matchers.containsInAnyOrder(
+                        xInB.toString(), xInA.toString(), yInA.toString(), zInA.toString())))
+                .andExpect(jsonPath("$.leavingClosures", org.hamcrest.Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.leavingClosures[*].id", org.hamcrest.Matchers.containsInAnyOrder(
+                        yInA.toString(), zInA.toString())))
+                .andExpect(jsonPath("$.leavingClosures[*].supply.id", org.hamcrest.Matchers.containsInAnyOrder(
+                        y.getId().toString(), z.getId().toString())))
+                .andExpect(jsonPath("$.leavingClosures[*].sharingAgreement.id",
+                        org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(a.getId().toString()))))
+                // Europe/Madrid (CEST, UTC+2 in June): local midnight 2025-06-01 is 2025-05-31T22:00:00Z.
+                .andExpect(jsonPath("$.leavingClosures[*].validTo",
+                        org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is("2025-05-31T22:00:00Z"))));
+    }
+
+    private Supply createSupply(Community community) {
+        User owner = UserMother.randomUser();
+        createUserRepository.create(owner);
+        return createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                community.getId());
+    }
+
+    private SharingAgreement publishedAgreement(Plant plant) {
+        SharingAgreement draft = createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plant.getId())
+                .withName("Agreement " + UUID.randomUUID())
+                .withStatus(SharingAgreementStatus.DRAFT)
+                .withNominalPowerKW(BigDecimal.TEN)
+                .withCreatedAt(Instant.now())
+                .build());
+        return publishSharingAgreementRepository.publish(plant.getId(), draft.getId());
+    }
+
+    /**
+     * A pending row, exactly as materialisation writes one: no validFrom, no validTo.
+     */
+    private UUID pending(Plant plant, SharingAgreement agreement, Supply supply) {
+        return saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supply.getId())
+                .withPlantId(plant.getId())
+                .withSharingAgreementId(agreement.getId())
+                .withCoefficient(BigDecimal.ONE)
+                .withValidFrom(null)
+                .withValidTo(null)
+                .withCreatedAt(Instant.now())
+                .build()).getId();
     }
 }
