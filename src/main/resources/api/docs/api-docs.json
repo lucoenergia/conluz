@@ -5273,6 +5273,30 @@
         ],
         "type" : "object"
       },
+      "SupplyAssignedPowerPointResponse" : {
+        "properties" : {
+          "endsAt" : {
+            "description" : "Instant the 5-minute slot ends, with the offset in force in the community's time zone at that instant. Slots are fixed: they start at local midnight and every 5 minutes after it.",
+            "example" : "2026-09-15T08:05:00+02:00",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "powerKW" : {
+            "description" : "Average power assigned to the supply point over the slot, in kW, rounded to 3 decimals: the assigned energy of the slot divided by its 5 minutes. Never negative. Null when the slot is overlapped by an interval between snapshots longer than 15 minutes, a gap in the snapshots, or is not fully covered by the snapshots of every plant summed.",
+            "example" : 0.48,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "endsAt",
+          "powerKW"
+        ],
+        "type" : "object"
+      },
       "SupplyCapabilitiesResponse" : {
         "description" : "What the caller may do with this supply.",
         "properties" : {
@@ -5662,6 +5686,18 @@
         ],
         "type" : "object"
       },
+      "SupplyEnergyTodayResponse" : {
+        "properties" : {
+          "production" : {
+            "$ref" : "#/components/schemas/SupplyProductionTodayResponse",
+            "description" : "Today's production assigned to the supply point, derived from the inverter snapshots of the plants it has a partition coefficient in."
+          }
+        },
+        "required" : [
+          "production"
+        ],
+        "type" : "object"
+      },
       "SupplyHourlyConsumptionBucketResponse" : {
         "properties" : {
           "assignedProductionKWh" : {
@@ -5744,6 +5780,95 @@
           "surplusKWh",
           "tariffSource",
           "time"
+        ],
+        "type" : "object"
+      },
+      "SupplyProductionTodayResponse" : {
+        "properties" : {
+          "assignedEnergyKWh" : {
+            "description" : "Energy assigned to the supply point today, from local midnight in the community's time zone, in kWh, rounded to 3 decimals: the energy the inverter counted in each interval between snapshots multiplied by the supply's partition coefficient in force at the interval's start, summed. Intervals longer than 15 minutes, the gaps of assignedPowerCurve, are included. This is derived from gross inverter output, which may differ from the distributor's figures. Null unless the status is AVAILABLE.",
+            "example" : 12.345,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "assignedPowerCurve" : {
+            "description" : "The power assigned to the supply point in each fixed 5-minute slot of today, from local midnight, in time order, up to the last slot that ends at or before lastUpdatedAt. Null unless the status is AVAILABLE.",
+            "items" : {
+              "$ref" : "#/components/schemas/SupplyAssignedPowerPointResponse"
+            },
+            "type" : [
+              "array",
+              "null"
+            ]
+          },
+          "currentAssignedPowerKW" : {
+            "description" : "The power of the last point of assignedPowerCurve, in kW, rounded to 3 decimals; null when that point is null or the curve is empty. Null unless the status is AVAILABLE.",
+            "example" : 0.48,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "currentPlantPowerKW" : {
+            "description" : "The power the plants produced in the same slot as currentAssignedPowerKW, before applying any partition coefficient, in kW, rounded to 3 decimals, summed over the plants used; null when that slot has no value or the curve is empty. Null unless the status is AVAILABLE.",
+            "example" : 12.5,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "lastUpdatedAt" : {
+            "description" : "Instant of the latest inverter snapshot of today across the plants used, with the offset in force in the community's time zone at that instant. Null unless the status is AVAILABLE.",
+            "example" : "2026-09-15T13:05:00+02:00",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "partitionCoefficient" : {
+            "description" : "With a single plant, the supply's partition coefficient in force now in that plant, on the 0-1 scale, 0 when none is in force now. With several plants, null, because the figures are summed over them. Null unless the status is AVAILABLE.",
+            "example" : 0.0425,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "stale" : {
+            "description" : "True when lastUpdatedAt is more than 15 minutes old; one exactly 15 minutes old is not stale. Null unless the status is AVAILABLE.",
+            "example" : false,
+            "type" : [
+              "boolean",
+              "null"
+            ]
+          },
+          "status" : {
+            "description" : "Whether today's assigned production can be shown, the first that applies of: NO_COEFFICIENT_TODAY: the supply has no partition coefficient in force at any instant of today so far, in any plant. NOT_AVAILABLE: none of the plants where it has one has an enabled Huawei configuration. NO_DATA_TODAY: at least one of them has an enabled configuration, but none has an inverter snapshot of today. AVAILABLE otherwise. Every other field is null unless the status is AVAILABLE.",
+            "enum" : [
+              "NO_COEFFICIENT_TODAY",
+              "NOT_AVAILABLE",
+              "NO_DATA_TODAY",
+              "AVAILABLE"
+            ],
+            "example" : "AVAILABLE",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "assignedEnergyKWh",
+          "assignedPowerCurve",
+          "currentAssignedPowerKW",
+          "currentPlantPowerKW",
+          "lastUpdatedAt",
+          "partitionCoefficient",
+          "stale",
+          "status"
         ],
         "type" : "object"
       },
@@ -23781,6 +23906,133 @@
           }
         ],
         "summary" : "Retrieves aggregated energy metrics for a specific supply",
+        "tags" : [
+          "Supplies"
+        ]
+      }
+    },
+    "/api/v1/supplies/{supplyId}/energy-today" : {
+      "get" : {
+        "description" : "Derives the share of today's production assigned to the supply point from the real-time\nsnapshots the Huawei inverters of its plants report about every 5 minutes, and from the\nsupply's partition coefficients. \"Today\" is the current local day in the community's time\nzone, from local midnight. The plants used are those where the supply has a partition\ncoefficient in force at some instant of today so far, an enabled Huawei configuration and\nat least one snapshot of today. No plant, station code, provider code or credential is\nreported.\n\nThis is derived from inverter data: the gross output the inverter measures. It may differ\nfrom the distributor's figures and is never summed with the energy metrics or energy series\nfigures.\n\n- `production.status`, the first that applies: `NO_COEFFICIENT_TODAY` when the supply has\n  no partition coefficient in force at any instant of today so far, in any plant;\n  `NOT_AVAILABLE` when none of those plants has an enabled Huawei configuration;\n  `NO_DATA_TODAY` when at least one has, but none has a snapshot of today; and `AVAILABLE`\n  otherwise. Every other field of `production` is `null` unless the status is `AVAILABLE`.\n- Intervals: per plant, one interval from local midnight to the first snapshot of today,\n  then one per pair of consecutive snapshots. Each interval's energy is counted from the\n  inverter day counter, with the same carry-over rule as `getPlantInverterProductionToday`,\n  and multiplied by the supply's partition coefficient in that plant in force at the\n  interval's start, 0 when none is.\n- `assignedEnergyKWh`: the sum over every interval of every plant used. Intervals longer\n  than 15 minutes, the gaps of the curve, are included.\n- `assignedPowerCurve`: one point per fixed 5-minute slot from local midnight, at the slot's\n  end, for every slot ending at or before `lastUpdatedAt`: the assigned energy of the slot\n  divided by its 5 minutes, in kW. An interval's energy is split over the slots it overlaps\n  in proportion to the time overlapped. A slot is `null` when an interval longer than 15\n  minutes overlaps it, or when the snapshots of a plant used do not cover all of it.\n- With several plants, energy and power are the sums over them.\n- `currentAssignedPowerKW` is the value of the last point of the curve, and\n  `currentPlantPowerKW` the power of the plants used in that same slot, before applying\n  any partition coefficient.\n- `lastUpdatedAt`: the latest snapshot of today across the plants used. `stale`: whether it\n  is more than 15 minutes old; one exactly 15 minutes old is not stale.\n\nEnergy and power are rounded to 3 decimals, after computing.\n\n**Required: the caller can read the supply** (the supply's `canRead` capability): its owner,\nwhile their membership in the supply's community is active, or an active community admin\nof that community. Every other caller, a member of the same community, a member of another\ncommunity and a platform admin who is not a member included, is answered 404, as is a\nsupply that does not exist.\n",
+        "operationId" : "getSupplyEnergyToday",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "supplyId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SupplyEnergyTodayResponse"
+                }
+              }
+            },
+            "description" : "Today's assigned production retrieved successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Retrieves today's production assigned to a supply point.",
         "tags" : [
           "Supplies"
         ]
