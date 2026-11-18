@@ -7,6 +7,7 @@ import org.lucoenergia.conluz.domain.shared.SupplyId;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface GetSupplyPartitionCoefficientRepository {
@@ -126,6 +127,17 @@ public interface GetSupplyPartitionCoefficientRepository {
      * the whole chain, not just the immediate predecessor/successor.
      */
     List<SupplyPartitionCoefficient> findAllByPlantIdAndSupplyIdIn(UUID plantId, Collection<UUID> supplyIds);
+
+    /**
+     * Every coefficient row of {@code plantId} -- any agreement, any status, any time, pending or not.
+     */
+    List<SupplyPartitionCoefficient> findAllByPlantId(UUID plantId);
+
+    /**
+     * Those of {@code supplyIds} that hold a coefficient row in a plant other than {@code plantId}, in
+     * any agreement, at any time. An empty collection yields an empty set.
+     */
+    Set<UUID> findSupplyIdsWithCoefficientsInOtherPlants(UUID plantId, Collection<UUID> supplyIds);
 
     /**
      * The coefficient history of a supply, enriched with supply, plant and agreement display data,

@@ -114,7 +114,8 @@ class GetSharingAgreementByIdControllerTest extends BaseControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errors[0].code").value("SHARING_AGREEMENT_NOT_FOUND"));
     }
 
     @Test

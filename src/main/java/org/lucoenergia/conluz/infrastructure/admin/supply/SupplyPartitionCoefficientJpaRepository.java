@@ -137,6 +137,18 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
     List<SupplyPartitionCoefficientEntity> findAllByPlantIdAndSupplyIdIn(@Param("plantId") UUID plantId,
                                                                            @Param("supplyIds") Collection<UUID> supplyIds);
 
+    // Full history (any agreement, any time, pending or not) of plantId: what the observed sharing of #579 matches
+    // a plant's daily data against.
+    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId")
+    List<SupplyPartitionCoefficientEntity> findAllByPlantId(@Param("plantId") UUID plantId);
+
+    // The supplies of supplyIds that also hold a row in another plant: their energy cannot be attributed to
+    // plantId alone.
+    @Query("SELECT DISTINCT e.supply.id FROM SupplyPartitionCoefficientEntity e " +
+            "WHERE e.plant.id <> :plantId AND e.supply.id IN :supplyIds")
+    List<UUID> findSupplyIdsWithCoefficientsInOtherPlants(@Param("plantId") UUID plantId,
+                                                          @Param("supplyIds") Collection<UUID> supplyIds);
+
     // -- Detail projections (multi-plant read API) --
     //
     // Constructor expressions selecting scalars only: no entity is materialised, so neither a lazy

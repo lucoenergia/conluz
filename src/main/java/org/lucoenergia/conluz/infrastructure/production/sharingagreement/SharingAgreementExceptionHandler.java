@@ -6,7 +6,9 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsCollisionException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.distributorfile.SupplyCupsNotNormalizableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.observation.SharingAgreementNotObservableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFileNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.update.SharingAgreementDistributorFileSentOnInFutureException;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation.CoefficientActivationErrorMapper;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.distributorfile.DistributorFileErrorMapper;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -45,13 +48,25 @@ public class SharingAgreementExceptionHandler {
 
     @ExceptionHandler(SharingAgreementNotFoundException.class)
     public ResponseEntity<RestError> handleException(SharingAgreementNotFoundException e) {
+        return notFound(e.getId());
+    }
 
+    /**
+     * An agreement of another plant is answered exactly as a missing one, so the answer never tells that it
+     * exists elsewhere.
+     */
+    @ExceptionHandler(SharingAgreementPlantMismatchException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementPlantMismatchException e) {
+        return notFound(e.getSharingAgreementId());
+    }
+
+    private ResponseEntity<RestError> notFound(UUID sharingAgreementId) {
         String message = messageSource.getMessage(
                 "error.sharing.agreement.not.found",
-                Collections.singletonList(e.getId()).toArray(),
+                Collections.singletonList(sharingAgreementId).toArray(),
                 LocaleContextHolder.getLocale()
         );
-        return errorBuilder.build(message, HttpStatus.NOT_FOUND);
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_NOT_FOUND, null, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(SharingAgreementFileNotFoundException.class)
@@ -153,6 +168,17 @@ public class SharingAgreementExceptionHandler {
                 LocaleContextHolder.getLocale()
         );
         return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_NOT_PUBLISHED, null, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(SharingAgreementNotObservableException.class)
+    public ResponseEntity<RestError> handleException(SharingAgreementNotObservableException e) {
+
+        String message = messageSource.getMessage(
+                "error.sharing.agreement.not.observable",
+                new Object[]{e.getId(), e.getCurrentStatus()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SHARING_AGREEMENT_NOT_OBSERVABLE, null, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(CoefficientActivationException.class)

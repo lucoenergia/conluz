@@ -91,3 +91,4 @@ are always called **tests**, never specs.
 | `DSS` | Datadis supply sync | [`datadis-supply-sync.md`](datadis-supply-sync.md) |
 | `PIP` | Plant inverter production | [`plant-inverter-production.md`](plant-inverter-production.md) |
 | `SHA` | Sharing agreements | [`sharing-agreements.md`](sharing-agreements.md) |
+| `OBS` | Observed sharing of a plant's agreements | [`observed-sharing.md`](observed-sharing.md) |

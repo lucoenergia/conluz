@@ -1,7 +1,17 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.create;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.Supply;
+import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
+import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.shared.SupplyId;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
@@ -15,13 +25,13 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.create.CreateSharingAgreementRepositoryDatabase;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,7 +44,13 @@ import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFA
 class CreateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
 
     @Autowired
-    private CreateSharingAgreementRepositoryDatabase repository;
+    private CreateSharingAgreementRepository repository;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private CreateSupplyRepository createSupplyRepository;
+    @Autowired
+    private CreatePlantRepository createPlantRepository;
     @Autowired
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
@@ -79,6 +95,30 @@ class CreateSharingAgreementRepositoryDatabaseTest extends BaseIntegrationTest {
         assertEquals(0, BigDecimal.valueOf(12.5).compareTo(result.getNominalPowerKW()));
         assertEquals(createdBy, result.getCreatedBy());
         assertTrue(sharingAgreementRepository.findById(agreementId).isPresent());
+    }
+
+    @Test
+    void create_keepsTheDistributorFileSentOn() {
+        User owner = UserMother.randomUser();
+        createUserRepository.create(owner);
+        Supply supply = createSupplyRepository.create(SupplyMother.random(owner).build(), UserId.of(owner.getId()),
+                DEFAULT_COMMUNITY_ID);
+        Plant plant = createPlantRepository.create(PlantMother.random(supply).build(), SupplyId.of(supply.getId()));
+        UUID agreementId = UUID.randomUUID();
+        LocalDate sentOn = LocalDate.parse("2024-04-25");
+
+        SharingAgreement result = repository.create(new SharingAgreement.Builder()
+                .withId(agreementId)
+                .withPlantId(plant.getId())
+                .withName("Spring distribution")
+                .withStatus(SharingAgreementStatus.PUBLISHED)
+                .withNominalPowerKW(BigDecimal.TEN)
+                .withCreatedAt(Instant.now())
+                .withDistributorFileSentOn(sentOn)
+                .build());
+
+        assertEquals(sentOn, result.getDistributorFileSentOn());
+        assertEquals(sentOn, sharingAgreementRepository.findById(agreementId).orElseThrow().getDistributorFileSentOn());
     }
 
     @Test
