@@ -14,7 +14,8 @@ import java.util.UUID;
 
 /**
  * Resolves the status of each of a supply's coefficient rows, and of its leaving rows (OBS-002, OBS-003,
- * OBS-008), from its timeline.
+ * OBS-008), from its timeline. Their observed β rests on the agreement's applied window, which only all the
+ * supplies' rows together decide: {@link AgreementObservationSummarizer} sets it.
  */
 final class ObservationStatusResolver {
 
@@ -56,22 +57,25 @@ final class ObservationStatusResolver {
                                                   ObservedAgreement agreement, Candidate candidate) {
         ObservedCoefficient row = candidate.row();
         LocalDate storedValidFrom = RegisteredOrder.localDay(row.validFrom(), zone);
+        LocalDate storedValidTo = RegisteredOrder.localDay(row.validTo(), zone);
         if (timeline.days().isEmpty()) {
-            return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom,
-                    ObservationStatus.NO_DATA, null, null);
+            return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo,
+                    ObservationStatus.NO_DATA, null, null, null);
         }
         Optional<SupplyTimeline.Observation> observation = timeline.firstObservation(candidate);
         if (observation.isPresent()) {
             ObservedDate date = observation.get().date();
             ObservationStatus status = date.admits(storedValidFrom)
                     ? ObservationStatus.APPLIED_SAME_DATE : ObservationStatus.APPLIED_DIFFERENT_DATE;
-            return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, status, date, null);
+            return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo,
+                    status, date, null, null);
         }
         ObservationStatus status = lastObservedBefore(timeline, candidate.rank())
                 .filter(previous -> Candidate.sameValue(previous.value(), candidate.value()))
                 .map(previous -> ObservationStatus.NOT_DISTINGUISHABLE)
                 .orElseGet(() -> notObserved(agreement));
-        return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, status, null, null);
+        return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo, status,
+                null, null, null);
     }
 
     /**
@@ -90,7 +94,7 @@ final class ObservationStatusResolver {
             ObservationStatus status = date.admits(storedValidTo)
                     ? ObservationStatus.APPLIED_SAME_DATE : ObservationStatus.APPLIED_DIFFERENT_DATE;
             return Optional.of(new LeavingObservation(supply, agreements.get(observation.get().previous().rank()),
-                    previous.id(), previous.coefficient(), date, storedValidTo, status, null));
+                    previous.id(), previous.coefficient(), date, storedValidTo, status, null, null));
         }
         return lastObservedBefore(timeline, implicitZero.rank())
                 .filter(previous -> !previous.isImplicitZero()
@@ -100,7 +104,7 @@ final class ObservationStatusResolver {
                             ? ObservationStatus.NOT_DISTINGUISHABLE : notObserved(agreement);
                     return new LeavingObservation(supply, agreements.get(previous.rank()), previous.row().id(),
                             previous.row().coefficient(), null,
-                            RegisteredOrder.localDay(previous.row().validTo(), zone), status, null);
+                            RegisteredOrder.localDay(previous.row().validTo(), zone), status, null, null);
                 });
     }
 
