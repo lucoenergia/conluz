@@ -15,7 +15,7 @@ import java.util.UUID;
  * was observed applied for it.
  */
 @Schema(requiredProperties = {"supply", "previousSharingAgreement", "previousCoefficientId", "previousCoefficient",
-        "observedLeavingDate", "storedValidTo", "status", "proposedDate"})
+        "observedLeavingDate", "storedValidTo", "status", "proposedDate", "observedBeta", "observedValidDays"})
 public class LeavingObservationResponse {
 
     @Schema(description = "Supply leaving the distribution")
@@ -47,6 +47,17 @@ public class LeavingObservationResponse {
             "Null otherwise, or when nothing of the agreement was observed.", types = {"object", "null"})
     private final ObservedDateResponse proposedDate;
 
+    @Schema(description = "Median of the supply's daily observed β (E / G) over its valid days in the agreement's " +
+            "applied window, which runs from the agreement's most frequent observed application date to the day " +
+            "before the next agreement's, or to the end of the analysed range. On a 0-1 scale, rounded half-up to 6 " +
+            "decimals; for an even number of days, the mean of the two middle values. Null when the agreement has " +
+            "no applied window or the supply has no valid day in it.", example = "0.030012",
+            types = {"number", "null"})
+    private final BigDecimal observedBeta;
+
+    @Schema(description = "Number of valid days the observed β rests on. 0 when it is null.", example = "184")
+    private final int observedValidDays;
+
     public LeavingObservationResponse(LeavingObservation row) {
         this.supply = new SupplyReferenceResponse(row.supply().id(), row.supply().code(), row.supply().name());
         this.previousSharingAgreement = new SharingAgreementReferenceResponse(row.previousAgreement().id(),
@@ -57,6 +68,8 @@ public class LeavingObservationResponse {
         this.storedValidTo = row.storedValidTo();
         this.status = row.status();
         this.proposedDate = ObservedDateResponse.of(row.proposedDate());
+        this.observedBeta = row.observedBeta().value();
+        this.observedValidDays = row.observedBeta().validDays();
     }
 
     public SupplyReferenceResponse getSupply() {
@@ -89,5 +102,13 @@ public class LeavingObservationResponse {
 
     public ObservedDateResponse getProposedDate() {
         return proposedDate;
+    }
+
+    public BigDecimal getObservedBeta() {
+        return observedBeta;
+    }
+
+    public int getObservedValidDays() {
+        return observedValidDays;
     }
 }
