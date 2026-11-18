@@ -33,9 +33,6 @@ public class CoefficientActivationErrorMapper {
         register(CoefficientActivationErrorCode.DATE_IN_FUTURE,
                 RestErrorCode.SHARING_AGREEMENT_DATE_IN_FUTURE,
                 "error.sharing.agreement.date.in.future", "coefficientId", "cups");
-        register(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_AFTER_PREDECESSOR,
-                RestErrorCode.SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR,
-                "error.sharing.agreement.activation.date.not.after.predecessor", "coefficientId", "cups");
         register(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR,
                 RestErrorCode.SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR,
                 "error.sharing.agreement.activation.date.not.before.successor", "coefficientId", "cups");

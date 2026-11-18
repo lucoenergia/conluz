@@ -77,10 +77,8 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
     @Override
     public Optional<SupplyPartitionCoefficient> findPredecessor(UUID plantId, UUID supplyId, UUID excludeCoefficientId,
                                                                   Instant boundaryValidTo) {
-        Optional<SupplyPartitionCoefficientEntity> entity = boundaryValidTo == null
-                ? jpaRepository.findOpenPredecessor(plantId, supplyId, excludeCoefficientId)
-                : jpaRepository.findPredecessorEndingAt(plantId, supplyId, excludeCoefficientId, boundaryValidTo);
-        return entity.map(mapper::map);
+        return jpaRepository.findPredecessorEndingAt(plantId, supplyId, excludeCoefficientId, boundaryValidTo)
+                .map(mapper::map);
     }
 
     @Override

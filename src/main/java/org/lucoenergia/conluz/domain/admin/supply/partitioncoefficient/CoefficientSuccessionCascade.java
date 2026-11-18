@@ -4,9 +4,13 @@ import java.util.Optional;
 
 /**
  * Whether a coefficient's {@code validTo} was written automatically by the activation cascade
- * (see {@code CoefficientActivationServiceImpl.setValidFrom}, which closes a predecessor row when
- * activating its successor) rather than authored explicitly via a close/baja
+ * (see {@link CoefficientPlacement}, which closes the previous row when a coefficient is placed after
+ * it) rather than authored explicitly via a close/baja
  * ({@code CoefficientActivationServiceImpl.setValidTo}).
+ *
+ * <p>Nothing records which of the two wrote a {@code validTo}: it is inferred from adjacency only, so
+ * an authored close that happens to equal the next row's start is indistinguishable from a
+ * cascade-derived one.
  */
 public final class CoefficientSuccessionCascade {
 

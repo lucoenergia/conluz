@@ -111,16 +111,8 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             @Param("excludeAgreementId") UUID excludeAgreementId,
             Pageable pageable);
 
-    // The currently open row for (plantId, supplyId), if any -- used when the coefficient being
-    // activated has no validFrom of its own yet (pure activation).
-    @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id = :supplyId " +
-            "AND e.id <> :excludeId AND e.validFrom IS NOT NULL AND e.validTo IS NULL")
-    Optional<SupplyPartitionCoefficientEntity> findOpenPredecessor(@Param("plantId") UUID plantId,
-                                                                     @Param("supplyId") UUID supplyId,
-                                                                     @Param("excludeId") UUID excludeId);
-
-    // The row whose validTo equals boundary -- used when correcting or reverting a coefficient that
-    // already has its own validFrom set (the row may or may not still be the open one).
+    // The row whose validTo equals boundary -- used when reverting a coefficient that has its own
+    // validFrom set, to splice the chain.
     @Query("SELECT e FROM SupplyPartitionCoefficientEntity e WHERE e.plant.id = :plantId AND e.supply.id = :supplyId " +
             "AND e.id <> :excludeId AND e.validFrom IS NOT NULL AND e.validTo = :boundary")
     Optional<SupplyPartitionCoefficientEntity> findPredecessorEndingAt(@Param("plantId") UUID plantId,

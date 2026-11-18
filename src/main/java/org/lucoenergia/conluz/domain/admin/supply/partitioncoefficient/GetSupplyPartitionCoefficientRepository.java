@@ -77,11 +77,9 @@ public interface GetSupplyPartitionCoefficientRepository {
     List<SupplyPartitionCoefficient> findAllByIdAndSharingAgreementId(List<UUID> ids, UUID sharingAgreementId);
 
     /**
-     * The coefficient, for {@code (plantId, supplyId)}, whose current {@code validTo} equals
-     * {@code boundaryValidTo} -- or, when {@code boundaryValidTo} is {@code null}, the currently open
-     * row (the pure-activation case). This boundary-match definition (rather than "the open row") is
-     * required for correcting a coefficient that is not itself the open row, e.g. one belonging to an
-     * already-superseded agreement; it is also what lets activate and correct share one code path.
+     * The activated coefficient, for {@code (plantId, supplyId)}, whose current {@code validTo} equals
+     * {@code boundaryValidTo}, which must not be null. Used by deactivation to splice the chain: the
+     * row that ends where the deactivated coefficient starts takes over its former {@code validTo}.
      * {@code excludeCoefficientId} excludes the row being written itself.
      */
     Optional<SupplyPartitionCoefficient> findPredecessor(UUID plantId, UUID supplyId, UUID excludeCoefficientId,
@@ -99,12 +97,9 @@ public interface GetSupplyPartitionCoefficientRepository {
      * rejected; (2) independently of (1), the requested new {@code validTo} (or infinity, for reopen)
      * must not reach at or past this row's {@code validFrom} -- otherwise a correction that skips past
      * an intermediate gap (e.g. an explicitly-closed exit-case row later followed by an unrelated,
-     * non-adjacent activation for the same supply) would silently overlap it. A predecessor lookup
-     * bounded only by the immediately-adjacent row is not equivalent to this: {@code setValidFrom}'s
-     * correction is safe with an exact-adjacency check because both of its bounds (predecessor's own
-     * {@code validFrom} and the coefficient's own {@code validTo}) come from the *current*, already-
-     * valid state and cannot be skipped past; {@code setValidTo}'s correction/reopen can move to an
-     * arbitrary later value (or infinity), which can reach past an intermediate row entirely.
+     * non-adjacent activation for the same supply) would silently overlap it. {@code setValidFrom}
+     * does not use this: it places a coefficient against the whole timeline of its supply
+     * ({@link CoefficientPlacement}), loaded with {@link #findAllByPlantIdAndSupplyIdIn}.
      */
     Optional<SupplyPartitionCoefficient> findNextActivatedAfter(UUID plantId, UUID supplyId, UUID excludeCoefficientId,
                                                                    Instant afterInstant);

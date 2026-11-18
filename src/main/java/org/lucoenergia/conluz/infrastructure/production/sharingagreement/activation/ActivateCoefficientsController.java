@@ -59,9 +59,18 @@ public class ActivateCoefficientsController {
             summary = "Records or corrects the date the distributor applied a batch of coefficients",
             description = """
                     Sets `validFrom` for each of the given coefficients to `appliedOn` (activation), or
-                    corrects it if already set. Cascades: each coefficient's previously-open predecessor
-                    for the same (plant, supply), if any, has its `validTo` set to `appliedOn` in the
-                    same transaction.
+                    corrects it if already set. Each coefficient is placed chronologically within the
+                    timeline of its (plant, supply), whatever order the agreements are activated in: it
+                    ends where the next coefficient starts, or stays open if there is none, and the
+                    previous coefficient's `validTo` is moved back to `appliedOn` in the same transaction
+                    when it is open or later. Placing a coefficient never extends a `validTo`: a close on
+                    or before `appliedOn` is kept, and so is the gap after it.
+
+                    Correcting an active coefficient first joins its former neighbours, as `deactivate`
+                    does, then places it at the new date. A close set on the coefficient itself is kept,
+                    shortened to the next coefficient's start if that comes earlier.
+
+                    Date writes on the same plant run one after another.
 
                     **Required: Community Admin**
 
@@ -75,9 +84,10 @@ public class ActivateCoefficientsController {
 
                     Returns 404 if the plant or the agreement does not exist, does not belong to this
                     plant, or the caller is not a member of its community, to avoid leaking existence.
-                    Returns 409 if the agreement is DRAFT, or if any coefficient fails validation (does
-                    not belong to this agreement, the date is in the future, or the date is not after
-                    the resolved predecessor's own date / not before the coefficient's own end date).
+                    Returns 409 if the agreement is DRAFT, or if any coefficient fails validation: it does
+                    not belong to this agreement, the date is in the future, another coefficient of the
+                    same (plant, supply) already starts on that date, or a correction's date is not before
+                    the close set on the coefficient itself.
 
                     Authentication is required using a Bearer token.
                     """,

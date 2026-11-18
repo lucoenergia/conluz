@@ -110,14 +110,19 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
             if (next.isEmpty()) {
                 endState = CoefficientEndState.OPEN_ORPHAN;
                 endDate = null;
+            } else if (next.get().getValidFrom() != null
+                    && coefficient.getValidFrom() != null
+                    && next.get().getValidFrom().isBefore(coefficient.getValidFrom())) {
+                // A later agreement's row placed before this one (SHA-003): an agreement created later
+                // may hold an earlier period, when history is reconstructed. It does not succeed this
+                // row, which is still in force (SHA-008).
+                endState = CoefficientEndState.OPEN;
+                endDate = null;
             } else if (next.get().getValidFrom() != null) {
-                // Structurally unreachable via this application's own write paths: an activated
-                // "next" row here would mean two overlapping open-ended activated coefficients for
-                // the same (plantId, supplyId) -- the no_overlapping_coefficients exclusion
-                // constraint (and the setValidFrom cascade that closes a predecessor when its
-                // successor activates) makes that impossible. Kept for defensive completeness of the
-                // enum's contract; exercised only at the unit level (mocked repositories), not by an
-                // integration fixture.
+                // Unreachable for an applied row via this application's own write paths: an activated
+                // row starting after an open one would have closed it when it was placed (SHA-003),
+                // and the no_overlapping_coefficients exclusion constraint refuses the overlap. Kept
+                // for the enum's contract, and for a pending row of an earlier agreement.
                 endState = CoefficientEndState.DERIVED;
                 endDate = next.get().getValidFrom();
             } else {

@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.get;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -155,6 +156,27 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
 
         assertEquals(CoefficientEndState.DERIVED, view.getEndState());
         assertEquals(successorValidFrom, view.getEndDate());
+    }
+
+    @Test
+    @DisplayName("SHA-008 an applied open row stays OPEN when the next later agreement's row was placed before it")
+    void openState_whenValidToIsNullAndNextCoefficientWasPlacedBeforeIt() {
+        UUID agreementId = UUID.randomUUID();
+        UUID supplyId = UUID.randomUUID();
+        SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
+                Instant.parse("2024-05-23T00:00:00Z"), null);
+        SupplyPartitionCoefficient placedBefore = coefficient(UUID.randomUUID(), UUID.randomUUID(), supplyId,
+                Instant.parse("2023-04-12T00:00:00Z"), Instant.parse("2024-05-23T00:00:00Z"));
+        stubAgreementAndCoefficients(agreementId, supplyId, row);
+        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
+                .thenReturn(true);
+        when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
+                PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.of(placedBefore));
+
+        SharingAgreementCoefficient view = onlyView(agreementId);
+
+        assertEquals(CoefficientEndState.OPEN, view.getEndState());
+        assertNull(view.getEndDate());
     }
 
     @Test

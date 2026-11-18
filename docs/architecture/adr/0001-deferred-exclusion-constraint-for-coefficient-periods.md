@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-09
+- **Amended:** 2026-11-17 by #582: "What a genuine overlap means" (activation places a coefficient chronologically, and date writes are serialised per plant)
 - **Deciders:** Víctor Cañizares
 - **Applies to:** `lucoenergia/conluz` — `supply_partition_coefficient` and the coefficient
   activation cascade
@@ -87,12 +88,15 @@ this table. It is the net, not the mechanism.
 ## What a genuine overlap means after this change
 
 The date validations already reject the ordered user errors
-(`SHARING_AGREEMENT_ACTIVATION_DATE_NOT_AFTER_PREDECESSOR`,
-`SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR`, `SHARING_AGREEMENT_DATE_IN_FUTURE`), and
-the cascade closes the predecessor. So a surviving overlap is **not** a user mistake. It is one of:
+(`SHARING_AGREEMENT_ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR`, `SHARING_AGREEMENT_DATE_IN_FUTURE`, and a
+start equal to another coefficient's as `SHARING_AGREEMENT_COEFFICIENT_PERIOD_OVERLAP`), and since
+#582 an activation is placed chronologically: it ends where the next coefficient starts, and the
+previous one is closed at it. So a surviving overlap is **not** a user mistake. It is one of:
 
 - **Concurrency** — two activations on the same supply, each validating against a state the other is
-  changing. A legitimate conflict.
+  changing. Since #582, date writes lock the plant row first (ADR-0003 §11), so two of them on the same
+  plant run one after another; this remains possible only for a path that writes coefficient dates
+  without that lock.
 - **Pre-existing inconsistent rows**, written before the constraint existed or by a path that
   bypassed validation.
 - **A cascade defect**, which this check now surfaces loudly instead of silently persisting bad data.

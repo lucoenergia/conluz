@@ -11,9 +11,9 @@ public enum CoefficientActivationErrorCode {
     COEFFICIENT_NOT_IN_AGREEMENT,
     /** appliedOn/closedOn is after today, evaluated in the resolved zone. Params: coefficientId, cups, date. */
     DATE_IN_FUTURE,
-    /** activate/correct: newValidFrom <= predecessor.validFrom (covers the empty-range case). Params: coefficientId, cups. */
-    ACTIVATION_DATE_NOT_AFTER_PREDECESSOR,
-    /** activate/correct: newValidFrom >= coefficient's own validTo. Params: coefficientId, cups. */
+    /** correct: newValidFrom is on or after the close an author set on the coefficient itself, which a correction
+     * keeps (SHA-004). A validTo the cascade wrote is recomputed from the new neighbours instead, so it never raises
+     * this. Params: coefficientId, cups. */
     ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR,
     /** close/reopen: a successor coefficient already starts exactly at the current validTo -- that
      * boundary was written by the cascade, not authored, so it cannot be corrected or reopened here. Params: coefficientId, cups. */
@@ -24,10 +24,10 @@ public enum CoefficientActivationErrorCode {
     /** close/correct-close: newValidTo <= coefficient's own validFrom. Distinct from the predecessor/
      * successor codes above, which name a different row. Params: coefficientId, cups. */
     CLOSURE_DATE_NOT_AFTER_ACTIVATION,
-    /** The write this item resolves to would overlap another coefficient -- not necessarily the
-     * immediate predecessor/successor already checked above -- for the same (plantId, supplyId),
-     * once every write in this batch is projected onto the supply's full history. Checked after all
-     * of the codes above, so it never fires for a case one of them already names precisely.
-     * Params: coefficientId, cups, conflictingCoefficientId. */
+    /** The write this item resolves to would overlap another coefficient for the same (plantId,
+     * supplyId): either activate/correct asked for a validFrom another coefficient already starts at
+     * (SHA-005), or, once every write in this batch is projected onto the supply's full history, the
+     * result overlaps a row the checks above did not compare against. Params: coefficientId, cups,
+     * conflictingCoefficientId. */
     PERIOD_OVERLAP
 }

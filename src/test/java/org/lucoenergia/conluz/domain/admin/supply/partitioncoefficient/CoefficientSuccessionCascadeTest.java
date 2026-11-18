@@ -45,9 +45,9 @@ class CoefficientSuccessionCascadeTest {
      * set while its own {@code validFrom} is still null. Explicit close ({@code setValidTo})
      * rejects any coefficient whose {@code validFrom} is null (COEFFICIENT_NOT_ACTIVE) before ever
      * writing a value; the activation cascade ({@code setValidFrom}) only ever writes a new
-     * {@code validTo} onto a predecessor resolved via {@code findPredecessor}, whose backing
-     * queries ({@code findOpenPredecessor}, {@code findPredecessorEndingAt}) both require
-     * {@code validFrom IS NOT NULL} -- so a cascade-closed predecessor always already had its own
+     * {@code validTo} onto a row of the activated timeline ({@code CoefficientPlacement} ignores
+     * pending rows) or onto a predecessor resolved via {@code findPredecessor}, whose query requires
+     * {@code validFrom IS NOT NULL} -- so a cascade-closed row always already had its own
      * {@code validFrom} set. Reaching this state would therefore require a bug elsewhere, not a
      * legitimate input to this predicate.
      */
