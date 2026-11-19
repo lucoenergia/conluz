@@ -6,16 +6,17 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `updateSharingAgreement`, `activatePartitionCoefficients`, `deactivatePartitionCoefficients`, `closePartitionCoefficients`, `reopenPartitionCoefficients`, `getSharingAgreementPartitionCoefficients`, `setPartitionCoefficientDates`, `previewPartitionCoefficientDates` |
 | **Related ADRs** | ADR-0001 (`docs/architecture/adr/0001-deferred-exclusion-constraint-for-coefficient-periods.md`), ADR-0003 §11 (lock order) |
-| **Last reviewed against code** | #583 |
+| **Last reviewed against code** | #591 |
 
 ## Purpose
 
 A sharing agreement is the community's record of how a plant's production is shared among supplies: the partition
 coefficients authored together, the evidence they came from, and the distributor file sent to the distribution
-company. This spec covers only the rules #580, #581, #582, #593 and #583 touched: the day the distributor file was sent,
-the periods during which a coefficient applies, how setting a coefficient's start places it in its supply's timeline,
-how an agreement's first activation closes the coefficients of the supplies that leave the distribution, and how an
-agreement's dates are set per supply in one request, with a preview of every effect.
+company. This spec covers only the rules #580, #581, #582, #593, #583 and #591 touched: the day the distributor file
+was sent, the periods during which a coefficient applies, how setting a coefficient's start places it in its supply's
+timeline, how an agreement's first activation closes the coefficients of the supplies that leave the distribution, how
+an agreement's dates are set per supply in one request, with a preview of every effect, and how each coefficient of an
+agreement is reported to end.
 
 ## Glossary
 
@@ -33,6 +34,8 @@ agreement's dates are set per supply in one request, with a preview of every eff
 | Agreement start | The earliest validFrom among an agreement's coefficients; an agreement none of whose coefficients is activated has none. |
 | Effects | Everything a date write changes: each period, each agreement's status and the community start date. |
 | Community start date | The earliest validFrom among the coefficients of all the plants of a community (payback's start). |
+| Registered order | The agreements of a plant ordered by their distributor file's sent date, else the earliest stored start of their coefficients as a local day in the application time zone; then by creation instant; then by id. Agreements with neither date come last. The same order as observed sharing (OBS-003). |
+| End state | How a coefficient's coverage ends, as `getSharingAgreementPartitionCoefficients` reports it: `OPEN`, `OPEN_ORPHAN`, `PENDING_SUCCESSION`, `DERIVED` or `CLOSED`. |
 
 ## Rules
 
@@ -126,11 +129,12 @@ agreement's dates are set per supply in one request, with a preview of every eff
 ### SHA-008 — An applied open coefficient is not shown as ended by a row placed before it
 
 - **Status:** Active
-- **Rule:** When an agreement's coefficients are read (`getSharingAgreementPartitionCoefficients`), an applied open coefficient MUST NOT be reported as ended
-  (`DERIVED`) by a coefficient of a later-created agreement that starts before it; it is reported `OPEN`.
+- **Rule:** When an agreement's coefficients are read (`getSharingAgreementPartitionCoefficients`), an applied open
+  coefficient MUST NOT be reported as ended (`DERIVED`) by a coefficient of any other agreement that starts before it.
 - **Rationale:** Since SHA-003 an agreement created later may hold an earlier period, when history is reconstructed;
   that coefficient does not succeed the open one, which is still in force.
-- **Source:** #582
+- **Source:** #582; widened from later-created agreements to any agreement by #591, which no longer reads creation
+  order (SHA-016)
 
 ### SHA-009 — An agreement's first activation closes the coefficients of the supplies absent from it
 
@@ -225,6 +229,43 @@ agreement's dates are set per supply in one request, with a preview of every eff
   admin fix them all at once. The preview answers the same refusal so that what it accepts is what the write accepts.
 - **Source:** #583
 
+### SHA-016 — An applied open coefficient's end state follows validity, not creation order
+
+- **Status:** Active
+- **Rule:** When an agreement A's coefficients are read (`getSharingAgreementPartitionCoefficients`), an applied
+  coefficient C with no stored validTo MUST be reported:
+  - `DERIVED`, with that start as its end date, when an activated coefficient of the same supply in the plant starts
+    after C;
+  - otherwise `OPEN_ORPHAN` when another non-DRAFT agreement of the plant has an activated coefficient starting after
+    C and holds no coefficient of C's supply;
+  - otherwise `PENDING_SUCCESSION` when an agreement after A in registered order holds a pending coefficient of C's
+    supply;
+  - otherwise `OPEN`.
+
+  DRAFT agreements other than A are ignored. The creation order of the agreements MUST NOT change any end state.
+- **Rationale:** Since SHA-003 an agreement created later may hold an earlier period, when history is reconstructed
+  under an agreement that is already open, so only validity says what comes after an applied coefficient. An
+  agreement whose activated coefficients all start before C is not after it. A pending coefficient has no validity, so
+  whether it succeeds C is decided by registered order, which until a sent date is recorded places an undated pending
+  agreement last.
+- **Source:** #591
+
+### SHA-017 — A pending coefficient's end state follows registered order
+
+- **Status:** Active
+- **Rule:** When an agreement A's coefficients are read, a pending coefficient C (no validFrom) MUST be reported by
+  the next non-DRAFT agreement after A in registered order:
+  - `OPEN` when there is none;
+  - `OPEN_ORPHAN` when it holds no coefficient of C's supply;
+  - `DERIVED`, with that start as its end date, when it holds an activated coefficient of C's supply;
+  - `PENDING_SUCCESSION` when it holds only a pending one.
+
+  The creation order of the agreements MUST NOT change any end state.
+- **Rationale:** A pending coefficient has no period to compare, so the only order between it and other agreements is
+  the one they were registered in; creation order no longer says it once history is imported after the current
+  agreement.
+- **Source:** #591
+
 ## Impossible states
 
 - A distributor file sent date in the future, as of the day it was written — prevented by SHA-001.
@@ -238,6 +279,8 @@ agreement's dates are set per supply in one request, with a preview of every eff
   after the activation date — prevented by SHA-010.
 - A requested leaving closure that extends a period past the supply's next start — prevented by SHA-013.
 - A date request applied in part — prevented by SHA-015.
+- An applied open coefficient with an activated coefficient of the same supply starting after it — prevented by
+  SHA-003 and the `no_overlapping_coefficients` exclusion constraint; reported `DERIVED` if found (SHA-016).
 
 ## Accepted exceptions
 
