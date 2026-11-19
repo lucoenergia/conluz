@@ -24,6 +24,17 @@ public interface SharingAgreementRepository extends JpaRepository<SharingAgreeme
 
     List<SharingAgreementEntity> findByPlantIdAndStatusOrderByCreatedAtDesc(UUID plantId, SharingAgreementStatus status);
 
+    /**
+     * {@code FOR NO KEY UPDATE} conflicts with itself, so two replacements of the agreement's coefficients run one
+     * after another. It also conflicts with an update or a deletion of the agreement, but not with the
+     * {@code FOR KEY SHARE} that the foreign-key check of a row referencing the agreement takes, so uploading a
+     * distributor file is not held up by it. Native, so the status comes from the database and not from an entity
+     * already loaded in the persistence context.
+     */
+    @Query(value = "SELECT status FROM sharing_agreement WHERE id = :sharingAgreementId FOR NO KEY UPDATE",
+            nativeQuery = true)
+    Optional<String> lockForCoefficientsById(@Param("sharingAgreementId") UUID sharingAgreementId);
+
     // Native SQL (not JPQL): reads supply_partition_coefficient directly to decide the status, so it
     // must bypass Hibernate's persistence context -- flushAutomatically forces the batch's own
     // coefficient writes to be visible to the EXISTS subqueries first, and clearAutomatically evicts

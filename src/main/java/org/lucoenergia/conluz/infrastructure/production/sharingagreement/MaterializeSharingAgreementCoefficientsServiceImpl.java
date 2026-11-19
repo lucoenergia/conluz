@@ -17,6 +17,10 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.MaterializeShar
 import org.lucoenergia.conluz.domain.production.sharingagreement.PendingCoefficientEntry;
 import org.lucoenergia.conluz.domain.production.sharingagreement.ResolvedCoefficientEntry;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotDraftException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.lock.LockSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
 import org.lucoenergia.conluz.domain.shared.SupplyCode;
@@ -42,6 +46,7 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
     private final SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository;
     private final LockPlantRepository lockPlantRepository;
     private final LockSupplyRepository lockSupplyRepository;
+    private final LockSharingAgreementRepository lockSharingAgreementRepository;
     private final Clock clock;
 
     public MaterializeSharingAgreementCoefficientsServiceImpl(GetSharingAgreementService getSharingAgreementService,
@@ -50,6 +55,7 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
                                                                 SaveSupplyPartitionCoefficientRepository supplyPartitionCoefficientRepository,
                                                                 LockPlantRepository lockPlantRepository,
                                                                 LockSupplyRepository lockSupplyRepository,
+                                                                LockSharingAgreementRepository lockSharingAgreementRepository,
                                                                 Clock clock) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getPlantRepository = getPlantRepository;
@@ -57,6 +63,7 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         this.supplyPartitionCoefficientRepository = supplyPartitionCoefficientRepository;
         this.lockPlantRepository = lockPlantRepository;
         this.lockSupplyRepository = lockSupplyRepository;
+        this.lockSharingAgreementRepository = lockSharingAgreementRepository;
         this.clock = clock;
     }
 
@@ -90,6 +97,11 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
      * <p>The plant, then each supply, is locked against deletion before the coefficients are written (PLT-001,
      * SUP-001): a deletion in progress is waited for, and then the plant or the supply is not found, instead of a
      * coefficient failing on its foreign key.</p>
+     *
+     * <p>The agreement is locked last, just before its coefficients are replaced, so two replacements of the same
+     * agreement run one after another and the second one replaces the first one's set (SHA-019). Its status is
+     * checked again under that lock: an agreement published while this replacement waited is no longer DRAFT.
+     * Lock order: ADR-0003 §11.</p>
      */
     private List<SupplyPartitionCoefficient> replaceAllInternal(UUID plantId, UUID sharingAgreementId,
                                                                   Runnable duplicateCheck,
@@ -110,6 +122,12 @@ public class MaterializeSharingAgreementCoefficientsServiceImpl implements Mater
         UUID communityId = plant.getSupply().getCommunity().getId();
 
         List<SupplyPartitionCoefficient> pendingRows = rowBuilder.apply(communityId);
+
+        SharingAgreementStatus lockedStatus = lockSharingAgreementRepository.lockForCoefficients(sharingAgreementId)
+                .orElseThrow(() -> new SharingAgreementNotFoundException(sharingAgreementId));
+        if (lockedStatus != SharingAgreementStatus.DRAFT) {
+            throw new SharingAgreementNotDraftException(sharingAgreementId, lockedStatus);
+        }
 
         return supplyPartitionCoefficientRepository.replaceAllForSharingAgreement(sharingAgreementId, pendingRows);
     }
