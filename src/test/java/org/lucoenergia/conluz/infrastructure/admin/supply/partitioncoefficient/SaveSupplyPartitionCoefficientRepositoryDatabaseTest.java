@@ -1,10 +1,12 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientSupplyException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -213,5 +216,66 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
 
         assertNotNull(constraintDef);
         assertTrue(constraintDef.contains("valid_from IS NOT NULL"), "unexpected constraint definition: " + constraintDef);
+    }
+
+    @Test
+    @DisplayName("SHA-018 a second coefficient of a supply in the same agreement is refused as the duplicate supply")
+    void aSecondCoefficientOfASupplyInTheSameAgreementIsRefusedAsTheDuplicateSupply() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0),
+                Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
+
+        // A later, non-overlapping period: only the one-coefficient-per-agreement rule refuses it
+        DuplicatePartitionCoefficientSupplyException refused = assertThrows(
+                DuplicatePartitionCoefficientSupplyException.class,
+                () -> persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(2.0),
+                        Instant.parse("2025-01-01T00:00:00Z"), null));
+
+        assertEquals(agreement.getId(), refused.getSharingAgreementId());
+        assertEquals(supply.getId(), refused.getSupplyId());
+    }
+
+    @Test
+    @DisplayName("SHA-018 replacing an agreement's coefficients with a supply listed twice is refused as the duplicate supply")
+    void replacingAnAgreementsCoefficientsWithASupplyListedTwiceIsRefusedAsTheDuplicateSupply() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+
+        // The service refuses this before writing; the adapter is called directly, as a write that bypasses it would
+        DuplicatePartitionCoefficientSupplyException refused = assertThrows(
+                DuplicatePartitionCoefficientSupplyException.class,
+                () -> repository.replaceAllForSharingAgreement(agreement.getId(), List.of(
+                        pending(supply.getId(), agreement, BigDecimal.valueOf(0.4)),
+                        pending(supply.getId(), agreement, BigDecimal.valueOf(0.6)))));
+
+        assertEquals(agreement.getId(), refused.getSharingAgreementId());
+        assertEquals(supply.getId(), refused.getSupplyId());
+    }
+
+    @Test
+    @DisplayName("SHA-018 a supply may hold one coefficient in each of several agreements")
+    void aSupplyMayHoldOneCoefficientInEachOfSeveralAgreements() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement another = persistPublishedAgreement(agreement.getPlantId());
+
+        assertDoesNotThrow(() -> {
+            persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0), null, null);
+            persist(supply.getId(), agreement.getPlantId(), another.getId(), BigDecimal.valueOf(2.0), null, null);
+        });
+    }
+
+    private SupplyPartitionCoefficient pending(UUID supplyId, SharingAgreement agreement, BigDecimal coefficient) {
+        return new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supplyId)
+                .withPlantId(agreement.getPlantId())
+                .withSharingAgreementId(agreement.getId())
+                .withCoefficient(coefficient)
+                .withValidFrom(null)
+                .withValidTo(null)
+                .withCreatedAt(Instant.now())
+                .build();
     }
 }
