@@ -26,6 +26,7 @@ import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityMembershipJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.MembershipStateTestSupport;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
+import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.lucoenergia.conluz.infrastructure.shared.security.auth.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,6 +98,8 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @Autowired
     private DatadisConsumptionInfluxFixture fixture;
     @Autowired
+    private DatadisProductionInfluxFixture productionFixture;
+    @Autowired
     private CreateCommunityRepository createCommunityRepository;
     @Autowired
     private CreateMembershipRepository createMembershipRepository;
@@ -111,6 +114,7 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     @AfterEach
     void afterEach() {
         createdCupsCodes.forEach(fixture::clear);
+        createdCupsCodes.forEach(productionFixture::clear);
     }
 
     /**
@@ -1185,6 +1189,27 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.selfConsumptionRatio").value(nullValue()))
                 .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"))
                 .andExpect(jsonPath("$.selfConsumptionRatioBasis.excludedPlantSupplyCount").value(1));
+    }
+
+    /**
+     * The shape the Datadis sync gives a plant's own supply: production records, and consumption records whose
+     * surplus is zeroed and which carry no self-consumption at all.
+     */
+    @Test
+    @DisplayName("ENM-009 SEM-001 a plant's own supply with production and no self-consumption is given its latest production month")
+    void aPlantsOwnSupplyIsGivenItsLatestProductionMonth() throws Exception {
+        travelTo(NOW);
+        Supply supply = createSupplyOwnedBy(createMemberOfDefaultCommunity());
+        createPlantOn(supply);
+        List<Instant> september = hourly(YearMonth.of(2026, 9));
+        productionFixture.writeAt(supply.getCode(), september, 5f);
+        fixture.writeAt(supply.getCode(), september, 0.1f, null, 0f);
+
+        requestLatest(supply, loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.period.startDate").value("2026-09-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.period.endDate").value("2026-10-01T00:00:00+02:00"))
+                .andExpect(jsonPath("$.selfConsumptionRatioStatus").value("NOT_APPLICABLE"));
     }
 
     @Test
