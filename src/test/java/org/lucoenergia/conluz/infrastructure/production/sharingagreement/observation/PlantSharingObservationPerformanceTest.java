@@ -37,11 +37,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * The plant operation on a plant the size of the largest one in production: 32 supplies with hourly data from
  * 2024-02-01 to the latest published month, October 2026, and four agreements, one of them a synthetic agreement
- * without a sent date. Computed on read, it must answer in under 5 s (#579, D2).
+ * without a sent date. The plant supply has the shape the Datadis sync gave it (#604): its legacy surplus from
+ * 2023-06-01, then production from 2024-12-01 with the surplus stored as 0, and no self-consumption. Computed on
+ * read, it must answer in under 5 s (#579, D2).
  */
 class PlantSharingObservationPerformanceTest extends BaseControllerTest {
 
     private static final int SUPPLIES = 32;
+    private static final LocalDate FIRST_LEGACY_DAY = LocalDate.parse("2023-06-01");
+    private static final LocalDate FIRST_PRODUCTION_DAY = LocalDate.parse("2024-12-01");
     private static final LocalDate FIRST_DAY = LocalDate.parse("2024-02-01");
     private static final LocalDate LAST_DAY = LocalDate.parse("2026-10-31");
     // The day each agreement starts to apply, and the day after the data ends.
@@ -95,7 +99,9 @@ class PlantSharingObservationPerformanceTest extends BaseControllerTest {
                 data.agreement(plant, "2025 spring", SharingAgreementStatus.SUPERSEDED, LocalDate.parse("2025-02-20")),
                 data.agreement(plant, "2025 autumn", SharingAgreementStatus.PUBLISHED, LocalDate.parse("2025-10-20")));
 
-        data.plantProduces(plant, FIRST_DAY, LAST_DAY, HOURLY_PRODUCTION_KWH);
+        data.plantHadLegacySurplus(plant, FIRST_LEGACY_DAY, FIRST_PRODUCTION_DAY.minusDays(1),
+                HOURLY_PRODUCTION_KWH);
+        data.plantProduces(plant, FIRST_PRODUCTION_DAY, LAST_DAY, HOURLY_PRODUCTION_KWH);
         for (int k = 0; k < agreements.size(); k++) {
             List<BigDecimal> coefficients = coefficients(k);
             LocalDate start = STARTS.get(k);
@@ -121,7 +127,7 @@ class PlantSharingObservationPerformanceTest extends BaseControllerTest {
                 SUPPLIES, FIRST_DAY, LAST_DAY, elapsed.toMillis());
 
         assertThat(elapsed).isLessThan(LIMIT);
-        jsonPath("$.analysis.analysedFrom").value(FIRST_DAY.toString()).match(result);
+        jsonPath("$.analysis.analysedFrom").value(FIRST_LEGACY_DAY.toString()).match(result);
         jsonPath("$.analysis.analysedTo").value(LAST_DAY.toString()).match(result);
         jsonPath("$.analysis.suppliesWithValidDays.length()").value(SUPPLIES).match(result);
         for (int k = 0; k < agreements.size(); k++) {

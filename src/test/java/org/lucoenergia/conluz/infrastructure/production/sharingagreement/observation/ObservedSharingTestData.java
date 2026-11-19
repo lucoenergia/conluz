@@ -123,14 +123,50 @@ final class ObservedSharingTestData {
     }
 
     /**
-     * Every hour of {@code [first, last]}: the plant supply's production, and its consumption record carrying
-     * a published, zero self-consumption and a zeroed surplus, as the Datadis sync stores a plant supply.
+     * Every hour of {@code [first, last]}: the plant supply's production, and its consumption record with a zeroed
+     * surplus and no self-consumption, as the Datadis sync stores a plant supply.
      */
     void plantProduces(Plant plant, LocalDate first, LocalDate last, float hourlyProductionKWh) {
+        plantProducesAt(plant, hours(first, last), hourlyProductionKWh);
+    }
+
+    void plantProducesAt(Plant plant, List<Instant> hours, float hourlyProductionKWh) {
         String code = plant.getSupply().getCode();
-        List<Instant> hours = hours(first, last);
         productionFixture.writeAt(code, hours, hourlyProductionKWh);
-        consumptionFixture.writeAt(code, hours, 0f, 0f, 0f);
+        consumptionFixture.writeAt(code, hours, 0f, null, 0f);
+        writtenCodes.add(code);
+    }
+
+    /**
+     * Every hour of {@code [first, last]}: the plant supply's production alone, without any consumption record.
+     */
+    void plantProducesWithoutConsumption(Plant plant, LocalDate first, LocalDate last, float hourlyProductionKWh) {
+        String code = plant.getSupply().getCode();
+        productionFixture.writeAt(code, hours(first, last), hourlyProductionKWh);
+        writtenCodes.add(code);
+    }
+
+    /**
+     * Every hour of {@code [first, last]}: the plant supply's production stored as its surplus, without
+     * self-consumption, as the Datadis sync stored a plant supply before it stored production apart.
+     */
+    void plantHadLegacySurplus(Plant plant, LocalDate first, LocalDate last, float hourlySurplusKWh) {
+        plantHadLegacySurplusAt(plant, hours(first, last), hourlySurplusKWh);
+    }
+
+    void plantHadLegacySurplusAt(Plant plant, List<Instant> hours, float hourlySurplusKWh) {
+        String code = plant.getSupply().getCode();
+        consumptionFixture.writeAt(code, hours, 0.1f, null, hourlySurplusKWh);
+        writtenCodes.add(code);
+    }
+
+    /**
+     * Every hour of {@code [first, last]}: a consumption record of the plant supply carrying neither surplus nor
+     * self-consumption.
+     */
+    void plantConsumesWithoutSurplus(Plant plant, LocalDate first, LocalDate last) {
+        String code = plant.getSupply().getCode();
+        consumptionFixture.writeAt(code, hours(first, last), 0.1f, null, null);
         writtenCodes.add(code);
     }
 
@@ -151,7 +187,10 @@ final class ObservedSharingTestData {
         writtenCodes.clear();
     }
 
-    private static List<Instant> hours(LocalDate first, LocalDate last) {
+    /**
+     * Every hour of the local days {@code [first, last]}.
+     */
+    static List<Instant> hours(LocalDate first, LocalDate last) {
         Instant end = last.plusDays(1).atStartOfDay(ZONE).toInstant();
         return Stream.iterate(first.atStartOfDay(ZONE).toInstant(), time -> time.isBefore(end),
                 time -> time.plus(Duration.ofHours(1))).toList();
