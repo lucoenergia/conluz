@@ -3,29 +3,36 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.get;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientApplicationState;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientEndState;
-import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientSuccessionCascade;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
+import org.lucoenergia.conluz.domain.production.sharingagreement.get.CoefficientEndStateDerivation;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementPartitionCoefficientsService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * The coefficients of one sharing agreement, each with how it ends ({@link CoefficientEndStateDerivation}).
+ *
+ * <h2>Query cost</h2>
+ *
+ * <p>Constant, whatever the number of supplies: the agreement, every coefficient of its plant, the supplies, their
+ * current coefficients, and the plant's agreements. End states are derived in memory from those, never with a
+ * query per row.</p>
+ */
 @Service
 @Transactional(readOnly = true)
 public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetSharingAgreementPartitionCoefficientsService {
@@ -34,15 +41,18 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
     private final GetSharingAgreementRepository getSharingAgreementRepository;
     private final GetSupplyPartitionCoefficientRepository getCoefficientRepository;
     private final GetSupplyRepository getSupplyRepository;
+    private final ZoneResolver zoneResolver;
 
     public GetSharingAgreementPartitionCoefficientsServiceImpl(GetSharingAgreementService getSharingAgreementService,
                                                                  GetSharingAgreementRepository getSharingAgreementRepository,
                                                                  GetSupplyPartitionCoefficientRepository getCoefficientRepository,
-                                                                 GetSupplyRepository getSupplyRepository) {
+                                                                 GetSupplyRepository getSupplyRepository,
+                                                                 ZoneResolver zoneResolver) {
         this.getSharingAgreementService = getSharingAgreementService;
         this.getSharingAgreementRepository = getSharingAgreementRepository;
         this.getCoefficientRepository = getCoefficientRepository;
         this.getSupplyRepository = getSupplyRepository;
+        this.zoneResolver = zoneResolver;
     }
 
     @Override
@@ -52,7 +62,10 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
             throw new SharingAgreementPlantMismatchException(sharingAgreementId, plantId);
         }
 
-        List<SupplyPartitionCoefficient> coefficients = getCoefficientRepository.findAllBySharingAgreementId(sharingAgreementId);
+        List<SupplyPartitionCoefficient> plantCoefficients = getCoefficientRepository.findAllByPlantId(plantId);
+        List<SupplyPartitionCoefficient> coefficients = plantCoefficients.stream()
+                .filter(coefficient -> sharingAgreementId.equals(coefficient.getSharingAgreementId()))
+                .toList();
         if (coefficients.isEmpty()) {
             return List.of();
         }
@@ -73,65 +86,26 @@ public class GetSharingAgreementPartitionCoefficientsServiceImpl implements GetS
                 .stream()
                 .collect(Collectors.toMap(detail -> detail.getSupply().id(), detail -> detail));
 
-        // Constant for the whole agreement (does not depend on supplyId): computed once so an open
-        // row with no successor (the common case for a freshly-published agreement) resolves to
-        // OPEN directly, without a per-supply lookup.
-        boolean laterAgreementExists = getSharingAgreementRepository.existsLaterNonDraftAgreement(
-                plantId, sharingAgreementId, agreement.getCreatedAt());
+        // The application zone, as the date writes of this plant's coefficients use: this read has no community
+        // in reach without one more query.
+        CoefficientEndStateDerivation endStates = new CoefficientEndStateDerivation(agreement,
+                getSharingAgreementRepository.findByPlantId(plantId, null), plantCoefficients,
+                zoneResolver.resolveApplicationZoneId());
 
         return coefficients.stream()
-                .map(coefficient -> map(plantId, agreement, coefficient, suppliesById.get(coefficient.getSupplyId()),
-                        laterAgreementExists, currentBySupplyId.get(coefficient.getSupplyId())))
+                .map(coefficient -> map(coefficient, suppliesById.get(coefficient.getSupplyId()), endStates,
+                        currentBySupplyId.get(coefficient.getSupplyId())))
                 .sorted(Comparator.comparing(SharingAgreementCoefficient::getSupplyCode))
                 .toList();
     }
 
-    private SharingAgreementCoefficient map(UUID plantId, SharingAgreement agreement,
-                                            SupplyPartitionCoefficient coefficient, Supply supply,
-                                            boolean laterAgreementExists,
+    private SharingAgreementCoefficient map(SupplyPartitionCoefficient coefficient, Supply supply,
+                                            CoefficientEndStateDerivation endStates,
                                             SupplyPartitionCoefficientDetail currentCoefficient) {
         CoefficientApplicationState applicationState = coefficient.getValidFrom() == null
                 ? CoefficientApplicationState.PENDING : CoefficientApplicationState.APPLIED;
-
-        CoefficientEndState endState;
-        Instant endDate;
-        if (coefficient.getValidTo() != null) {
-            Optional<SupplyPartitionCoefficient> nextActivated = getCoefficientRepository.findNextActivatedAfter(
-                    plantId, coefficient.getSupplyId(), coefficient.getId(), coefficient.getValidFrom());
-            endState = CoefficientSuccessionCascade.isValidToCascadeDerived(coefficient, nextActivated)
-                    ? CoefficientEndState.DERIVED : CoefficientEndState.CLOSED;
-            endDate = coefficient.getValidTo();
-        } else if (!laterAgreementExists) {
-            endState = CoefficientEndState.OPEN;
-            endDate = null;
-        } else {
-            Optional<SupplyPartitionCoefficient> next = getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
-                    plantId, coefficient.getSupplyId(), agreement.getId(), agreement.getCreatedAt());
-            if (next.isEmpty()) {
-                endState = CoefficientEndState.OPEN_ORPHAN;
-                endDate = null;
-            } else if (next.get().getValidFrom() != null
-                    && coefficient.getValidFrom() != null
-                    && next.get().getValidFrom().isBefore(coefficient.getValidFrom())) {
-                // A later agreement's row placed before this one (SHA-003): an agreement created later
-                // may hold an earlier period, when history is reconstructed. It does not succeed this
-                // row, which is still in force (SHA-008).
-                endState = CoefficientEndState.OPEN;
-                endDate = null;
-            } else if (next.get().getValidFrom() != null) {
-                // Unreachable for an applied row via this application's own write paths: an activated
-                // row starting after an open one would have closed it when it was placed (SHA-003),
-                // and the no_overlapping_coefficients exclusion constraint refuses the overlap. Kept
-                // for the enum's contract, and for a pending row of an earlier agreement.
-                endState = CoefficientEndState.DERIVED;
-                endDate = next.get().getValidFrom();
-            } else {
-                endState = CoefficientEndState.PENDING_SUCCESSION;
-                endDate = null;
-            }
-        }
-
-        return new SharingAgreementCoefficient(coefficient, supply, applicationState, endState, endDate,
+        CoefficientEndStateDerivation.EndOfCoverage end = endStates.derive(coefficient);
+        return new SharingAgreementCoefficient(coefficient, supply, applicationState, end.state(), end.endDate(),
                 currentCoefficient);
     }
 }
