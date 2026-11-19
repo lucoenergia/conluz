@@ -59,6 +59,12 @@ public interface SupplyPartitionCoefficientJpaRepository extends JpaRepository<S
             "WHERE e.validFrom IS NOT NULL AND e.plant.supply.community.id = :communityId")
     Optional<Instant> findEarliestValidFromByCommunityId(@Param("communityId") UUID communityId);
 
+    // The same aggregate without one plant's rows, which the caller projects in memory.
+    @Query("SELECT MIN(e.validFrom) FROM SupplyPartitionCoefficientEntity e " +
+            "WHERE e.validFrom IS NOT NULL AND e.plant.supply.community.id = :communityId AND e.plant.id <> :plantId")
+    Optional<Instant> findEarliestValidFromByCommunityIdExcludingPlantId(@Param("communityId") UUID communityId,
+                                                                         @Param("plantId") UUID plantId);
+
     /**
      * Read-only existence check used by the sharing-agreement publish precondition. Phase 5c's
      * coefficient-materialization work should extend this repository rather than adding a

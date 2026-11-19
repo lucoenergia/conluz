@@ -47,6 +47,12 @@ public interface GetSupplyPartitionCoefficientRepository {
     Optional<Instant> findEarliestValidFromByCommunityId(UUID communityId);
 
     /**
+     * {@link #findEarliestValidFromByCommunityId} over every plant of the community except {@code plantId}: what the
+     * community's start becomes once that plant's rows are replaced by a projection of them.
+     */
+    Optional<Instant> findEarliestValidFromByCommunityIdExcludingPlantId(UUID communityId, UUID plantId);
+
+    /**
      * Read-only existence check used by the sharing-agreement publish precondition. Phase 5c's
      * coefficient-materialization work should extend this repository rather than adding a
      * parallel one.

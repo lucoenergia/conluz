@@ -132,6 +132,11 @@ public class GetSupplyPartitionCoefficientRepositoryDatabase implements GetSuppl
         return jpaRepository.findEarliestValidFromByCommunityId(communityId);
     }
 
+    @Override
+    public Optional<Instant> findEarliestValidFromByCommunityIdExcludingPlantId(UUID communityId, UUID plantId) {
+        return jpaRepository.findEarliestValidFromByCommunityIdExcludingPlantId(communityId, plantId);
+    }
+
     // The plant filter picks a different query rather than binding a nullable parameter: a
     // "(:plantId IS NULL OR e.plant.id = :plantId)" predicate needs a null UUID bind, which under
     // Hibernate 6 + PostgreSQL fails with "could not determine data type of parameter".

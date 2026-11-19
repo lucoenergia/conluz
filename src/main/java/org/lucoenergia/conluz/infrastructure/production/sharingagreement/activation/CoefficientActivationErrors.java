@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationError;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationErrorCode;
+import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesPlan;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.stereotype.Component;
 
@@ -49,6 +50,28 @@ public class CoefficientActivationErrors {
         }
         params.put("conflictingCoefficientId", conflictingWith.getId().toString());
         return new CoefficientActivationError(CoefficientActivationErrorCode.PERIOD_OVERLAP, params);
+    }
+
+    /**
+     * The error of one row of a set-dates request. A row about a leaving supply also carries its {@code supplyId}, the
+     * only id the request gave for it.
+     */
+    public CoefficientActivationError error(CoefficientDatesPlan.RowError rowError) {
+        Map<String, String> params = new LinkedHashMap<>();
+        if (rowError.coefficientId() != null) {
+            params.put("coefficientId", rowError.coefficientId().toString());
+        }
+        if (rowError.supplyId() != null) {
+            params.put("supplyId", rowError.supplyId().toString());
+            String cups = resolveCups(rowError.supplyId());
+            if (cups != null) {
+                params.put("cups", cups);
+            }
+        }
+        if (rowError.conflictingCoefficientId() != null) {
+            params.put("conflictingCoefficientId", rowError.conflictingCoefficientId().toString());
+        }
+        return new CoefficientActivationError(rowError.code(), params);
     }
 
     private String resolveCups(UUID supplyId) {
