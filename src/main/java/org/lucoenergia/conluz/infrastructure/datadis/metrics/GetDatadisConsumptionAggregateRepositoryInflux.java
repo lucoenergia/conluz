@@ -48,6 +48,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     private static final String COLUMN_SURPLUS_ENERGY_KWH = "surplus_energy_kwh";
     private static final String COLUMN_HOURS_WITH_DATA = "hours_with_data";
     private static final String COLUMN_PUBLISHED_HOURS = "published_hours";
+    private static final String COLUMN_SURPLUS_HOURS = "surplus_hours";
     private static final String COLUMN_OBTAIN_METHOD = "obtain_method";
     private static final String TAG_CUPS = "cups";
 
@@ -143,6 +144,34 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     }
 
     @Override
+    public Optional<RecordedConsumptionPeriod> findSurplusPeriod(Supply supply) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // FIRST and LAST go in two statements of one request: a row carrying two selectors cannot
+            // also carry their two different timestamps, and InfluxDB reports the epoch instead.
+            Query query = new Query(String.format(
+                    """
+                            SELECT FIRST("surplus_energy_kwh") FROM "%1$s" WHERE cups = '%2$s';
+                            SELECT LAST("surplus_energy_kwh") FROM "%1$s" WHERE cups = '%2$s'
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode()));
+
+            // Times in milliseconds come back as a number, whatever the server's precision.
+            QueryResult queryResult = connection.query(query, TimeUnit.MILLISECONDS);
+            if (queryResult == null || queryResult.getResults() == null || queryResult.getResults().size() != 2) {
+                return Optional.empty();
+            }
+            Instant firstRecord = resultTime(queryResult.getResults().get(0));
+            Instant lastRecord = resultTime(queryResult.getResults().get(1));
+            if (firstRecord == null || lastRecord == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new RecordedConsumptionPeriod(firstRecord, lastRecord));
+        }
+    }
+
+    @Override
     public Optional<RecordedConsumptionPeriod> findPublishedPeriod(Supply supply, Instant from,
                                                                    Instant toExclusive) {
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
@@ -214,6 +243,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                                 SUM("self_consumption_energy_kwh") AS "self_consumption_energy_kwh",
                                 SUM("surplus_energy_kwh") AS "surplus_energy_kwh",
                                 COUNT("self_consumption_energy_kwh") AS "published_hours",
+                                COUNT("surplus_energy_kwh") AS "surplus_hours",
                                 LAST("obtain_method") AS "obtain_method"
                             FROM "%s"
                             WHERE (%s)
@@ -311,6 +341,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                         readDouble(series, row, COLUMN_SELF_CONSUMPTION_ENERGY_KWH),
                         readDouble(series, row, COLUMN_SURPLUS_ENERGY_KWH),
                         (long) readDouble(series, row, COLUMN_PUBLISHED_HOURS),
+                        (long) readDouble(series, row, COLUMN_SURPLUS_HOURS),
                         readString(series, row, COLUMN_OBTAIN_METHOD)))
                 .toList();
     }
@@ -355,6 +386,26 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
         // formatted string whose precision varies with the server configuration.
         QueryResult.Series series = firstSeries(connection.query(query, TimeUnit.MILLISECONDS));
         if (series == null) {
+            return null;
+        }
+        List<Object> row = series.getValues().get(0);
+        int index = series.getColumns().indexOf(COLUMN_TIME);
+        if (index < 0 || index >= row.size() || !(row.get(index) instanceof Number time)) {
+            return null;
+        }
+        return dateConverter.convertMillisecondsToInstant(time.longValue());
+    }
+
+    /**
+     * The timestamp of the record one selector statement of a request picks, or null when it matched
+     * no record.
+     */
+    private Instant resultTime(QueryResult.Result result) {
+        if (result.getSeries() == null || result.getSeries().isEmpty()) {
+            return null;
+        }
+        QueryResult.Series series = result.getSeries().get(0);
+        if (series.getValues() == null || series.getValues().isEmpty()) {
             return null;
         }
         List<Object> row = series.getValues().get(0);

@@ -1,14 +1,13 @@
 package org.lucoenergia.conluz.infrastructure.consumption;
 
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.consumption.PublicationThreshold;
+import org.lucoenergia.conluz.domain.consumption.MonthlyPublication;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -44,7 +43,7 @@ public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
     @Override
     public Optional<YearMonth> resolveLatestPublishedMonth(List<Supply> supplies, ZoneId zone) {
         YearMonth currentMonth = YearMonth.from(clock.instant().atZone(zone));
-        YearMonth firstCandidate = currentMonth.minusMonths(SEARCH_WINDOW_MONTHS);
+        YearMonth firstCandidate = MonthlyPublication.firstCandidate(currentMonth);
         Instant windowStart = startOf(firstCandidate, zone);
         // Exclusive: the current month is never a candidate.
         Instant windowEnd = startOf(currentMonth, zone);
@@ -75,21 +74,12 @@ public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
 
     /**
      * Whether the published hours of the supply in the month reach the minimum share of the hours
-     * it could have published there: from the later of the month's first hour and its first
-     * published record, to the end of the month.
+     * it could have published there (ENM-001).
      */
     private boolean isPublished(SupplyPublication publication, YearMonth month, ZoneId zone) {
-        Instant monthStart = startOf(month, zone);
-        Instant monthEnd = startOf(month.plusMonths(1), zone);
-        Instant firstPossibleHour = publication.firstRecord().isAfter(monthStart)
-                ? publication.firstRecord()
-                : monthStart;
-        long possibleHours = Duration.between(firstPossibleHour, monthEnd).toHours();
-
         long publishedHours = getDatadisConsumptionAggregateRepository
-                .countPublishedHours(publication.supply(), monthStart, monthEnd);
-
-        return PublicationThreshold.isReached(publishedHours, possibleHours);
+                .countPublishedHours(publication.supply(), startOf(month, zone), startOf(month.plusMonths(1), zone));
+        return MonthlyPublication.isPublished(month, publication.firstRecord(), publishedHours, zone);
     }
 
     private static Instant startOf(YearMonth month, ZoneId zone) {

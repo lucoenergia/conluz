@@ -19,6 +19,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DatadisConsumpt
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.GetSupplyEnergyMetricsService;
+import org.lucoenergia.conluz.domain.consumption.PlantSupplyPublishedMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.InvalidEnergyMetricsPeriodException;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
@@ -94,11 +95,13 @@ class GetSupplyEnergyMetricsServiceTest {
     private final SupplyTariffResolver tariffResolver = mock(SupplyTariffResolver.class);
     private final ZoneResolver zoneResolver = mock(ZoneResolver.class);
     private final ReferenceMonthResolver referenceMonthResolver = mock(ReferenceMonthResolver.class);
+    private final PlantSupplyPublishedMonthResolver plantSupplyPublishedMonthResolver =
+            mock(PlantSupplyPublishedMonthResolver.class);
     private final GetSupplyEnergyMetricsService service = new GetSupplyEnergyMetricsServiceImpl(
             aggregateRepository, getSupplyRepository, getPlantRepository, new DateConverter(timeConfiguration),
             new SupplySavingsCalculatorImpl(aggregateRepository, tariffResolver, zoneResolver,
                     CONFIGURED_ESTIMATE),
-            referenceMonthResolver, zoneResolver, CLOCK);
+            referenceMonthResolver, plantSupplyPublishedMonthResolver, zoneResolver, CLOCK);
 
     private final Supply supply = SupplyMother.random().build();
     private final SupplyId supplyId = SupplyId.of(supply.getId());
@@ -574,6 +577,36 @@ class GetSupplyEnergyMetricsServiceTest {
         assertEquals(4d, metrics.getSelfConsumptionKWh());
         // The recorded range is never asked for when the server resolves the period.
         verify(aggregateRepository, never()).findRecordedPeriod(any(Supply.class));
+    }
+
+    @Test
+    @DisplayName("ENM-009 a plant's own supply's month is resolved from its production, never from its self-consumption")
+    void aPlantsOwnSupplysMonthIsResolvedFromItsProduction() {
+        givenSupplyExists();
+        when(getPlantRepository.existsBySupply(supplyId)).thenReturn(true);
+        when(plantSupplyPublishedMonthResolver.resolveLatestPublishedMonth(supply, ZONE))
+                .thenReturn(Optional.of(YearMonth.of(2026, 8)));
+        givenAggregate(new DatadisConsumptionAggregate(3d, 0d, 0d, 744L));
+
+        SupplyEnergyMetrics metrics = service.getEnergyMetrics(supplyId, null, null,
+                EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
+
+        assertEquals(OffsetDateTime.parse("2026-08-01T00:00:00+02:00"), metrics.getStartDate());
+        assertEquals(OffsetDateTime.parse("2026-09-01T00:00:00+02:00"), metrics.getEndDate());
+        verifyNoInteractions(referenceMonthResolver);
+    }
+
+    @Test
+    @DisplayName("ENM-009 a supply no plant uses keeps its month from its self-consumption")
+    void aRegularSupplysMonthIsNotResolvedFromProduction() {
+        givenSupplyExists();
+        when(referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), ZONE))
+                .thenReturn(Optional.of(YearMonth.of(2026, 8)));
+        givenAggregate(new DatadisConsumptionAggregate(3d, 4d, 1d, 744L));
+
+        service.getEnergyMetrics(supplyId, null, null, EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH);
+
+        verifyNoInteractions(plantSupplyPublishedMonthResolver);
     }
 
     @Test

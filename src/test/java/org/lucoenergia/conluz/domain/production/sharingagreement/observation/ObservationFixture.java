@@ -1,6 +1,8 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
+import org.lucoenergia.conluz.domain.production.plant.energy.PlantDailyEnergy;
+import org.lucoenergia.conluz.domain.production.plant.energy.PlantEnergySource;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
 import java.math.BigDecimal;
@@ -149,7 +151,8 @@ final class ObservationFixture {
     ObservationInput input() {
         List<PlantDailyEnergy> plantDays = new ArrayList<>();
         production.forEach((day, kWh) ->
-                plantDays.add(new PlantDailyEnergy(day, kWh, plantHours.getOrDefault(day, hoursOf(day)))));
+                plantDays.add(new PlantDailyEnergy(day, kWh, plantHours.getOrDefault(day, hoursOf(day)),
+                        PlantEnergySource.PRODUCTION)));
         Map<UUID, List<SupplyDailyEnergy>> supplyDays = new HashMap<>();
         betas.forEach((supplyId, byDay) -> {
             List<SupplyDailyEnergy> days = new ArrayList<>();

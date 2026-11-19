@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import org.lucoenergia.conluz.domain.production.plant.energy.PlantDailyEnergy;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;

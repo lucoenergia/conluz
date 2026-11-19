@@ -10,6 +10,7 @@ import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriodValidator;
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsReferencePeriod;
 import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
+import org.lucoenergia.conluz.domain.consumption.PlantSupplyPublishedMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
 import org.lucoenergia.conluz.domain.consumption.SupplyEnergyMetrics;
 import org.lucoenergia.conluz.domain.consumption.SupplySavings;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +39,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
     private final DateConverter dateConverter;
     private final SupplySavingsCalculator supplySavingsCalculator;
     private final ReferenceMonthResolver referenceMonthResolver;
+    private final PlantSupplyPublishedMonthResolver plantSupplyPublishedMonthResolver;
     private final ZoneResolver zoneResolver;
     private final Clock clock;
 
@@ -47,6 +50,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
             DateConverter dateConverter,
             SupplySavingsCalculator supplySavingsCalculator,
             ReferenceMonthResolver referenceMonthResolver,
+            PlantSupplyPublishedMonthResolver plantSupplyPublishedMonthResolver,
             ZoneResolver zoneResolver,
             Clock clock) {
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
@@ -55,6 +59,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
         this.dateConverter = dateConverter;
         this.supplySavingsCalculator = supplySavingsCalculator;
         this.referenceMonthResolver = referenceMonthResolver;
+        this.plantSupplyPublishedMonthResolver = plantSupplyPublishedMonthResolver;
         this.zoneResolver = zoneResolver;
         this.clock = clock;
     }
@@ -83,7 +88,7 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
                 : new EnergyMetricsPeriod(startDate, endDate).endingNoLaterThan(startOfCurrentHour).getEndDate();
 
         if (referencePeriod == EnergyMetricsReferencePeriod.LATEST_PUBLISHED_MONTH) {
-            Optional<EnergyMetricsPeriod> latestPublishedMonth = latestPublishedMonth(supply, zone);
+            Optional<EnergyMetricsPeriod> latestPublishedMonth = latestPublishedMonth(supply, plantSupply, zone);
             if (latestPublishedMonth.isEmpty()) {
                 // No month in the search window is published for this supply. The same empty
                 // result as a supply without any record, not an error.
@@ -146,11 +151,14 @@ public class GetSupplyEnergyMetricsServiceImpl implements GetSupplyEnergyMetrics
 
     /**
      * The latest month published for this supply alone: its owner's other supplies never lend it
-     * a month it has not published itself.
+     * a month it has not published itself. A plant's own supply never carries self-consumption, so
+     * its month is resolved from its production instead (ENM-009).
      */
-    private Optional<EnergyMetricsPeriod> latestPublishedMonth(Supply supply, ZoneId zone) {
-        return referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), zone)
-                .map(month -> EnergyMetricsPeriod.ofMonth(month, zone));
+    private Optional<EnergyMetricsPeriod> latestPublishedMonth(Supply supply, boolean plantSupply, ZoneId zone) {
+        Optional<YearMonth> month = plantSupply
+                ? plantSupplyPublishedMonthResolver.resolveLatestPublishedMonth(supply, zone)
+                : referenceMonthResolver.resolveLatestPublishedMonth(List.of(supply), zone);
+        return month.map(resolved -> EnergyMetricsPeriod.ofMonth(resolved, zone));
     }
 
     private Supply getSupplyOrThrow(SupplyId supplyId) {

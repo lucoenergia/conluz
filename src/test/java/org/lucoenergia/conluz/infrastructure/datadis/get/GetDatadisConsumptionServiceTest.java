@@ -499,7 +499,7 @@ class GetDatadisConsumptionServiceTest {
         List<DailyPublishedAggregate> days = Arrays.stream(buckets)
                 .map(bucket -> new DailyPublishedAggregate(DateConverter.convertStringToLocalDate(bucket.getDate()),
                         bucket.getConsumptionKWh(), bucket.getSelfConsumptionEnergyKWh(),
-                        bucket.getSurplusEnergyKWh(), 745, "Real"))
+                        bucket.getSurplusEnergyKWh(), 745, 745, "Real"))
                 .toList();
         when(aggregateRepository.aggregateByLocalDay(anyCollection(), any(Instant.class), any(Instant.class),
                 eq(ZONE)))

@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #597 |
+| **Last reviewed against code** | #604 |
 
 ## Purpose
 
@@ -21,10 +21,12 @@ observes: it never writes, and never proposes a coefficient.
 | Term | Meaning |
 | --- | --- |
 | E | A consumer supply's self-consumption plus surplus over a local day: the share of the plant's production it received. |
-| G | The plant supply's surplus over a local day, stored as its Datadis production: the energy the distributor shares. |
+| Plant energy (G) | The plant supply's energy over a local day: the energy the distributor shares. Read from its production records on and after the local day of its first production record, and from its legacy surplus on the days before it; never from both for one day. |
+| Legacy surplus | The plant supply's `surplus_energy_kwh` in the consumption measurement, where its production was stored before it was stored as production. The Datadis sync stores it as 0 from the first production record on. |
+| Plant hours | The plant supply's records over a local day in that day's source of G, zeros included: production records, or legacy surplus records. |
 | Observed β | E / G on a valid day. |
 | Observed β (median) | The median of a supply's observed β over a set of its valid days: the middle value of an odd count, the mean of the two middle values of an even one. |
-| Valid day | A local day on which both the consumer supply and the plant supply reach the daily form of ENM-001's publication threshold, and G ≥ max(0.5 kWh × the plant's peak power in kWp, 12 kWh). |
+| Valid day | A local day on which the consumer supply's published records and the plant hours both reach the daily form of ENM-001's publication threshold, and G ≥ max(0.5 kWh × the plant's peak power in kWp, 12 kWh). |
 | Agreements in scope | The plant's PUBLISHED and SUPERSEDED agreements. |
 | Candidate | A value a supply's observed β may match: one of its coefficient rows in an agreement in scope (an agreement may hold several rows for one supply), or the implicit 0 of an agreement it has no row in. |
 | Match | A candidate within ±0.1 pp of the observed β. |
@@ -41,20 +43,28 @@ observes: it never writes, and never proposes a coefficient.
 ### OBS-001 — Observed β is computed on valid local days, and a coefficient is dated by its first run
 
 - **Status:** Active
-- **Rule:** Observed β MUST be computed only on valid days, as E / G. A coefficient row's observed application date
+- **Rule:** G and the plant hours MUST come from the plant supply's production records, and from its legacy surplus
+  records on the days before the local day of its first production record, never from both for one day. A day MUST
+  be plant-valid only when its plant hours, from that day's source, reach the daily form of ENM-001's threshold. The
+  analysed range MUST run from the local day of the plant supply's first record in either source to the last day of
+  the latest of the 24 complete months before the current one whose plant hours reach ENM-001's monthly threshold.
+  Consumers' energy and coverage MUST come from their consumption records. Observed β MUST be computed only on valid
+  days, as E / G. A coefficient row's observed application date
   MUST be the first day of the first run of its candidate: a range spanning the non-valid and ambiguous days that
   precede the run, or open ("on or before") when the run starts on the supply's first valid day. Fewer than N
   matching valid days MUST NOT date anything. An agreement holding several rows for one supply MUST be matched row
   by row. Stored dates MUST be compared with observed ones as local days of the application time zone, so a start
   stored at 00:00 UTC of the observed day is the same day. When several candidates complete a run on the same day,
   the one not yet observed for the supply MUST be chosen first, then the earliest in registered order.
-- **Rationale:** Runs make the date robust to a day's noise and to Datadis revisions; ranges and open dates say
+- **Rationale:** A plant supply's records are production only: it never carries self-consumption, and its earlier
+  production was stored as surplus in the consumption measurement (#604). The sync zeroes that surplus once it writes
+  production, so the two sources never carry the same energy, and the cutover keeps a day on one source. Runs make the date robust to a day's noise and to Datadis revisions; ranges and open dates say
   exactly what the data cannot tell, rather than guessing a day inside a gap or before the history starts (Datadis
   serves only two years). Ambiguous days arise when two values are closer than twice the tolerance: they are
   evidence for neither. The 12 kWh floor keeps the rounding of a day's 24 three-decimal Datadis values within the
   ±0.1 pp tolerance on any plant: an 8 kWp plant would otherwise accept 4 kWh days, with up to 0.3 pp of rounding
   error.
-- **Source:** #579, ENM-001
+- **Source:** #579, #604, ENM-001
 
 ### OBS-002 — A coefficient or leaving row is in one status
 
@@ -124,15 +134,17 @@ observes: it never writes, and never proposes a coefficient.
 - **Status:** Active
 - **Rule:** Only the plant's PUBLISHED and SUPERSEDED agreements MUST be analysed; `getSharingAgreementObservation`
   on a DRAFT agreement MUST be refused with 409 and nothing computed. The plant's own supply MUST NOT be analysed as
-  a consumer, nor any plant supply of the community. When the plant supply has no production record or no month
-  published under ENM-001, the result MUST say the plant is not computable, with nothing observed. A supply holding
+  a consumer, nor any plant supply of the community. When the plant supply has no record in either source of G, or
+  no month of the analysed range's window whose plant hours reach ENM-001's monthly threshold, the result MUST say the
+  plant is not computable, with nothing observed. A supply holding
   coefficients in this plant and in another one MUST be reported as not computable and left out of Σβ. A supply
   holding coefficients only in another plant MUST be left out of the plant's analysis entirely: it is not listed and
   its energy is not counted.
 - **Rationale:** Drafts are not in force. The energy of a supply shared by two plants cannot be attributed to one
   of them. A supply of another plant only is part of that plant's analysis; analysing it here would report the
-  other plant's production as energy outside the agreements. A silent estimate would look like an observation.
-- **Source:** #579, PLT-002, ENM-001
+  other plant's production as energy outside the agreements. A silent estimate would look like an observation. A plant
+  supply is judged on where its production is stored (OBS-001), never on self-consumption it never carries.
+- **Source:** #579, #604, PLT-002, ENM-001
 
 ### OBS-007 — The analysis is read-only, admin-only, and one computation
 

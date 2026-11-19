@@ -2,6 +2,7 @@ package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
 import org.lucoenergia.conluz.domain.consumption.EnergyMetricsPeriod;
 import org.lucoenergia.conluz.domain.consumption.PublicationThreshold;
+import org.lucoenergia.conluz.domain.production.plant.energy.PlantDailyEnergy;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -13,8 +14,8 @@ import java.util.TreeMap;
 
 /**
  * Decides which local days observed β may be computed on (OBS-001): both the consumer supply and the plant
- * supply reach the daily form of ENM-001's publication threshold, and the plant's production reaches
- * max(0.5 kWh × peak power, 12 kWh).
+ * supply reach the daily form of ENM-001's publication threshold, the plant's hours read from that day's
+ * source, and the plant's production reaches max(0.5 kWh × peak power, 12 kWh).
  */
 final class ValidDayFilter {
 
@@ -48,7 +49,7 @@ final class ValidDayFilter {
     NavigableMap<LocalDate, Double> plantValidDays(List<PlantDailyEnergy> plantDays, LocalDate from, LocalDate to) {
         NavigableMap<LocalDate, Double> valid = new TreeMap<>();
         for (PlantDailyEnergy day : plantDays) {
-            if (inside(day.day(), from, to) && isPublished(day.day(), day.publishedHours())
+            if (inside(day.day(), from, to) && isPublished(day.day(), day.hours())
                     && day.productionKWh() >= minProductionKWh) {
                 valid.put(day.day(), day.productionKWh());
             }

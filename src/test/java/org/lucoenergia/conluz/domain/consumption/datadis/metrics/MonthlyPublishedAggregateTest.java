@@ -23,9 +23,9 @@ class MonthlyPublishedAggregateTest {
     @Test
     void theDaysOfEachMonthAreAddedUpAndTheLastObtainMethodIsKept() {
         Map<YearMonth, MonthlyPublishedAggregate> months = MonthlyPublishedAggregate.foldIntoMonths(List.of(
-                new DailyPublishedAggregate(LocalDate.of(2026, 6, 1), 1d, 2d, 3d, 24, "Real"),
-                new DailyPublishedAggregate(LocalDate.of(2026, 6, 30), 10d, 20d, 30d, 20, "Estimated"),
-                new DailyPublishedAggregate(LocalDate.of(2026, 7, 1), 5d, 0d, 1d, 0, null)));
+                new DailyPublishedAggregate(LocalDate.of(2026, 6, 1), 1d, 2d, 3d, 24, 24, "Real"),
+                new DailyPublishedAggregate(LocalDate.of(2026, 6, 30), 10d, 20d, 30d, 20, 20, "Estimated"),
+                new DailyPublishedAggregate(LocalDate.of(2026, 7, 1), 5d, 0d, 1d, 0, 0, null)));
 
         assertEquals(List.of(JUNE, JULY), List.copyOf(months.keySet()));
         assertEquals(new MonthlyPublishedAggregate(JUNE, 11d, 22d, 33d, 44, "Estimated"), months.get(JUNE));
@@ -35,8 +35,8 @@ class MonthlyPublishedAggregateTest {
     @Test
     void aDayWithoutObtainMethodDoesNotEraseAnEarlierOne() {
         Map<YearMonth, MonthlyPublishedAggregate> months = MonthlyPublishedAggregate.foldIntoMonths(List.of(
-                new DailyPublishedAggregate(LocalDate.of(2026, 6, 1), 1d, 1d, 0d, 24, "Real"),
-                new DailyPublishedAggregate(LocalDate.of(2026, 6, 2), 1d, 1d, 0d, 24, null)));
+                new DailyPublishedAggregate(LocalDate.of(2026, 6, 1), 1d, 1d, 0d, 24, 24, "Real"),
+                new DailyPublishedAggregate(LocalDate.of(2026, 6, 2), 1d, 1d, 0d, 24, 24, null)));
 
         assertEquals("Real", months.get(JUNE).obtainMethod());
     }
