@@ -73,12 +73,9 @@ public interface GetSupplyPartitionCoefficientRepository {
      * -- is exactly the caller's "not in this agreement" set.
      * <p>
      * Two coefficients returned here can never share a {@code (plantId, supplyId)} pair: within one
-     * sharing agreement, {@code supply_id} is unique by construction --
-     * {@code MaterializeSharingAgreementCoefficientsServiceImpl.assertNoDuplicateCups} rejects
-     * duplicate CUPS within a single materialisation call, and {@code replaceAllForSharingAgreement}
-     * is a full delete-and-reinsert that is the sole creator of coefficient rows, so the invariant
-     * holds continuously (activation never creates, deletes, or moves a row to another agreement).
-     * Callers scoped to one {@code sharingAgreementId} (as every activation batch is) therefore need
+     * sharing agreement, {@code supply_id} is unique (SHA-018), enforced by the database constraint
+     * on {@code (sharing_agreement_id, supply_id)}, so it holds for every row however it was
+     * written. Callers scoped to one {@code sharingAgreementId} (as every activation batch is) therefore need
      * no additional same-batch collision check for two different ids resolving the same predecessor.
      */
     List<SupplyPartitionCoefficient> findAllByIdAndSharingAgreementId(List<UUID> ids, UUID sharingAgreementId);
