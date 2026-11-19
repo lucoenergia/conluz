@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Memberships`; operations `getMembershipEnergyMetrics`, `getMembershipHourlyProfile` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #411 |
+| **Last reviewed against code** | #604 |
 
 ## Purpose
 
@@ -149,6 +149,36 @@ And the self-consumed energy total is 150 kWh
 Given a member whose only supplies are two plant's own supplies
 When the membership energy metrics are read
 Then the self-consumption ratio is null and not applicable, with 2 plant supplies left out
+```
+
+### ENM-009 — A plant's own supply's month is published from its production
+
+- **Status:** Active
+- **Rule:** When the latest published month is resolved for a plant's own supply alone, its hours in a
+  month MUST be its production records, and its legacy surplus records (`surplus_energy_kwh`, zero
+  included) on the local days before the local day of its first production record, never both for one
+  day. The month MUST count as published under ENM-001's threshold, counted from the earlier of its
+  first production record and its first surplus record, with ENM-002's window and current-month
+  exclusion. A resolution over several supplies (ENM-002) is unchanged.
+- **Rationale:** A plant's own supply never carries self-consumption, so under ENM-001's published
+  records no month was ever published for it, and the supply's latest published month was always
+  empty. Its production is what Datadis publishes for it; before production was stored apart it was
+  stored as the supply's surplus, which the sync zeroes once it writes production, so the two sources
+  never carry the same hour. Resolutions over several supplies keep ENM-001's records: counting
+  production there could move a community's or a member's reference month.
+- **Source:** #604, ENM-001, SEM-001
+
+**Scenarios**
+
+```gherkin
+Given a plant's own supply with production records for every hour of September and none of self-consumption
+When its latest published month is resolved in October
+Then September is resolved
+
+Given a plant's own supply with surplus records for every hour of November and ten days of production in December
+And its December surplus stored as 0 for every hour
+When its latest published month is resolved in January
+Then November is resolved
 ```
 
 ## Impossible states

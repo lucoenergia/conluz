@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Supplies`; operation `getSupplyEnergyMetrics` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #411 |
+| **Last reviewed against code** | #604 |
 
 ## Purpose
 
@@ -28,8 +28,9 @@ issues touch it.
 
 - **Status:** Active
 - **Rule:** Supply energy metrics MUST accept `period=LATEST_PUBLISHED_MONTH`, resolved with the
-  criteria of ENM-001…005 applied to that supply's records alone: the latest of the 24 complete
-  calendar months before the current one that is published for this supply, read in the supply's
+  criteria of ENM-001…005 applied to that supply's records alone, and those of ENM-009 for a plant's
+  own supply: the latest of the 24 complete calendar months before the current one that is
+  published for this supply, read in the supply's
   time zone, and the current month never. A month published only for another supply, of the same
   owner or not, MUST NOT be resolved. When no month qualifies, the response MUST be the one returned
   when no period can be resolved, as for a supply without any stored record. The reference period
@@ -40,7 +41,7 @@ issues touch it.
   self-consumed energy reported as a measured zero. Resolving from the supply alone keeps a zero
   inside the resolved month a measured zero. The same threshold, window and current-month exclusion
   as ENM-001…003 keep a supply and its membership agreeing on what "published" means.
-- **Source:** #408
+- **Source:** #408, #604
 
 **Scenarios**
 
