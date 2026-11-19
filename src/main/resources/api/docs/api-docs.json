@@ -92,6 +92,40 @@
         ],
         "type" : "object"
       },
+      "AgreementStatusChangeResponse" : {
+        "properties" : {
+          "sharingAgreement" : {
+            "$ref" : "#/components/schemas/SharingAgreementReferenceResponse",
+            "description" : "The agreement, with its status after the request"
+          },
+          "statusAfter" : {
+            "description" : "Status after the request",
+            "enum" : [
+              "DRAFT",
+              "PUBLISHED",
+              "SUPERSEDED"
+            ],
+            "example" : "SUPERSEDED",
+            "type" : "string"
+          },
+          "statusBefore" : {
+            "description" : "Status before the request",
+            "enum" : [
+              "DRAFT",
+              "PUBLISHED",
+              "SUPERSEDED"
+            ],
+            "example" : "PUBLISHED",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "sharingAgreement",
+          "statusAfter",
+          "statusBefore"
+        ],
+        "type" : "object"
+      },
       "ChangePasswordBody" : {
         "properties" : {
           "currentPassword" : {
@@ -181,6 +215,71 @@
           "plant",
           "supply",
           "timestamp"
+        ],
+        "type" : "object"
+      },
+      "CoefficientDateBody" : {
+        "properties" : {
+          "coefficientId" : {
+            "description" : "A coefficient of this agreement, pending (activated) or active (corrected).",
+            "example" : "6f1f3c2e-1234-5678-abcd-000000000001",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "validFrom" : {
+            "description" : "First day the coefficient applies; stored as validFrom. Future dates are rejected.",
+            "example" : "2026-03-01",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "coefficientId",
+          "validFrom"
+        ],
+        "type" : "object"
+      },
+      "CoefficientDatesEffectsResponse" : {
+        "properties" : {
+          "agreementStatuses" : {
+            "description" : "Every agreement owning a changed coefficient, with its status before and after; both are equal when the status does not change.",
+            "items" : {
+              "$ref" : "#/components/schemas/AgreementStatusChangeResponse"
+            },
+            "type" : "array"
+          },
+          "coefficients" : {
+            "description" : "The requested coefficients whose period changes. A coefficient whose validFrom is already the requested one is not listed.",
+            "items" : {
+              "$ref" : "#/components/schemas/CoefficientPeriodChangeResponse"
+            },
+            "type" : "array"
+          },
+          "communityStart" : {
+            "$ref" : "#/components/schemas/CommunityStartChangeResponse",
+            "description" : "The earliest validFrom of the plant's community, before and after."
+          },
+          "leavingClosures" : {
+            "description" : "The coefficients of the supplies absent from the agreement whose end the request sets: listed in the request (REQUEST), or omitted on the agreement's first activation (DEFAULT).",
+            "items" : {
+              "$ref" : "#/components/schemas/LeavingClosureChangeResponse"
+            },
+            "type" : "array"
+          },
+          "neighbours" : {
+            "description" : "Every other coefficient, in any agreement, whose end the placements move: the previous coefficient of the same supply, shortened to the new start, or the former neighbour of a corrected coefficient, joined to its end.",
+            "items" : {
+              "$ref" : "#/components/schemas/NeighbourChangeResponse"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "agreementStatuses",
+          "coefficients",
+          "communityStart",
+          "leavingClosures",
+          "neighbours"
         ],
         "type" : "object"
       },
@@ -274,6 +373,60 @@
           "storedValidFrom",
           "storedValidTo",
           "supply"
+        ],
+        "type" : "object"
+      },
+      "CoefficientPeriodChangeResponse" : {
+        "properties" : {
+          "coefficient" : {
+            "$ref" : "#/components/schemas/PartitionCoefficientReferenceResponse",
+            "description" : "The requested coefficient"
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "The coefficient's supply"
+          },
+          "validFromAfter" : {
+            "description" : "validFrom after the request",
+            "example" : "2025-02-28T23:00:00Z",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validFromBefore" : {
+            "description" : "validFrom before the request. Null when the coefficient was pending.",
+            "example" : "2025-02-28T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "validToAfter" : {
+            "description" : "validTo after the request. Null when open.",
+            "example" : "2025-12-31T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "validToBefore" : {
+            "description" : "validTo before the request. Null when open or pending.",
+            "example" : "2025-12-31T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "coefficient",
+          "supply",
+          "validFromAfter",
+          "validFromBefore",
+          "validToAfter",
+          "validToBefore"
         ],
         "type" : "object"
       },
@@ -922,6 +1075,33 @@
           "memberCount",
           "name",
           "supplyPointCount"
+        ],
+        "type" : "object"
+      },
+      "CommunityStartChangeResponse" : {
+        "properties" : {
+          "after" : {
+            "description" : "The earliest validFrom of the community's coefficients after the request. Null when none has started.",
+            "example" : "2024-12-31T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "before" : {
+            "description" : "The earliest validFrom of the community's coefficients before the request. Null when none has started.",
+            "example" : "2024-12-31T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "after",
+          "before"
         ],
         "type" : "object"
       },
@@ -2192,6 +2372,76 @@
         ],
         "type" : "object"
       },
+      "LeavingClosureBody" : {
+        "properties" : {
+          "closedOn" : {
+            "description" : "First day the supply's coefficient before this agreement no longer applies; stored as its validTo. Future dates are rejected.",
+            "example" : "2026-03-01",
+            "format" : "date",
+            "type" : "string"
+          },
+          "supplyId" : {
+            "description" : "A supply of the plant that has no coefficient in this agreement.",
+            "example" : "ebbe60d1-f9db-455c-8c2d-c34ae7a1c23c",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "closedOn",
+          "supplyId"
+        ],
+        "type" : "object"
+      },
+      "LeavingClosureChangeResponse" : {
+        "properties" : {
+          "coefficient" : {
+            "$ref" : "#/components/schemas/PartitionCoefficientReferenceResponse",
+            "description" : "The supply's coefficient before the agreement, whose end is set"
+          },
+          "sharingAgreement" : {
+            "$ref" : "#/components/schemas/SharingAgreementReferenceResponse",
+            "description" : "The agreement owning that coefficient, with its status after the request"
+          },
+          "source" : {
+            "description" : "REQUEST when the request listed the supply; DEFAULT when the request is the agreement's first activation and omitted it, so it is closed at the request's earliest date.",
+            "enum" : [
+              "REQUEST",
+              "DEFAULT"
+            ],
+            "example" : "REQUEST",
+            "type" : "string"
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "The supply absent from the agreement"
+          },
+          "validToAfter" : {
+            "description" : "validTo after the request",
+            "example" : "2025-02-28T23:00:00Z",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validToBefore" : {
+            "description" : "validTo before the request. Null when open.",
+            "example" : "2025-12-31T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "coefficient",
+          "sharingAgreement",
+          "source",
+          "supply",
+          "validToAfter",
+          "validToBefore"
+        ],
+        "type" : "object"
+      },
       "LeavingObservationResponse" : {
         "properties" : {
           "observedBeta" : {
@@ -3199,6 +3449,48 @@
         ],
         "type" : "object"
       },
+      "NeighbourChangeResponse" : {
+        "properties" : {
+          "coefficient" : {
+            "$ref" : "#/components/schemas/PartitionCoefficientReferenceResponse",
+            "description" : "The coefficient whose end moves"
+          },
+          "sharingAgreement" : {
+            "$ref" : "#/components/schemas/SharingAgreementReferenceResponse",
+            "description" : "The agreement owning the coefficient, with its status after the request"
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "The coefficient's supply"
+          },
+          "validToAfter" : {
+            "description" : "validTo after the request. Null when open.",
+            "example" : "2025-02-28T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "validToBefore" : {
+            "description" : "validTo before the request. Null when open.",
+            "example" : "2025-12-31T23:00:00Z",
+            "format" : "date-time",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "coefficient",
+          "sharingAgreement",
+          "supply",
+          "validToAfter",
+          "validToBefore"
+        ],
+        "type" : "object"
+      },
       "ObservationStatusCountsResponse" : {
         "properties" : {
           "appliedDifferentDate" : {
@@ -3409,6 +3701,20 @@
         },
         "required" : [
           "canReadSharingAgreement"
+        ],
+        "type" : "object"
+      },
+      "PartitionCoefficientReferenceResponse" : {
+        "properties" : {
+          "id" : {
+            "description" : "Internal unique identifier of the coefficient period",
+            "example" : "6f1f3c2e-1234-5678-abcd-000000000001",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "id"
         ],
         "type" : "object"
       },
@@ -4761,6 +5067,29 @@
           "remaining",
           "results",
           "sent"
+        ],
+        "type" : "object"
+      },
+      "SetCoefficientDatesBody" : {
+        "properties" : {
+          "coefficients" : {
+            "description" : "The coefficients of this agreement to activate or correct, each with its own date. May be empty when leavingClosures is not. Each coefficient at most once.",
+            "items" : {
+              "$ref" : "#/components/schemas/CoefficientDateBody"
+            },
+            "type" : "array"
+          },
+          "leavingClosures" : {
+            "description" : "The supplies of the plant absent from this agreement to close, each with its own date. May be empty when coefficients is not. Each supply at most once.",
+            "items" : {
+              "$ref" : "#/components/schemas/LeavingClosureBody"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [
+          "coefficients",
+          "leavingClosures"
         ],
         "type" : "object"
       },
@@ -21127,6 +21456,162 @@
         ]
       }
     },
+    "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/preview-dates" : {
+      "post" : {
+        "description" : "Computes what `set-dates` would do with the same body, and writes nothing. The effects are those\n`set-dates` performs on the coefficients as they stand now; `set-dates` validates the request\nagain when it runs, since the coefficients may have changed in between.\n\nEach coefficient is placed chronologically within the timeline of its (plant, supply), as\n`activate` does, in ascending `validFrom` order and then by coefficient id, each on the timeline\nas the previous ones left it. A pending coefficient is activated and an active one corrected.\n\nEach listed leaving supply must have no coefficient, pending or not, in this agreement. Its\nclosed coefficient is its activated coefficient with the latest `validFrom` before the\nagreement's earliest `validFrom` once the coefficients of the request are placed. Its `validTo`\nbecomes `closedOn`: that may shorten it or extend it, up to the next start of the supply. It is\nan ordinary close, which `reopen` undoes.\n\nOn the agreement's first activation (none of its coefficients had a `validFrom` before the\nrequest), every supply that leaves the distribution and is not listed is closed at the earliest\n`validFrom` of the request, as `activate` does, and reported with source `DEFAULT`. A later\nrequest closes only the listed supplies.\n\nThe response lists every effect: each requested coefficient's period before and after, each\nneighbour whose end moves, each leaving closure, the status of every agreement owning a changed\ncoefficient before and after, and the earliest `validFrom` of the plant's community before and\nafter. Rows that do not change are not listed. A row error in `details` carries `coefficientId`,\n`supplyId` or both, and `conflictingCoefficientId` for an overlap.\n\n**Required: Community Admin**\n\nPUBLISHED or SUPERSEDED agreements only.\n\nReturns 400 if both lists are empty or a coefficient or a supply is listed twice.\nReturns 404 if the plant or the agreement does not exist, does not belong to this plant, or the\ncaller is not a member of its community, to avoid leaking existence. Returns 409 if the agreement\nis DRAFT, or with every invalid row: a coefficient not in this agreement, a date in the future,\na start equal to another start of the supply or a period overlapping another, a correction not\nbefore the coefficient's own close, a listed supply holding a coefficient in this agreement, a\nlisted supply with no coefficient to close, or a closing date not after the closed coefficient's\nstart.\n\nAuthentication is required using a Bearer token.\n",
+        "operationId" : "previewPartitionCoefficientDates",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "sharingAgreementId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetCoefficientDatesBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoefficientDatesEffectsResponse"
+                }
+              }
+            },
+            "description" : "The request is valid; the effects it would have. Nothing is written."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The agreement is DRAFT, or one or more rows failed validation."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Previews every effect of setting the dates of an agreement's coefficients and leaving closures",
+        "tags" : [
+          "Sharing agreements"
+        ]
+      }
+    },
     "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/reopen" : {
       "post" : {
         "description" : "Clears `validTo` on each given coefficient. Rejected when a successor coefficient\nstarts at or before the current `validTo` -- that boundary was written by the\nactivation cascade, not authored: you may only undo a closure you authored.\n\n**Required: Community Admin**\n\nPUBLISHED or SUPERSEDED agreements only. The coefficient must already be active\nand closed; reopening a pending coefficient is rejected.\n\nIdempotent in effect: re-sending a batch that would produce no change is a no-op.\n\nReturns 404 if the plant or the agreement does not exist, does not belong to this\nplant, or the caller is not a member of its community, to avoid leaking existence.\nReturns 409 if the agreement is DRAFT, or if any coefficient fails validation.\n\nAuthentication is required using a Bearer token.\n",
@@ -21278,6 +21763,162 @@
           }
         ],
         "summary" : "Retracts an authored close on a batch of coefficients",
+        "tags" : [
+          "Sharing agreements"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/sharing-agreements/{sharingAgreementId}/partition-coefficients/set-dates" : {
+      "post" : {
+        "description" : "Sets, in one request, the date each coefficient of the agreement started to apply and the date\neach supply that leaves the distribution stopped receiving production. Validates the whole\nrequest, then writes everything in one transaction and recomputes the status of every agreement\nowning a changed coefficient; a failure on any row rejects the whole request and nothing is\nwritten. Date writes on the same plant run one after another. The response reports the effects\nas written; `preview-dates` with the same body reports them without writing.\n\nEach coefficient is placed chronologically within the timeline of its (plant, supply), as\n`activate` does, in ascending `validFrom` order and then by coefficient id, each on the timeline\nas the previous ones left it. A pending coefficient is activated and an active one corrected.\n\nEach listed leaving supply must have no coefficient, pending or not, in this agreement. Its\nclosed coefficient is its activated coefficient with the latest `validFrom` before the\nagreement's earliest `validFrom` once the coefficients of the request are placed. Its `validTo`\nbecomes `closedOn`: that may shorten it or extend it, up to the next start of the supply. It is\nan ordinary close, which `reopen` undoes.\n\nOn the agreement's first activation (none of its coefficients had a `validFrom` before the\nrequest), every supply that leaves the distribution and is not listed is closed at the earliest\n`validFrom` of the request, as `activate` does, and reported with source `DEFAULT`. A later\nrequest closes only the listed supplies.\n\nThe response lists every effect: each requested coefficient's period before and after, each\nneighbour whose end moves, each leaving closure, the status of every agreement owning a changed\ncoefficient before and after, and the earliest `validFrom` of the plant's community before and\nafter. Rows that do not change are not listed. A row error in `details` carries `coefficientId`,\n`supplyId` or both, and `conflictingCoefficientId` for an overlap.\n\n**Required: Community Admin**\n\nPUBLISHED or SUPERSEDED agreements only.\n\nReturns 400 if both lists are empty or a coefficient or a supply is listed twice.\nReturns 404 if the plant or the agreement does not exist, does not belong to this plant, or the\ncaller is not a member of its community, to avoid leaking existence. Returns 409 if the agreement\nis DRAFT, or with every invalid row: a coefficient not in this agreement, a date in the future,\na start equal to another start of the supply or a period overlapping another, a correction not\nbefore the coefficient's own close, a listed supply holding a coefficient in this agreement, a\nlisted supply with no coefficient to close, or a closing date not after the closed coefficient's\nstart.\n\nAuthentication is required using a Bearer token.\n",
+        "operationId" : "setPartitionCoefficientDates",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "in" : "path",
+            "name" : "sharingAgreementId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SetCoefficientDatesBody"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CoefficientDatesEffectsResponse"
+                }
+              }
+            },
+            "description" : "The request has been applied; the effects as written."
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "409" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "The agreement is DRAFT, or one or more rows failed validation."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Sets the application date of each coefficient of an agreement and the closing date of each supply leaving it",
         "tags" : [
           "Sharing agreements"
         ]
