@@ -3,14 +3,16 @@ package org.lucoenergia.conluz.infrastructure.production.sharingagreement.observ
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
-import org.lucoenergia.conluz.domain.consumption.ReferenceMonthResolver;
+import org.lucoenergia.conluz.domain.consumption.MonthlyPublication;
+import org.lucoenergia.conluz.domain.consumption.RecordedConsumptionPeriod;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.DailyPublishedAggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.metrics.GetDatadisConsumptionAggregateRepository;
-import org.lucoenergia.conluz.domain.production.datadis.get.DailyProductionAggregate;
 import org.lucoenergia.conluz.domain.production.datadis.get.GetDatadisProductionAggregateRepository;
 import org.lucoenergia.conluz.domain.production.datadis.get.RecordedProductionPeriod;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
+import org.lucoenergia.conluz.domain.production.plant.energy.PlantDailyEnergy;
+import org.lucoenergia.conluz.domain.production.plant.energy.PlantEnergySources;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotFoundException;
@@ -22,7 +24,6 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.observation.Obs
 import org.lucoenergia.conluz.domain.production.sharingagreement.observation.ObservedCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.observation.ObservedSharingCalculator;
 import org.lucoenergia.conluz.domain.production.sharingagreement.observation.ObservedSupply;
-import org.lucoenergia.conluz.domain.production.sharingagreement.observation.PlantDailyEnergy;
 import org.lucoenergia.conluz.domain.production.sharingagreement.observation.PlantSharingObservation;
 import org.lucoenergia.conluz.domain.production.sharingagreement.observation.SharingAgreementNotObservableException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.observation.SharingAgreementObservation;
@@ -33,6 +34,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -59,15 +61,18 @@ import java.util.stream.Collectors;
  *
  * <h2>Analysed range</h2>
  *
- * <p>From the local day of the plant supply's first production record to the end of the latest month published
- * for it (ENM-001). Without either, the plant is not computable.</p>
+ * <p>The plant supply's energy and coverage come from its production records, and from its legacy surplus on the
+ * days before the first of them ({@link PlantEnergySources}, OBS-001). The range runs from the local day of its
+ * first record in either source to the end of the latest month in which those days hold the hours ENM-001
+ * requires. Without a record, or without such a month, the plant is not computable (OBS-006).</p>
  *
  * <h2>Query cost</h2>
  *
  * <p>Five relational queries (the plant, its agreements, its coefficients, the community's supplies and plant
- * supplies, the supplies in other plants), whatever the number of supplies. On InfluxDB: one request for the
- * plant supply's recorded production period, two to four for its latest published month, then one query for the
- * daily totals of every analysed supply together and one for the plant's daily production.</p>
+ * supplies, the supplies in other plants), whatever the number of supplies. Four InfluxDB requests, whatever the
+ * length of the history: the plant supply's production period and its surplus period, then the daily totals of
+ * every analysed supply and the plant supply together and the plant's daily production, both up to the start of
+ * the current month.</p>
  */
 @Service
 @Transactional(readOnly = true)
@@ -80,7 +85,7 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
     private final GetSupplyRepository getSupplyRepository;
     private final GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository;
     private final GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository;
-    private final ReferenceMonthResolver referenceMonthResolver;
+    private final Clock clock;
     private final ZoneResolver zoneResolver;
     private final ObservedSharingCalculator calculator;
 
@@ -90,7 +95,7 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
                                             GetSupplyRepository getSupplyRepository,
                                             GetDatadisConsumptionAggregateRepository getDatadisConsumptionAggregateRepository,
                                             GetDatadisProductionAggregateRepository getDatadisProductionAggregateRepository,
-                                            ReferenceMonthResolver referenceMonthResolver,
+                                            Clock clock,
                                             ZoneResolver zoneResolver,
                                             SharingObservationProperties properties) {
         this.getPlantRepository = getPlantRepository;
@@ -99,7 +104,7 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
         this.getSupplyRepository = getSupplyRepository;
         this.getDatadisConsumptionAggregateRepository = getDatadisConsumptionAggregateRepository;
         this.getDatadisProductionAggregateRepository = getDatadisProductionAggregateRepository;
-        this.referenceMonthResolver = referenceMonthResolver;
+        this.clock = clock;
         this.zoneResolver = zoneResolver;
         this.calculator = new ObservedSharingCalculator(properties.getConsecutiveDays());
     }
@@ -154,58 +159,63 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
                 .toList();
         List<ObservedSupply> supplies = analysed.stream().map(GetSharingObservationServiceImpl::observed).toList();
 
-        Optional<LocalDate[]> range = analysedRange(plantSupply, zone);
-        if (range.isEmpty()) {
-            return new ObservationInput(zone, plant.getPeakPowerKWp(), plantSupply.getId(), null, null, List.of(),
-                    supplies, Map.of(), notComputable, agreements, coefficients);
+        Optional<RecordedProductionPeriod> production =
+                getDatadisProductionAggregateRepository.findRecordedPeriod(plantSupply.getCode());
+        Optional<RecordedConsumptionPeriod> surplus =
+                getDatadisConsumptionAggregateRepository.findSurplusPeriod(plantSupply);
+        Optional<Instant> firstRecord = PlantEnergySources.firstRecord(production, surplus);
+        if (firstRecord.isEmpty()) {
+            return withoutRange(zone, plant, supplies, notComputable, agreements, coefficients);
         }
-        LocalDate from = range.get()[0];
-        LocalDate to = range.get()[1];
+        LocalDate from = firstRecord.get().atZone(zone).toLocalDate();
+        YearMonth currentMonth = YearMonth.from(clock.instant().atZone(zone));
         Instant start = from.atStartOfDay(zone).toInstant();
-        Instant end = to.plusDays(1).atStartOfDay(zone).toInstant();
+        Instant end = currentMonth.atDay(1).atStartOfDay(zone).toInstant();
+        if (!start.isBefore(end)) {
+            // Every record is in the current month, which is never analysed.
+            return withoutRange(zone, plant, supplies, notComputable, agreements, coefficients);
+        }
 
+        // Read up to the current month, which is never analysed: where the analysed range ends is only known
+        // once the plant's days are.
         List<Supply> read = new ArrayList<>(analysed);
         read.add(plantSupply);
         Map<String, List<DailyPublishedAggregate>> daysByCode =
                 getDatadisConsumptionAggregateRepository.aggregateByLocalDay(read, start, end, zone);
+        List<PlantDailyEnergy> plantDays = PlantEnergySources.daily(
+                getDatadisProductionAggregateRepository.aggregateByLocalDay(plantSupply.getCode(), start, end, zone),
+                daysByCode.getOrDefault(plantSupply.getCode(), List.of()),
+                PlantEnergySources.cutover(production, zone));
 
-        Map<LocalDate, Long> plantPublishedHours = daysByCode.getOrDefault(plantSupply.getCode(), List.of()).stream()
-                .collect(Collectors.toMap(DailyPublishedAggregate::day, DailyPublishedAggregate::publishedHours));
-        List<PlantDailyEnergy> plantDays = new ArrayList<>();
-        for (DailyProductionAggregate day : getDatadisProductionAggregateRepository.aggregateByLocalDay(
-                plantSupply.getCode(), start, end, zone)) {
-            plantDays.add(new PlantDailyEnergy(day.day(), day.productionKWh(),
-                    plantPublishedHours.getOrDefault(day.day(), 0L)));
+        Optional<YearMonth> published = MonthlyPublication.latestPublished(PlantEnergySources.hoursByMonth(plantDays),
+                firstRecord.get(), currentMonth, zone);
+        if (published.isEmpty()) {
+            return withoutRange(zone, plant, supplies, notComputable, agreements, coefficients);
         }
+        LocalDate to = published.get().atEndOfMonth();
 
         Map<UUID, List<SupplyDailyEnergy>> supplyDays = new HashMap<>();
         for (Supply supply : analysed) {
             supplyDays.put(supply.getId(), daysByCode.getOrDefault(supply.getCode(), List.of()).stream()
+                    .filter(day -> !day.day().isAfter(to))
                     .map(day -> new SupplyDailyEnergy(day.day(), day.selfConsumptionKWh() + day.surplusKWh(),
                             day.publishedHours()))
                     .toList());
         }
-        return new ObservationInput(zone, plant.getPeakPowerKWp(), plantSupply.getId(), from, to, plantDays,
+        return new ObservationInput(zone, plant.getPeakPowerKWp(), plantSupply.getId(), from, to,
+                plantDays.stream().filter(day -> !day.day().isAfter(to)).toList(),
                 supplies, supplyDays, notComputable, agreements, coefficients);
     }
 
     /**
-     * From the local day of the plant supply's first production record to the last day of its latest published
-     * month, or empty when it has neither, or when the month ends before the first record.
+     * The input of a plant that is not computable: no analysed range, and no day read.
      */
-    private Optional<LocalDate[]> analysedRange(Supply plantSupply, ZoneId zone) {
-        Optional<RecordedProductionPeriod> recorded =
-                getDatadisProductionAggregateRepository.findRecordedPeriod(plantSupply.getCode());
-        if (recorded.isEmpty()) {
-            return Optional.empty();
-        }
-        Optional<YearMonth> published = referenceMonthResolver.resolveLatestPublishedMonth(List.of(plantSupply), zone);
-        if (published.isEmpty()) {
-            return Optional.empty();
-        }
-        LocalDate from = recorded.get().firstRecord().atZone(zone).toLocalDate();
-        LocalDate to = published.get().atEndOfMonth();
-        return to.isBefore(from) ? Optional.empty() : Optional.of(new LocalDate[]{from, to});
+    private static ObservationInput withoutRange(ZoneId zone, Plant plant, List<ObservedSupply> supplies,
+                                                 List<ObservedSupply> notComputable,
+                                                 List<ObservedAgreement> agreements,
+                                                 List<ObservedCoefficient> coefficients) {
+        return new ObservationInput(zone, plant.getPeakPowerKWp(), plant.getSupply().getId(), null, null, List.of(),
+                supplies, Map.of(), notComputable, agreements, coefficients);
     }
 
     private static ObservedSupply observed(Supply supply) {
