@@ -229,7 +229,13 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(404, HttpMethod.POST, anAgreement + "/partition-coefficients/close").body(Map.of(
                         "closedOn", "2026-01-01", "coefficientIds", List.of(UUID.randomUUID()))),
                 call(404, HttpMethod.POST, anAgreement + "/partition-coefficients/deactivate").body(coefficientIds),
-                call(404, HttpMethod.POST, anAgreement + "/partition-coefficients/reopen").body(coefficientIds)));
+                call(404, HttpMethod.POST, anAgreement + "/partition-coefficients/reopen").body(coefficientIds),
+                call(404, HttpMethod.POST, anAgreement + "/partition-coefficients/set-dates").body(Map.of(
+                        "coefficients", List.of(), "leavingClosures",
+                        List.of(Map.of("supplyId", supply.getId(), "closedOn", "2026-01-01")))),
+                call(404, HttpMethod.POST, anAgreement + "/partition-coefficients/preview-dates").body(Map.of(
+                        "coefficients", List.of(), "leavingClosures",
+                        List.of(Map.of("supplyId", supply.getId(), "closedOn", "2026-01-01"))))));
     }
 
     @Test
