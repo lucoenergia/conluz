@@ -21,6 +21,9 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreemen
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDate;
+import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesRequest;
+import org.lucoenergia.conluz.domain.production.sharingagreement.dates.SetCoefficientDatesService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.publish.PublishSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -53,6 +56,8 @@ class CoefficientDateWriteConcurrencyTest extends BaseIntegrationTest {
 
     @Autowired
     private CoefficientActivationService service;
+    @Autowired
+    private SetCoefficientDatesService setDatesService;
     @Autowired
     private GetSupplyPartitionCoefficientRepository getCoefficientRepository;
     @Autowired
@@ -137,6 +142,37 @@ class CoefficientDateWriteConcurrencyTest extends BaseIntegrationTest {
                 new Period(first.getId(), at(FIRST_START), at(EARLIER_ACTIVATION)),
                 new Period(between.getId(), at(EARLIER_ACTIVATION), at(LATER_ACTIVATION)),
                 new Period(appended.getId(), at(LATER_ACTIVATION), null));
+    }
+
+    /**
+     * Without the lock, setting the dates would read the first row as still open, end the new coefficient nowhere and
+     * overlap the one activated at the same time, which the exclusion constraint refuses at commit.
+     */
+    @Test
+    @DisplayName("SHA-007 setting dates while an activation of the same supply runs waits for it, and places the coefficient on the timeline it left")
+    void setDatesWhileActivating_waitsForThePlantLock() throws Exception {
+        Community community = createCommunityRepository.create(CommunityMother.random().build());
+        Plant plant = createPlant(community);
+        Supply supply = createSupply(community);
+        SharingAgreement firstAgreement = publishedAgreement(plant);
+        SupplyPartitionCoefficient first = pending(supply, plant, firstAgreement);
+        service.setValidFrom(plant.getId(), firstAgreement.getId(), FIRST_START, List.of(first.getId()));
+        SharingAgreement laterAgreement = publishedAgreement(plant);
+        SupplyPartitionCoefficient later = pending(supply, plant, laterAgreement);
+        SharingAgreement datedAgreement = publishedAgreement(plant);
+        SupplyPartitionCoefficient dated = pending(supply, plant, datedAgreement);
+
+        Throwable secondOutcome = LockWaitTestSupport.runWhileHeld(transactionManager, jdbcTemplate,
+                () -> service.setValidFrom(plant.getId(), laterAgreement.getId(), LATER_ACTIVATION,
+                        List.of(later.getId())),
+                () -> setDatesService.setDates(plant.getId(), datedAgreement.getId(), new CoefficientDatesRequest(
+                        List.of(new CoefficientDate(dated.getId(), EARLIER_ACTIVATION)), List.of())));
+
+        assertThat(secondOutcome).isNull();
+        assertThat(timeline(plant, supply)).containsExactly(
+                new Period(first.getId(), at(FIRST_START), at(EARLIER_ACTIVATION)),
+                new Period(dated.getId(), at(EARLIER_ACTIVATION), at(LATER_ACTIVATION)),
+                new Period(later.getId(), at(LATER_ACTIVATION), null));
     }
 
     private record Period(UUID id, Instant validFrom, Instant validTo) {

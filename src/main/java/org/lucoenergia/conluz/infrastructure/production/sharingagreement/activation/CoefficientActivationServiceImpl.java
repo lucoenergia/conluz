@@ -1,7 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.activation;
 
-import org.lucoenergia.conluz.domain.admin.supply.Supply;
-import org.lucoenergia.conluz.domain.admin.supply.get.GetSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapCheckRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapDetector;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientPlacement;
@@ -22,7 +20,6 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.activation.Coef
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
 import org.lucoenergia.conluz.domain.shared.PlantId;
-import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +47,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
     private final GetSupplyPartitionCoefficientRepository getCoefficientRepository;
     private final SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
     private final RecomputeSharingAgreementStatusRepository recomputeStatusRepository;
-    private final GetSupplyRepository getSupplyRepository;
+    private final CoefficientActivationErrors activationErrors;
     private final ZoneResolver zoneResolver;
     private final CoefficientOverlapCheckRepository overlapCheckRepository;
     private final LockPlantRepository lockPlantRepository;
@@ -60,7 +57,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                                              GetSupplyPartitionCoefficientRepository getCoefficientRepository,
                                              SaveSupplyPartitionCoefficientRepository saveCoefficientRepository,
                                              RecomputeSharingAgreementStatusRepository recomputeStatusRepository,
-                                             GetSupplyRepository getSupplyRepository,
+                                             CoefficientActivationErrors activationErrors,
                                              ZoneResolver zoneResolver,
                                              CoefficientOverlapCheckRepository overlapCheckRepository,
                                              LockPlantRepository lockPlantRepository,
@@ -69,7 +66,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         this.getCoefficientRepository = getCoefficientRepository;
         this.saveCoefficientRepository = saveCoefficientRepository;
         this.recomputeStatusRepository = recomputeStatusRepository;
-        this.getSupplyRepository = getSupplyRepository;
+        this.activationErrors = activationErrors;
         this.zoneResolver = zoneResolver;
         this.overlapCheckRepository = overlapCheckRepository;
         this.lockPlantRepository = lockPlantRepository;
@@ -100,14 +97,14 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         for (UUID id : distinct(coefficientIds)) {
             SupplyPartitionCoefficient coefficient = foundById.get(id);
             if (coefficient == null) {
-                errors.add(error(CoefficientActivationErrorCode.COEFFICIENT_NOT_IN_AGREEMENT, id, null));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.COEFFICIENT_NOT_IN_AGREEMENT, id, null));
                 continue;
             }
             if (Objects.equals(coefficient.getValidFrom(), newValidFrom)) {
                 continue; // true no-op: value already persisted -- nothing staged, no recompute
             }
             if (newValidFrom != null && appliedOn.isAfter(today)) {
-                errors.add(error(CoefficientActivationErrorCode.DATE_IN_FUTURE, coefficient));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.DATE_IN_FUTURE, coefficient));
                 continue;
             }
 
@@ -129,9 +126,9 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
             CoefficientPlacement.Result placement = CoefficientPlacement.place(supplyTimeline,
                     timeline.getOrDefault(coefficient.getId(), coefficient), newValidFrom);
             if (placement instanceof CoefficientPlacement.StartTaken startTaken) {
-                errors.add(errorWithConflict(coefficient, startTaken.conflictingWith()));
+                errors.add(activationErrors.errorWithConflict(coefficient, startTaken.conflictingWith()));
             } else if (placement instanceof CoefficientPlacement.NotBeforeOwnClose) {
-                errors.add(error(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR, coefficient));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.ACTIVATION_DATE_NOT_BEFORE_SUCCESSOR, coefficient));
             } else if (placement instanceof CoefficientPlacement.Placed placed) {
                 writes.addAll(placed.writes());
                 placed.writes().forEach(write -> timeline.put(write.getId(), write));
@@ -172,7 +169,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
         for (UUID id : distinct(coefficientIds)) {
             SupplyPartitionCoefficient coefficient = foundById.get(id);
             if (coefficient == null) {
-                errors.add(error(CoefficientActivationErrorCode.COEFFICIENT_NOT_IN_AGREEMENT, id, null));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.COEFFICIENT_NOT_IN_AGREEMENT, id, null));
                 continue;
             }
             // Checked BEFORE the no-op comparison, deliberately: idempotency applies only to active
@@ -180,18 +177,18 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
             // a pending one -- closing/reopening a coefficient that was never activated is always an
             // error, even when closedOn == null already matches its (also null) validTo.
             if (coefficient.getValidFrom() == null) {
-                errors.add(error(CoefficientActivationErrorCode.COEFFICIENT_NOT_ACTIVE, coefficient));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.COEFFICIENT_NOT_ACTIVE, coefficient));
                 continue;
             }
             if (Objects.equals(coefficient.getValidTo(), newValidTo)) {
                 continue; // no-op
             }
             if (newValidTo != null && closedOn.isAfter(today)) {
-                errors.add(error(CoefficientActivationErrorCode.DATE_IN_FUTURE, coefficient));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.DATE_IN_FUTURE, coefficient));
                 continue;
             }
             if (newValidTo != null && !newValidTo.isAfter(coefficient.getValidFrom())) {
-                errors.add(error(CoefficientActivationErrorCode.CLOSURE_DATE_NOT_AFTER_ACTIVATION, coefficient));
+                errors.add(activationErrors.error(CoefficientActivationErrorCode.CLOSURE_DATE_NOT_AFTER_ACTIVATION, coefficient));
                 continue;
             }
 
@@ -211,7 +208,7 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                 boolean requestedValueReachesNextRow = nextRow.isPresent()
                         && (newValidTo == null || newValidTo.isAfter(nextRow.get().getValidFrom()));
                 if (currentValidToIsCascadeDerived || requestedValueReachesNextRow) {
-                    errors.add(error(CoefficientActivationErrorCode.COEFFICIENT_HAS_SUCCESSOR, coefficient));
+                    errors.add(activationErrors.error(CoefficientActivationErrorCode.COEFFICIENT_HAS_SUCCESSOR, coefficient));
                     continue;
                 }
             }
@@ -299,24 +296,12 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
 
         for (CoefficientOverlapDetector.Overlap overlap : CoefficientOverlapDetector.findOverlaps(projected)) {
             if (writesById.containsKey(overlap.first().getId())) {
-                errors.add(errorWithConflict(overlap.first(), overlap.second()));
+                errors.add(activationErrors.errorWithConflict(overlap.first(), overlap.second()));
             }
             if (writesById.containsKey(overlap.second().getId())) {
-                errors.add(errorWithConflict(overlap.second(), overlap.first()));
+                errors.add(activationErrors.errorWithConflict(overlap.second(), overlap.first()));
             }
         }
-    }
-
-    private CoefficientActivationError errorWithConflict(SupplyPartitionCoefficient coefficient,
-                                                            SupplyPartitionCoefficient conflictingWith) {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("coefficientId", coefficient.getId().toString());
-        String cups = resolveCups(coefficient.getSupplyId());
-        if (cups != null) {
-            params.put("cups", cups);
-        }
-        params.put("conflictingCoefficientId", conflictingWith.getId().toString());
-        return new CoefficientActivationError(CoefficientActivationErrorCode.PERIOD_OVERLAP, params);
     }
 
     private List<SupplyPartitionCoefficient> applyAndRecompute(List<SupplyPartitionCoefficient> writes) {
@@ -349,23 +334,5 @@ public class CoefficientActivationServiceImpl implements CoefficientActivationSe
                 .withValidTo(validTo)
                 .withCreatedAt(coefficient.getCreatedAt())
                 .build();
-    }
-
-    private CoefficientActivationError error(CoefficientActivationErrorCode code, SupplyPartitionCoefficient coefficient) {
-        return error(code, coefficient.getId(), coefficient.getSupplyId());
-    }
-
-    private CoefficientActivationError error(CoefficientActivationErrorCode code, UUID coefficientId, UUID supplyId) {
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("coefficientId", coefficientId.toString());
-        String cups = supplyId == null ? null : resolveCups(supplyId);
-        if (cups != null) {
-            params.put("cups", cups);
-        }
-        return new CoefficientActivationError(code, params);
-    }
-
-    private String resolveCups(UUID supplyId) {
-        return getSupplyRepository.findById(SupplyId.of(supplyId)).map(Supply::getCode).orElse(null);
     }
 }

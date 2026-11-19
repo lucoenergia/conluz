@@ -29,5 +29,12 @@ public enum CoefficientActivationErrorCode {
      * (SHA-005), or, once every write in this batch is projected onto the supply's full history, the
      * result overlaps a row the checks above did not compare against. Params: coefficientId, cups,
      * conflictingCoefficientId. */
-    PERIOD_OVERLAP
+    PERIOD_OVERLAP,
+    /** set dates: a supply listed among the leaving closures holds a coefficient, pending or not, in the agreement,
+     * so it is not leaving it (SHA-013). Params: supplyId, cups. */
+    LEAVING_SUPPLY_IN_AGREEMENT,
+    /** set dates: a supply listed among the leaving closures has no activated coefficient starting before the
+     * agreement's earliest validFrom, or the agreement has none, so there is no row to close (SHA-013). Params:
+     * supplyId, cups. */
+    NO_COEFFICIENT_TO_CLOSE
 }

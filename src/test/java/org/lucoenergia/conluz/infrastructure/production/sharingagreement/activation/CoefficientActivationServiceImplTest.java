@@ -80,7 +80,7 @@ class CoefficientActivationServiceImplTest {
     private CoefficientActivationServiceImpl service() {
         when(lockPlantRepository.lockForCoefficientDates(PlantId.of(PLANT_ID))).thenReturn(true);
         return new CoefficientActivationServiceImpl(getSharingAgreementService, getCoefficientRepository,
-                saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository, zoneResolver,
+                saveCoefficientRepository, recomputeStatusRepository, new CoefficientActivationErrors(getSupplyRepository), zoneResolver,
                 overlapCheckRepository, lockPlantRepository, CLOCK);
     }
 
@@ -164,7 +164,7 @@ class CoefficientActivationServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         when(lockPlantRepository.lockForCoefficientDates(PlantId.of(PLANT_ID))).thenReturn(false);
         CoefficientActivationServiceImpl serviceUnderTest = new CoefficientActivationServiceImpl(getSharingAgreementService,
-                getCoefficientRepository, saveCoefficientRepository, recomputeStatusRepository, getSupplyRepository,
+                getCoefficientRepository, saveCoefficientRepository, recomputeStatusRepository, new CoefficientActivationErrors(getSupplyRepository),
                 zoneResolver, overlapCheckRepository, lockPlantRepository, CLOCK);
 
         assertThrows(PlantNotFoundException.class,
@@ -875,7 +875,7 @@ class CoefficientActivationServiceImplTest {
 
         when(lockPlantRepository.lockForCoefficientDates(PlantId.of(PLANT_ID))).thenReturn(true);
         CoefficientActivationServiceImpl serviceUnderTest = new CoefficientActivationServiceImpl(
-                agreementService, coefficientRepository, saveRepository, recomputeStatusRepository, getSupplyRepository,
+                agreementService, coefficientRepository, saveRepository, recomputeStatusRepository, new CoefficientActivationErrors(getSupplyRepository),
                 resolver, overlapCheckRepository, lockPlantRepository, CLOCK);
         serviceUnderTest.setValidFrom(PLANT_ID, agreementId, appliedOn, List.of(coefficientId));
 
