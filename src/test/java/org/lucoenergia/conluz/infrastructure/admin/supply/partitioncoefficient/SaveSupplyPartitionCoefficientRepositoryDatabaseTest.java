@@ -1,10 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.sharingagreement.DuplicatePartitionCoefficientSupplyException;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
@@ -14,8 +19,6 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.lucoenergia.conluz.infrastructure.shared.error.PostgresConstraintNameChecker;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,7 +39,7 @@ import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFA
 class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrationTest {
 
     @Autowired
-    private SaveSupplyPartitionCoefficientRepositoryDatabase repository;
+    private SaveSupplyPartitionCoefficientRepository repository;
 
     @Autowired
     private SupplyPartitionCoefficientJpaRepository jpaRepository;
@@ -53,7 +57,7 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     private PlantRepository plantRepository;
 
     @Autowired
-    private SharingAgreementRepository sharingAgreementRepository;
+    private CreateSharingAgreementRepository createSharingAgreementRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -67,16 +71,19 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
         ));
     }
 
-    private SharingAgreementEntity persistPlantAndPublishedAgreement(SupplyEntity supply) {
+    private SharingAgreement persistPlantAndPublishedAgreement(SupplyEntity supply) {
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
-        SharingAgreementEntity agreement = new SharingAgreementEntity();
-        agreement.setId(UUID.randomUUID());
-        agreement.setPlant(plant);
-        agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(SharingAgreementStatus.PUBLISHED);
-        agreement.setCreatedAt(Instant.now());
-        agreement.setCreatedBy(null);
-        return sharingAgreementRepository.save(agreement);
+        return persistPublishedAgreement(plant.getId());
+    }
+
+    private SharingAgreement persistPublishedAgreement(UUID plantId) {
+        return createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plantId)
+                .withName("Test agreement " + UUID.randomUUID())
+                .withStatus(SharingAgreementStatus.PUBLISHED)
+                .withCreatedAt(Instant.now())
+                .build());
     }
 
     private SupplyPartitionCoefficient persist(UUID supplyId, UUID plantId, UUID sharingAgreementId,
@@ -96,17 +103,19 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     @Test
     void uniqueActiveConstraintPreventsSecondOpenRowForSameSupply() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistPublishedAgreement(agreement.getPlantId());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(3.000000), t0, null);
+        persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(3.000000), t0, null);
 
         // Attempting to persist a second open-ended row for the same (plant, supply) must fail.
         // The constraint is deferred (checked at COMMIT, not per-statement), so flush() alone no
         // longer triggers it inside this @Transactional test, which never commits -- force an
         // immediate check instead.
         assertThrows(Exception.class, () -> {
-            persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(4.000000), t1, null);
+            persist(supply.getId(), agreement.getPlantId(), later.getId(), BigDecimal.valueOf(4.000000), t1, null);
             jdbcTemplate.execute("SET CONSTRAINTS no_overlapping_coefficients IMMEDIATE");
             jpaRepository.flush();
         });
@@ -117,16 +126,16 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     @Test
     void crossPlantOverlapIsAllowedForSameSupply() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement1 = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement agreement1 = persistPlantAndPublishedAgreement(supply);
         // A supply is the supply of at most one plant (PLT-002): the second plant gets its own supply,
         // while both plants' coefficients stay on the shared consumer supply
-        SharingAgreementEntity agreement2 = persistPlantAndPublishedAgreement(persistSupply());
+        SharingAgreement agreement2 = persistPlantAndPublishedAgreement(persistSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
 
         // Same supply, same [t0, t1) window, but two different plants -- must be allowed.
-        persist(supply.getId(), agreement1.getPlant().getId(), agreement1.getId(), BigDecimal.valueOf(0.4), t0, t1);
-        persist(supply.getId(), agreement2.getPlant().getId(), agreement2.getId(), BigDecimal.valueOf(0.6), t0, t1);
+        persist(supply.getId(), agreement1.getPlantId(), agreement1.getId(), BigDecimal.valueOf(0.4), t0, t1);
+        persist(supply.getId(), agreement2.getPlantId(), agreement2.getId(), BigDecimal.valueOf(0.6), t0, t1);
 
         assertDoesNotThrow(() -> jpaRepository.flush());
     }
@@ -134,17 +143,19 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     @Test
     void sameSupplyAndPlantBoundedOverlapIsRejectedByExclusionConstraint() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistPublishedAgreement(agreement.getPlantId());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         Instant t2 = Instant.parse("2024-06-01T00:00:00Z");
         Instant t3 = Instant.parse("2025-06-01T00:00:00Z");
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
+        persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
 
         // [t2, t3) overlaps [t0, t1) even though neither row is open-ended. Same deferred-constraint
         // note as uniqueActiveConstraintPreventsSecondOpenRowForSameSupply above.
         assertThrows(Exception.class, () -> {
-            persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.0), t2, t3);
+            persist(supply.getId(), agreement.getPlantId(), later.getId(), BigDecimal.valueOf(2.0), t2, t3);
             jdbcTemplate.execute("SET CONSTRAINTS no_overlapping_coefficients IMMEDIATE");
             jpaRepository.flush();
         });
@@ -156,13 +167,15 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     @Test
     void overlappingCoefficientsAreRejectedAtCommit() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistPublishedAgreement(agreement.getPlantId());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         Instant t2 = Instant.parse("2024-06-01T00:00:00Z");
         Instant t3 = Instant.parse("2025-06-01T00:00:00Z");
-        UUID id1 = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1).getId();
-        UUID id2 = persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.0), t2, t3).getId();
+        UUID id1 = persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1).getId();
+        UUID id2 = persist(supply.getId(), agreement.getPlantId(), later.getId(), BigDecimal.valueOf(2.0), t2, t3).getId();
 
         TestTransaction.flagForCommit();
         DataIntegrityViolationException caught = assertThrows(DataIntegrityViolationException.class, TestTransaction::end);
@@ -177,14 +190,16 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
     @Test
     void adjacentBoundaryPeriodsAreAcceptedByExclusionConstraint() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistPublishedAgreement(agreement.getPlantId());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         Instant t2 = Instant.parse("2026-01-01T00:00:00Z");
 
         // [t0, t1) then [t1, t2) share a boundary instant -- '[)' must treat them as adjacent, not overlapping.
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.0), t1, t2);
+        persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
+        persist(supply.getId(), agreement.getPlantId(), later.getId(), BigDecimal.valueOf(2.0), t1, t2);
 
         assertDoesNotThrow(() -> jpaRepository.flush());
     }
@@ -201,5 +216,66 @@ class SaveSupplyPartitionCoefficientRepositoryDatabaseTest extends BaseIntegrati
 
         assertNotNull(constraintDef);
         assertTrue(constraintDef.contains("valid_from IS NOT NULL"), "unexpected constraint definition: " + constraintDef);
+    }
+
+    @Test
+    @DisplayName("SHA-018 a second coefficient of a supply in the same agreement is refused as the duplicate supply")
+    void aSecondCoefficientOfASupplyInTheSameAgreementIsRefusedAsTheDuplicateSupply() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0),
+                Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
+
+        // A later, non-overlapping period: only the one-coefficient-per-agreement rule refuses it
+        DuplicatePartitionCoefficientSupplyException refused = assertThrows(
+                DuplicatePartitionCoefficientSupplyException.class,
+                () -> persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(2.0),
+                        Instant.parse("2025-01-01T00:00:00Z"), null));
+
+        assertEquals(agreement.getId(), refused.getSharingAgreementId());
+        assertEquals(supply.getId(), refused.getSupplyId());
+    }
+
+    @Test
+    @DisplayName("SHA-018 replacing an agreement's coefficients with a supply listed twice is refused as the duplicate supply")
+    void replacingAnAgreementsCoefficientsWithASupplyListedTwiceIsRefusedAsTheDuplicateSupply() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+
+        // The service refuses this before writing; the adapter is called directly, as a write that bypasses it would
+        DuplicatePartitionCoefficientSupplyException refused = assertThrows(
+                DuplicatePartitionCoefficientSupplyException.class,
+                () -> repository.replaceAllForSharingAgreement(agreement.getId(), List.of(
+                        pending(supply.getId(), agreement, BigDecimal.valueOf(0.4)),
+                        pending(supply.getId(), agreement, BigDecimal.valueOf(0.6)))));
+
+        assertEquals(agreement.getId(), refused.getSharingAgreementId());
+        assertEquals(supply.getId(), refused.getSupplyId());
+    }
+
+    @Test
+    @DisplayName("SHA-018 a supply may hold one coefficient in each of several agreements")
+    void aSupplyMayHoldOneCoefficientInEachOfSeveralAgreements() {
+        SupplyEntity supply = persistSupply();
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement another = persistPublishedAgreement(agreement.getPlantId());
+
+        assertDoesNotThrow(() -> {
+            persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0), null, null);
+            persist(supply.getId(), agreement.getPlantId(), another.getId(), BigDecimal.valueOf(2.0), null, null);
+        });
+    }
+
+    private SupplyPartitionCoefficient pending(UUID supplyId, SharingAgreement agreement, BigDecimal coefficient) {
+        return new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supplyId)
+                .withPlantId(agreement.getPlantId())
+                .withSharingAgreementId(agreement.getId())
+                .withCoefficient(coefficient)
+                .withValidFrom(null)
+                .withValidTo(null)
+                .withCreatedAt(Instant.now())
+                .build();
     }
 }

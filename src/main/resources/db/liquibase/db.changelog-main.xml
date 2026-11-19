@@ -96,4 +96,5 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
     <include file="changelogs/add_cil_to_plants.xml" relativeToChangelogFile="true" />
     <include file="changelogs/create_supply_ownership_transfers_table.xml" relativeToChangelogFile="true" />
     <include file="changelogs/add_distributor_file_sent_on_to_sharing_agreement.xml" relativeToChangelogFile="true" />
+    <include file="changelogs/add_unique_constraint_to_supply_partition_coefficient_sharing_agreement_id_supply_id.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

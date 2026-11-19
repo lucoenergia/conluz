@@ -39,10 +39,6 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
-import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -81,10 +77,6 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
-    @Autowired
-    private PlantRepository plantRepository;
-    @Autowired
-    private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
     @Autowired
@@ -397,7 +389,7 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         Supply plantSupply = persistSupplyInDefaultCommunity();
         Plant plant = createPlantRepository.create(PlantMother.random(plantSupply).build(),
                 SupplyId.of(plantSupply.getId()));
-        SharingAgreementEntity agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement agreement = persistAgreement(plant, SharingAgreementStatus.PUBLISHED);
         String url = "/api/v1/plants/" + plant.getId() + "/partition-coefficients/active";
 
         persistActiveCoefficient(persistSupplyInDefaultCommunity(), plant, agreement, ACTIVATED);
@@ -531,17 +523,16 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
 
     /**
      * {@code periods} consecutive periods of the supply spread round-robin over {@code plants} plants,
-     * each plant with an agreement of its own. The last period of each plant stays open.
+     * each period in an agreement of its own, since a supply holds one coefficient per agreement
+     * (#601). The last period of each plant stays open.
      */
     private void persistPeriods(Supply supply, int plants, int periods) {
         List<Plant> plantList = new ArrayList<>();
-        List<SharingAgreementEntity> agreements = new ArrayList<>();
         for (int i = 0; i < plants; i++) {
             Supply plantSupply = persistSupplyInDefaultCommunity();
             Plant plant = createPlantRepository.create(PlantMother.random(plantSupply).build(),
                     SupplyId.of(plantSupply.getId()));
             plantList.add(plant);
-            agreements.add(persistAgreement(plant, SharingAgreementStatus.PUBLISHED));
         }
         int perPlant = (periods + plants - 1) / plants;
         int created = 0;
@@ -549,28 +540,15 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
             for (int k = 0; k < perPlant && created < periods; k++, created++) {
                 Instant from = ACTIVATED.plus(Duration.ofDays(30L * k));
                 boolean last = k == perPlant - 1 || created == periods - 1;
-                persistCoefficient(supply, plantList.get(i), agreements.get(i), from,
+                persistCoefficient(supply, plantList.get(i),
+                        persistAgreement(plantList.get(i), SharingAgreementStatus.PUBLISHED), from,
                         last ? null : from.plus(Duration.ofDays(30)));
             }
         }
     }
 
-    private void persistActiveCoefficient(Supply supply, Plant plant, SharingAgreementEntity agreement, Instant from) {
+    private void persistActiveCoefficient(Supply supply, Plant plant, SharingAgreement agreement, Instant from) {
         persistCoefficient(supply, plant, agreement, from, null);
-    }
-
-    private void persistCoefficient(Supply supply, Plant plant, SharingAgreementEntity agreement, Instant from,
-                                    Instant to) {
-        saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
-                .withId(UUID.randomUUID())
-                .withSupplyId(supply.getId())
-                .withPlantId(plant.getId())
-                .withSharingAgreementId(agreement.getId())
-                .withCoefficient(BigDecimal.ONE)
-                .withValidFrom(from)
-                .withValidTo(to)
-                .withCreatedAt(Instant.now())
-                .build());
     }
 
     private SharingAgreement createAgreement(Plant plant, Instant createdAt) {
@@ -597,26 +575,19 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
                 .build());
     }
 
-    private SharingAgreementEntity persistAgreement(Plant plant, SharingAgreementStatus status) {
-        SharingAgreementEntity agreement = new SharingAgreementEntity();
-        agreement.setId(UUID.randomUUID());
-        agreement.setPlant(plantRepository.getReferenceById(plant.getId()));
-        agreement.setName("Agreement " + UUID.randomUUID());
-        agreement.setStatus(status);
-        agreement.setCreatedAt(Instant.now());
-        return sharingAgreementRepository.save(agreement);
+    private SharingAgreement persistAgreement(Plant plant, SharingAgreementStatus status) {
+        return createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plant.getId())
+                .withName("Agreement " + UUID.randomUUID())
+                .withStatus(status)
+                .withCreatedAt(Instant.now())
+                .build());
     }
 
     private void persistAgreements(Plant plant, int count) {
         for (int i = 0; i < count; i++) {
-            PlantEntity plantEntity = plantRepository.getReferenceById(plant.getId());
-            SharingAgreementEntity agreement = new SharingAgreementEntity();
-            agreement.setId(UUID.randomUUID());
-            agreement.setPlant(plantEntity);
-            agreement.setName("Agreement " + UUID.randomUUID());
-            agreement.setStatus(SharingAgreementStatus.DRAFT);
-            agreement.setCreatedAt(Instant.now());
-            sharingAgreementRepository.save(agreement);
+            persistAgreement(plant, SharingAgreementStatus.DRAFT);
         }
     }
 }

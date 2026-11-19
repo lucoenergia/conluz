@@ -4,19 +4,20 @@
 | --- | --- |
 | **Prefix** | `SHA` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `updateSharingAgreement`, `activatePartitionCoefficients`, `deactivatePartitionCoefficients`, `closePartitionCoefficients`, `reopenPartitionCoefficients`, `getSharingAgreementPartitionCoefficients`, `setPartitionCoefficientDates`, `previewPartitionCoefficientDates` |
+| **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `updateSharingAgreement`, `activatePartitionCoefficients`, `deactivatePartitionCoefficients`, `closePartitionCoefficients`, `reopenPartitionCoefficients`, `getSharingAgreementPartitionCoefficients`, `setPartitionCoefficientDates`, `previewPartitionCoefficientDates`, `replacePartitionCoefficients`, `uploadSharingAgreementFile` |
 | **Related ADRs** | ADR-0001 (`docs/architecture/adr/0001-deferred-exclusion-constraint-for-coefficient-periods.md`), ADR-0003 §11 (lock order) |
-| **Last reviewed against code** | #591 |
+| **Last reviewed against code** | #601 |
 
 ## Purpose
 
 A sharing agreement is the community's record of how a plant's production is shared among supplies: the partition
 coefficients authored together, the evidence they came from, and the distributor file sent to the distribution
-company. This spec covers only the rules #580, #581, #582, #593, #583 and #591 touched: the day the distributor file
-was sent, the periods during which a coefficient applies, how setting a coefficient's start places it in its supply's
-timeline, how an agreement's first activation closes the coefficients of the supplies that leave the distribution, how
-an agreement's dates are set per supply in one request, with a preview of every effect, and how each coefficient of an
-agreement is reported to end.
+company. This spec covers only the rules #580, #581, #582, #593, #583, #591 and #601 touched: the day the distributor
+file was sent, the periods during which a coefficient applies, how setting a coefficient's start places it in its
+supply's timeline, how an agreement's first activation closes the coefficients of the supplies that leave the
+distribution, how an agreement's dates are set per supply in one request, with a preview of every effect, how each
+coefficient of an agreement is reported to end, that a supply holds one coefficient per agreement, and how two
+replacements of an agreement's coefficients are ordered.
 
 ## Glossary
 
@@ -266,6 +267,33 @@ agreement is reported to end.
   agreement.
 - **Source:** #591
 
+### SHA-018 — A supply holds at most one coefficient per sharing agreement
+
+- **Status:** Active
+- **Rule:** A supply MUST hold at most one coefficient, pending or not, in a sharing agreement, whatever wrote it. The
+  database enforces it with a unique constraint on (sharing_agreement_id, supply_id). A write that would give a supply
+  a second coefficient in an agreement MUST be refused with 400 `SHARING_AGREEMENT_DUPLICATE_SUPPLY` and nothing
+  written, whether the request lists the supply twice or the constraint rejects the row.
+- **Rationale:** A business rule that placement order (#583), observed sharing (#579) and the per-row observed β
+  (#597) depend on. Until #601 only materialisation checked it, so data written another way, such as the migration
+  that attached every pre-existing coefficient to one synthetic agreement per plant, could break it unnoticed. The
+  migration that adds the constraint halts on existing duplicates instead of fixing them, because which row of a supply
+  to keep is the community's decision.
+- **Source:** #601
+
+### SHA-019 — The materialisation of an agreement's coefficients is serialised per agreement
+
+- **Status:** Active
+- **Rule:** Two replacements of the coefficients of the same agreement (`replacePartitionCoefficients`,
+  `uploadSharingAgreementFile`) MUST run one after another: the second waits for the first, then replaces the first
+  one's set, and only if the agreement is still DRAFT; otherwise it is refused as not DRAFT and nothing written.
+  Replacements of different agreements MUST NOT wait for each other.
+- **Rationale:** Each replacement deletes the agreement's set and inserts its own. Run at the same time, the second one's
+  delete does not see the first one's uncommitted rows, so both sets would survive, or, with SHA-018, the second
+  request would fail. The status is checked again once the agreement is locked, because a publish may commit while the
+  replacement waits. Lock order: ADR-0003 §11.
+- **Source:** #601
+
 ## Impossible states
 
 - A distributor file sent date in the future, as of the day it was written — prevented by SHA-001.
@@ -281,6 +309,9 @@ agreement is reported to end.
 - A date request applied in part — prevented by SHA-015.
 - An applied open coefficient with an activated coefficient of the same supply starting after it — prevented by
   SHA-003 and the `no_overlapping_coefficients` exclusion constraint; reported `DERIVED` if found (SHA-016).
+- Two coefficients of one supply in one agreement — prevented by SHA-018 and its unique constraint.
+- Two replacements of one agreement's coefficients interleaving, or a replacement writing into an agreement that is no
+  longer DRAFT — prevented by SHA-019.
 
 ## Accepted exceptions
 

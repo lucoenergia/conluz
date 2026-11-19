@@ -1132,6 +1132,14 @@ ALTER TABLE ONLY public.supply_partition_coefficient
 
 
 --
+-- Name: supply_partition_coefficient supply_partition_coefficient_sharing_agreement_id_supply_id_uq; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supply_partition_coefficient
+    ADD CONSTRAINT supply_partition_coefficient_sharing_agreement_id_supply_id_uq UNIQUE (sharing_agreement_id, supply_id);
+
+
+--
 -- Name: users users_id_pk; Type: CONSTRAINT; Schema: public; Owner: -
 --
 

@@ -15,6 +15,7 @@ import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,7 +66,14 @@ public class SaveSupplyPartitionCoefficientRepositoryDatabase implements SaveSup
         entity.setValidTo(coefficient.getValidTo());
         entity.setCreatedAt(coefficient.getCreatedAt());
 
-        return mapper.map(jpaRepository.save(entity));
+        try {
+            // Flushed here so a second coefficient of the supply in the agreement is rejected by the unique
+            // constraint now, where it can be told apart from other integrity errors (SHA-018).
+            return mapper.map(jpaRepository.saveAndFlush(entity));
+        } catch (DataIntegrityViolationException e) {
+            throw SupplyPartitionCoefficientAgreementSupplyUniqueConstraint.translate(e,
+                    coefficient.getSharingAgreementId(), coefficient.getSupplyId());
+        }
     }
 
     @Override

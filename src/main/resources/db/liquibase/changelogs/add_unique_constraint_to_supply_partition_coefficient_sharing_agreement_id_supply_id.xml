@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <!-- A supply holds at most one coefficient per sharing agreement (#601). Until now only
+         materialisation kept that, by refusing a supply listed twice in one request; nothing stopped
+         data written another way, such as the migration that attached every pre-existing coefficient
+         to one synthetic agreement per plant, and nothing detected it afterwards. Placement order
+         (#583) and observed sharing (#579, #597) depend on the rule, so the constraint makes it a
+         property of the schema. The precondition halts instead of fixing duplicates: which row of a
+         supply to keep is the community's decision, made through the application before upgrading.
+         Both columns are NOT NULL, so every row takes part. -->
+    <changeSet id="add_unique_constraint_to_supply_partition_coefficient_sharing_agreement_id_supply_id" author="Víctor Cañizares">
+        <preConditions onFail="HALT"
+                       onFailMessage="Cannot add supply_partition_coefficient_sharing_agreement_id_supply_id_uq: it already exists, or a supply holds several coefficients in one sharing agreement. List them with: SELECT sharing_agreement_id, supply_id, count(*) FROM supply_partition_coefficient GROUP BY sharing_agreement_id, supply_id HAVING count(*) > 1">
+            <sqlCheck expectedResult="0">
+                SELECT count(*) FROM pg_constraint
+                WHERE conname = 'supply_partition_coefficient_sharing_agreement_id_supply_id_uq'
+            </sqlCheck>
+            <sqlCheck expectedResult="0">
+                SELECT count(*)
+                FROM (SELECT sharing_agreement_id, supply_id FROM supply_partition_coefficient
+                      GROUP BY sharing_agreement_id, supply_id HAVING count(*) > 1) AS duplicates
+            </sqlCheck>
+        </preConditions>
+        <addUniqueConstraint tableName="supply_partition_coefficient"
+                             columnNames="sharing_agreement_id, supply_id"
+                             constraintName="supply_partition_coefficient_sharing_agreement_id_supply_id_uq"/>
+        <rollback>
+            <dropUniqueConstraint tableName="supply_partition_coefficient"
+                                  constraintName="supply_partition_coefficient_sharing_agreement_id_supply_id_uq"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
