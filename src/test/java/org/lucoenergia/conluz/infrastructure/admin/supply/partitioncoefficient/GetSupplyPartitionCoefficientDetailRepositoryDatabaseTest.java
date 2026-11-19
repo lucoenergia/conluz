@@ -11,7 +11,9 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPar
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientDetail;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
@@ -20,8 +22,6 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +56,7 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Autowired
     private PlantRepository plantRepository;
     @Autowired
-    private SharingAgreementRepository sharingAgreementRepository;
+    private CreateSharingAgreementRepository createSharingAgreementRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -67,7 +67,7 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findAllDetailsCarriesSupplyPlantAndAgreementReferences() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         persist(supply, agreement, BigDecimal.valueOf(0.250000), T0, null);
 
         List<SupplyPartitionCoefficientDetail> details = repository.findAllDetailsBySupplyId(supply.getId(), null, true);
@@ -76,8 +76,8 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
         SupplyPartitionCoefficientDetail detail = details.get(0);
         assertEquals(supply.getId(), detail.getSupply().id());
         assertEquals(supply.getCode(), detail.getSupply().code());
-        assertEquals(agreement.getPlant().getId(), detail.getPlant().id());
-        assertEquals(agreement.getPlant().getName(), detail.getPlant().name());
+        assertEquals(agreement.getPlantId(), detail.getPlant().id());
+        assertEquals(plantName(agreement), detail.getPlant().name());
         assertEquals(agreement.getId(), detail.getSharingAgreement().id());
         assertEquals(agreement.getName(), detail.getSharingAgreement().name());
         assertEquals(SharingAgreementStatus.PUBLISHED, detail.getSharingAgreement().status());
@@ -87,14 +87,14 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findAllDetailsFiltersByPlantWhenAPlantIsGiven() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
         // coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
 
-        UUID plantX = inX.getPlant().getId();
+        UUID plantX = inX.getPlantId();
         List<SupplyPartitionCoefficientDetail> filtered = repository.findAllDetailsBySupplyId(supply.getId(), plantX, true);
         List<SupplyPartitionCoefficientDetail> unfiltered = repository.findAllDetailsBySupplyId(supply.getId(), null, true);
 
@@ -106,7 +106,7 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findAllDetailsReturnsEmptyForAPlantTheSupplyHasNoCoefficientIn() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         persist(supply, agreement, BigDecimal.valueOf(1.000000), T0, null);
         PlantEntity unrelated = plantRepository.save(
                 PlantMother.randomPlantEntity().withSupply(persistSupply()).build());
@@ -123,18 +123,18 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findAllDetailsHonoursIncludePendingAcrossBothPlantFilterVariants() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
         // coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity draftInX = persistAgreement(inX.getPlant(), SharingAgreementStatus.DRAFT);
-        SharingAgreementEntity draftInY = persistAgreement(inY.getPlant(), SharingAgreementStatus.DRAFT);
+        SharingAgreement inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
+        SharingAgreement draftInX = persistAgreement(inX.getPlantId(), SharingAgreementStatus.DRAFT);
+        SharingAgreement draftInY = persistAgreement(inY.getPlantId(), SharingAgreementStatus.DRAFT);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
         persist(supply, draftInX, BigDecimal.valueOf(0.450000), null, null);
         persist(supply, draftInY, BigDecimal.valueOf(0.550000), null, null);
 
-        UUID plantX = inX.getPlant().getId();
+        UUID plantX = inX.getPlantId();
 
         assertEquals(4, repository.findAllDetailsBySupplyId(supply.getId(), null, true).size());
         assertEquals(2, repository.findAllDetailsBySupplyId(supply.getId(), plantX, true).size());
@@ -161,9 +161,9 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findAllDetailsWithoutPendingRowsNeverCarriesADraftAgreement() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity published = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity superseded = persistAgreement(published.getPlant(), SharingAgreementStatus.SUPERSEDED);
-        SharingAgreementEntity draft = persistAgreement(published.getPlant(), SharingAgreementStatus.DRAFT);
+        SharingAgreement published = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement superseded = persistAgreement(published.getPlantId(), SharingAgreementStatus.SUPERSEDED);
+        SharingAgreement draft = persistAgreement(published.getPlantId(), SharingAgreementStatus.DRAFT);
         persist(supply, superseded, BigDecimal.valueOf(0.100000), T0, T1);
         persist(supply, published, BigDecimal.valueOf(0.200000), T1, null);
         persist(supply, draft, BigDecimal.valueOf(0.300000), null, null);
@@ -184,11 +184,11 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findActiveDetailsExcludesPendingRowsAndReturnsOnePerPlant() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
         // coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
-        SharingAgreementEntity draftInX = persistAgreement(inX.getPlant(), SharingAgreementStatus.DRAFT);
+        SharingAgreement inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
+        SharingAgreement draftInX = persistAgreement(inX.getPlantId(), SharingAgreementStatus.DRAFT);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
         // Pending: authored but never applied. Its validTo is null too, so only the validFrom
@@ -204,7 +204,7 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findActiveDetailsReturnsEmptyWhenOnlyPendingRowsExist() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity draft = persistPlantAndAgreement(supply, SharingAgreementStatus.DRAFT);
+        SharingAgreement draft = persistPlantAndAgreement(supply, SharingAgreementStatus.DRAFT);
         persist(supply, draft, BigDecimal.valueOf(1.000000), null, null);
 
         assertTrue(repository.findActiveDetailsBySupplyId(supply.getId(), null).isEmpty());
@@ -213,9 +213,11 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findDetailsAtTimestampTreatsValidFromAsInclusiveAndValidToAsExclusive() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement agreement = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         persist(supply, agreement, BigDecimal.valueOf(1.000000), T0, T1);
-        persist(supply, agreement, BigDecimal.valueOf(2.000000), T1, null);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistAgreement(agreement.getPlantId(), SharingAgreementStatus.PUBLISHED);
+        persist(supply, later, BigDecimal.valueOf(2.000000), T1, null);
 
         // At the shared boundary the later period applies: validTo is exclusive, validFrom inclusive.
         List<SupplyPartitionCoefficientDetail> atBoundary =
@@ -232,28 +234,28 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void findDetailsAtTimestampReturnsOneItemPerPlantAndHonoursThePlantFilter() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inX = persistPlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
         // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
         // coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         persist(supply, inX, BigDecimal.valueOf(0.400000), T0, null);
         persist(supply, inY, BigDecimal.valueOf(0.600000), T0, null);
         Instant inside = Instant.parse("2024-06-15T12:00:00Z");
 
         assertEquals(2, repository.findDetailsBySupplyIdAtTimestamp(supply.getId(), null, inside).size());
-        assertEquals(1, repository.findDetailsBySupplyIdAtTimestamp(supply.getId(), inX.getPlant().getId(), inside).size());
+        assertEquals(1, repository.findDetailsBySupplyIdAtTimestamp(supply.getId(), inX.getPlantId(), inside).size());
     }
 
     @Test
     void findActiveDetailsByPlantIdAndSupplyIdInResolvesABatchInOneCall() {
         SupplyEntity supplyA = persistSupply();
         SupplyEntity supplyB = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndAgreement(supplyA, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement agreement = persistPlantAndAgreement(supplyA, SharingAgreementStatus.PUBLISHED);
         persist(supplyA, agreement, BigDecimal.valueOf(0.300000), T0, null);
         persist(supplyB, agreement, BigDecimal.valueOf(0.700000), T0, null);
 
         List<SupplyPartitionCoefficientDetail> details = repository.findActiveDetailsByPlantIdAndSupplyIdIn(
-                agreement.getPlant().getId(), List.of(supplyA.getId(), supplyB.getId()));
+                agreement.getPlantId(), List.of(supplyA.getId(), supplyB.getId()));
 
         assertEquals(2, details.size());
     }
@@ -266,16 +268,18 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
     @Test
     void readingTheHistoryCostsTheSameNumberOfQueriesRegardlessOfRowCount() {
         SupplyEntity oneRowSupply = persistSupply();
-        SharingAgreementEntity oneRowAgreement = persistPlantAndAgreement(oneRowSupply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement oneRowAgreement = persistPlantAndAgreement(oneRowSupply, SharingAgreementStatus.PUBLISHED);
         persist(oneRowSupply, oneRowAgreement, BigDecimal.valueOf(1.000000), T0, null);
 
         SupplyEntity manyRowSupply = persistSupply();
-        SharingAgreementEntity inX = persistPlantAndAgreement(manyRowSupply, SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inX = persistPlantAndAgreement(manyRowSupply, SharingAgreementStatus.PUBLISHED);
         // Plant Y gets its own supply (a supply is the supply of at most one plant, PLT-002); its
         // coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
+        SharingAgreement inY = persistPlantAndAgreement(persistSupply(), SharingAgreementStatus.PUBLISHED);
         persist(manyRowSupply, inX, BigDecimal.valueOf(0.100000), T0, T1);
-        persist(manyRowSupply, inX, BigDecimal.valueOf(0.200000), T1, null);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement laterInX = persistAgreement(inX.getPlantId(), SharingAgreementStatus.PUBLISHED);
+        persist(manyRowSupply, laterInX, BigDecimal.valueOf(0.200000), T1, null);
         persist(manyRowSupply, inY, BigDecimal.valueOf(0.700000), T0, null);
 
         long oneRowCost = countStatements(() -> {
@@ -330,28 +334,31 @@ class GetSupplyPartitionCoefficientDetailRepositoryDatabaseTest extends BaseInte
                 user, communityJpaRepository.getReferenceById(DEFAULT_COMMUNITY_ID)));
     }
 
-    private SharingAgreementEntity persistPlantAndAgreement(SupplyEntity supply, SharingAgreementStatus status) {
+    private SharingAgreement persistPlantAndAgreement(SupplyEntity supply, SharingAgreementStatus status) {
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
-        return persistAgreement(plant, status);
+        return persistAgreement(plant.getId(), status);
     }
 
-    private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status) {
-        SharingAgreementEntity agreement = new SharingAgreementEntity();
-        agreement.setId(UUID.randomUUID());
-        agreement.setPlant(plant);
-        agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(status);
-        agreement.setCreatedAt(Instant.now());
-        agreement.setCreatedBy(null);
-        return sharingAgreementRepository.save(agreement);
+    private SharingAgreement persistAgreement(UUID plantId, SharingAgreementStatus status) {
+        return createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plantId)
+                .withName("Test agreement " + UUID.randomUUID())
+                .withStatus(status)
+                .withCreatedAt(Instant.now())
+                .build());
     }
 
-    private void persist(SupplyEntity supply, SharingAgreementEntity agreement, BigDecimal coefficient,
+    private String plantName(SharingAgreement agreement) {
+        return plantRepository.findById(agreement.getPlantId()).orElseThrow().getName();
+    }
+
+    private void persist(SupplyEntity supply, SharingAgreement agreement, BigDecimal coefficient,
                          Instant validFrom, Instant validTo) {
         saveRepository.save(new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
                 .withSupplyId(supply.getId())
-                .withPlantId(agreement.getPlant().getId())
+                .withPlantId(agreement.getPlantId())
                 .withSharingAgreementId(agreement.getId())
                 .withCoefficient(coefficient)
                 .withValidFrom(validFrom)

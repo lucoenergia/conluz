@@ -15,7 +15,9 @@ import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.shared.UserPersonalId;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityEntity;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
@@ -23,8 +25,6 @@ import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -59,7 +59,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     @Autowired
     private PlantRepository plantRepository;
     @Autowired
-    private SharingAgreementRepository sharingAgreementRepository;
+    private CreateSharingAgreementRepository createSharingAgreementRepository;
     @Autowired
     private CommunityJpaRepository communityJpaRepository;
     @Autowired
@@ -69,11 +69,13 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getHistoryReturnsAllPeriodsOrdered() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = ensurePlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistAgreement(agreement, SharingAgreementStatus.PUBLISHED);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(1.0), t0, t1);
-        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(2.0), t1, null);
+        persistCoefficient(supply.getId(), later, BigDecimal.valueOf(2.0), t1, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -81,8 +83,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
-                .andExpect(jsonPath("$[0].plant.name").value(agreement.getPlant().getName()))
+                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlantId().toString()))
+                .andExpect(jsonPath("$[0].plant.name").value(plantName(agreement)))
                 .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$[0].supply.code").value(supply.getCode()))
                 .andExpect(jsonPath("$[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
@@ -91,7 +93,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].sharingAgreement.name").value(agreement.getName()))
                 .andExpect(jsonPath("$[0].sharingAgreement.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$[0].validFrom").value("2024-01-01T00:00:00Z"))
-                .andExpect(jsonPath("$[1].plant.id").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[1].plant.id").value(agreement.getPlantId().toString()))
                 .andExpect(jsonPath("$[1].validFrom").value("2025-01-01T00:00:00Z"))
                 // No flat entity reference survives anywhere in the payload.
                 .andExpect(jsonPath("$[0].supplyId").doesNotExist())
@@ -104,10 +106,10 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getHistoryDisambiguatesRowsAcrossTwoPlantsForSameSupply() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity agreement1 = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement agreement1 = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity agreement2 = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement agreement2 = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         // Same [t0, open) window on both plants: without plantId these two rows would be
         // indistinguishable overlapping intervals for the same supply.
@@ -121,18 +123,20 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
-                        agreement1.getPlant().getId().toString(), agreement2.getPlant().getId().toString())));
+                        agreement1.getPlantId().toString(), agreement2.getPlantId().toString())));
     }
 
     @Test
     void getActiveReturnsOneOpenPeriodPerPlant() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = ensurePlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistAgreement(agreement, SharingAgreementStatus.PUBLISHED);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(1.0), t0, t1);
-        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(2.0), t1, null);
+        persistCoefficient(supply.getId(), later, BigDecimal.valueOf(2.0), t1, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/active")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -141,7 +145,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].validTo").doesNotExist())
-                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
+                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlantId().toString()))
                 .andExpect(jsonPath("$[0].supply.id").value(supply.getId().toString()))
                 .andExpect(jsonPath("$[0].sharingAgreement.status").value("PUBLISHED"));
     }
@@ -150,11 +154,11 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getActiveReturnsOneItemPerPlantAndExcludesPendingPeriods() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement inX = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
-        SharingAgreementEntity draftInX = persistAgreement(inX, SharingAgreementStatus.DRAFT);
+        SharingAgreement inY = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement draftInX = persistAgreement(inX, SharingAgreementStatus.DRAFT);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -168,7 +172,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
-                        inX.getPlant().getId().toString(), inY.getPlant().getId().toString())))
+                        inX.getPlantId().toString(), inY.getPlantId().toString())))
                 .andExpect(jsonPath("$[*].validFrom").value(Matchers.everyItem(Matchers.notNullValue())));
     }
 
@@ -176,7 +180,7 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getActiveReturnsEmptyListWhenOnlyPendingPeriodsExist() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity draft = ensurePlantAndAgreement(supply, SharingAgreementStatus.DRAFT);
+        SharingAgreement draft = ensurePlantAndAgreement(supply, SharingAgreementStatus.DRAFT);
         persistCoefficient(supply.getId(), draft, BigDecimal.valueOf(1.0), null, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/active")
@@ -191,11 +195,13 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getAtTimestampReturnsCoefficientActiveAtThatInstant() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = ensurePlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistAgreement(agreement, SharingAgreementStatus.PUBLISHED);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(3.076300), t0, t1);
-        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(4.000000), t1, null);
+        persistCoefficient(supply.getId(), later, BigDecimal.valueOf(4.000000), t1, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
@@ -209,8 +215,8 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$[0].supply.code").value(supply.getCode()))
                 .andExpect(jsonPath("$[0].community.id").value(DEFAULT_COMMUNITY_ID.toString()))
                 .andExpect(jsonPath("$[0].community.name").value(defaultCommunityName()))
-                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlant().getId().toString()))
-                .andExpect(jsonPath("$[0].plant.name").value(agreement.getPlant().getName()))
+                .andExpect(jsonPath("$[0].plant.id").value(agreement.getPlantId().toString()))
+                .andExpect(jsonPath("$[0].plant.name").value(plantName(agreement)))
                 .andExpect(jsonPath("$[0].timestamp").value("2024-06-15T12:00:00Z"))
                 .andExpect(jsonPath("$[0].supplyId").doesNotExist())
                 .andExpect(jsonPath("$[0].plantId").doesNotExist())
@@ -238,10 +244,10 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getAtTimestampReturnsOneItemPerPlantCoveringTheInstant() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement inX = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -254,18 +260,20 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].plant.id").value(Matchers.containsInAnyOrder(
-                        inX.getPlant().getId().toString(), inY.getPlant().getId().toString())));
+                        inX.getPlantId().toString(), inY.getPlantId().toString())));
     }
 
     @Test
     void getAtTimestampTreatsValidFromAsInclusiveAndValidToAsExclusive() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = ensurePlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistAgreement(agreement, SharingAgreementStatus.PUBLISHED);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant boundary = Instant.parse("2025-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(1.0), t0, boundary);
-        persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(2.0), boundary, null);
+        persistCoefficient(supply.getId(), later, BigDecimal.valueOf(2.0), boundary, null);
 
         // Exactly at the shared instant the later period applies: validTo is exclusive, validFrom
         // inclusive, so the two consecutive periods never both answer.
@@ -292,22 +300,22 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getHistoryRestrictsToOnePlantWhenPlantIdIsGiven() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement inX = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .param("plantId", inX.getPlant().getId().toString())
+                        .param("plantId", inX.getPlantId().toString())
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].plant.id").value(inX.getPlant().getId().toString()));
+                .andExpect(jsonPath("$[0].plant.id").value(inX.getPlantId().toString()));
 
         // Without the filter both plants' timelines come back.
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
@@ -321,15 +329,15 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getHistoryReturnsEmptyListForAPlantTheSupplyHasNoCoefficientIn() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity agreement = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = ensurePlantAndPublishedAgreement(supply);
         persistCoefficient(supply.getId(), agreement, BigDecimal.valueOf(1.0),
                 Instant.parse("2024-01-01T00:00:00Z"), null);
         // A plant of a different supply entirely -- unrelated to this supply's timeline.
-        SharingAgreementEntity unrelated = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement unrelated = ensurePlantAndPublishedAgreement(createTestSupply());
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .param("plantId", unrelated.getPlant().getId().toString())
+                        .param("plantId", unrelated.getPlantId().toString())
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -340,32 +348,32 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
     void getActiveRestrictsToOnePlantWhenPlantIdIsGiven() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement inX = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
 
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/active")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
-                        .param("plantId", inY.getPlant().getId().toString())
+                        .param("plantId", inY.getPlantId().toString())
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].plant.id").value(inY.getPlant().getId().toString()));
+                .andExpect(jsonPath("$[0].plant.id").value(inY.getPlantId().toString()));
     }
 
     @Test
     void getAtTimestampRestrictsToOnePlantWhenPlantIdIsGiven() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createTestSupply();
-        SharingAgreementEntity inX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement inX = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity inY = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement inY = ensurePlantAndPublishedAgreement(createTestSupply());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), inX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), inY, BigDecimal.valueOf(0.6), t0, null);
@@ -373,12 +381,12 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         mockMvc.perform(get("/api/v1/supplies/" + supply.getId() + "/partition-coefficients/at")
                         .header(HttpHeaders.AUTHORIZATION, authHeader)
                         .param("timestamp", "2024-06-15T12:00:00Z")
-                        .param("plantId", inX.getPlant().getId().toString())
+                        .param("plantId", inX.getPlantId().toString())
                         .accept(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].plant.id").value(inX.getPlant().getId().toString()));
+                .andExpect(jsonPath("$[0].plant.id").value(inX.getPlantId().toString()));
     }
 
     // --- Authorization (see docs/security/authorization-policy.md) ---
@@ -628,18 +636,18 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
      * DRAFT agreement, and revert-to-draft refuses once any coefficient has a validFrom.
      */
     private TwoPlantFixture twoPlantsWithActivatedAndPendingCoefficients(Supply supply) {
-        SharingAgreementEntity publishedInX = ensurePlantAndPublishedAgreement(supply);
+        SharingAgreement publishedInX = ensurePlantAndPublishedAgreement(supply);
         // The second plant gets its own supply (a supply is the supply of at most one plant, PLT-002);
         // its coefficients stay on the shared consumer supply
-        SharingAgreementEntity publishedInY = ensurePlantAndPublishedAgreement(createTestSupply());
-        SharingAgreementEntity draftInX = persistAgreement(publishedInX, SharingAgreementStatus.DRAFT);
-        SharingAgreementEntity draftInY = persistAgreement(publishedInY, SharingAgreementStatus.DRAFT);
+        SharingAgreement publishedInY = ensurePlantAndPublishedAgreement(createTestSupply());
+        SharingAgreement draftInX = persistAgreement(publishedInX, SharingAgreementStatus.DRAFT);
+        SharingAgreement draftInY = persistAgreement(publishedInY, SharingAgreementStatus.DRAFT);
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         persistCoefficient(supply.getId(), publishedInX, BigDecimal.valueOf(0.4), t0, null);
         persistCoefficient(supply.getId(), publishedInY, BigDecimal.valueOf(0.6), t0, null);
         persistCoefficient(supply.getId(), draftInX, BigDecimal.valueOf(0.45), null, null);
         persistCoefficient(supply.getId(), draftInY, BigDecimal.valueOf(0.55), null, null);
-        return new TwoPlantFixture(publishedInX.getPlant().getId(), publishedInY.getPlant().getId());
+        return new TwoPlantFixture(publishedInX.getPlantId(), publishedInY.getPlantId());
     }
 
     private record TwoPlantFixture(UUID plantX, UUID plantY) {
@@ -662,41 +670,44 @@ class GetPartitionCoefficientControllerTest extends BaseControllerTest {
         return createSupplyService.create(supply, UserPersonalId.of(user.getPersonalId()), DEFAULT_COMMUNITY_ID);
     }
 
-    private SharingAgreementEntity ensurePlantAndPublishedAgreement(Supply supply) {
+    private SharingAgreement ensurePlantAndPublishedAgreement(Supply supply) {
         return ensurePlantAndAgreement(supply, SharingAgreementStatus.PUBLISHED);
     }
 
-    private SharingAgreementEntity ensurePlantAndAgreement(Supply supply, SharingAgreementStatus status) {
+    private SharingAgreement ensurePlantAndAgreement(Supply supply, SharingAgreementStatus status) {
         SupplyEntity supplyEntity = supplyJpaRepository.getReferenceById(supply.getId());
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supplyEntity).build());
-        return persistAgreement(plant, status);
+        return persistAgreement(plant.getId(), status);
     }
 
     /**
      * A second agreement on the plant of an existing one -- for fixtures that need a draft and a
      * published agreement over the same plant.
      */
-    private SharingAgreementEntity persistAgreement(SharingAgreementEntity onPlantOf, SharingAgreementStatus status) {
-        return persistAgreement(onPlantOf.getPlant(), status);
+    private SharingAgreement persistAgreement(SharingAgreement onPlantOf, SharingAgreementStatus status) {
+        return persistAgreement(onPlantOf.getPlantId(), status);
     }
 
-    private SharingAgreementEntity persistAgreement(PlantEntity plant, SharingAgreementStatus status) {
-        SharingAgreementEntity agreement = new SharingAgreementEntity();
-        agreement.setId(UUID.randomUUID());
-        agreement.setPlant(plant);
-        agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(status);
-        agreement.setCreatedAt(Instant.now());
-        agreement.setCreatedBy(null);
-        return sharingAgreementRepository.save(agreement);
+    private SharingAgreement persistAgreement(UUID plantId, SharingAgreementStatus status) {
+        return createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plantId)
+                .withName("Test agreement " + UUID.randomUUID())
+                .withStatus(status)
+                .withCreatedAt(Instant.now())
+                .build());
     }
 
-    private void persistCoefficient(UUID supplyId, SharingAgreementEntity agreement,
+    private String plantName(SharingAgreement agreement) {
+        return plantRepository.findById(agreement.getPlantId()).orElseThrow().getName();
+    }
+
+    private void persistCoefficient(UUID supplyId, SharingAgreement agreement,
                                     BigDecimal coefficient, Instant validFrom, Instant validTo) {
         partitionCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
                 .withSupplyId(supplyId)
-                .withPlantId(agreement.getPlant().getId())
+                .withPlantId(agreement.getPlantId())
                 .withSharingAgreementId(agreement.getId())
                 .withCoefficient(coefficient)
                 .withValidFrom(validFrom)

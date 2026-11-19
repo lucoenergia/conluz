@@ -1,12 +1,15 @@
 package org.lucoenergia.conluz.infrastructure.admin.supply.partitioncoefficient;
 
 import org.junit.jupiter.api.Test;
+import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientOverlapCheckRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficientOverlapException;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.admin.community.CommunityJpaRepository;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntity;
 import org.lucoenergia.conluz.infrastructure.admin.supply.SupplyEntityMother;
@@ -15,8 +18,6 @@ import org.lucoenergia.conluz.infrastructure.admin.user.UserEntity;
 import org.lucoenergia.conluz.infrastructure.admin.user.UserRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
-import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.shared.BaseIntegrationTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +33,7 @@ import static org.lucoenergia.conluz.domain.admin.community.CommunityMother.DEFA
 class CoefficientOverlapCheckRepositoryDatabaseTest extends BaseIntegrationTest {
 
     @Autowired
-    private CoefficientOverlapCheckRepositoryDatabase repository;
+    private CoefficientOverlapCheckRepository repository;
 
     @Autowired
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
@@ -50,7 +51,7 @@ class CoefficientOverlapCheckRepositoryDatabaseTest extends BaseIntegrationTest 
     private PlantRepository plantRepository;
 
     @Autowired
-    private SharingAgreementRepository sharingAgreementRepository;
+    private CreateSharingAgreementRepository createSharingAgreementRepository;
 
     private SupplyEntity persistSupply() {
         UserEntity user = UserMother.randomUserEntity();
@@ -61,16 +62,19 @@ class CoefficientOverlapCheckRepositoryDatabaseTest extends BaseIntegrationTest 
         ));
     }
 
-    private SharingAgreementEntity persistPlantAndPublishedAgreement(SupplyEntity supply) {
+    private SharingAgreement persistPlantAndPublishedAgreement(SupplyEntity supply) {
         PlantEntity plant = plantRepository.save(PlantMother.randomPlantEntity().withSupply(supply).build());
-        SharingAgreementEntity agreement = new SharingAgreementEntity();
-        agreement.setId(UUID.randomUUID());
-        agreement.setPlant(plant);
-        agreement.setName("Test agreement " + UUID.randomUUID());
-        agreement.setStatus(SharingAgreementStatus.PUBLISHED);
-        agreement.setCreatedAt(Instant.now());
-        agreement.setCreatedBy(null);
-        return sharingAgreementRepository.save(agreement);
+        return persistPublishedAgreement(plant.getId());
+    }
+
+    private SharingAgreement persistPublishedAgreement(UUID plantId) {
+        return createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plantId)
+                .withName("Test agreement " + UUID.randomUUID())
+                .withStatus(SharingAgreementStatus.PUBLISHED)
+                .withCreatedAt(Instant.now())
+                .build());
     }
 
     private void persist(UUID supplyId, UUID plantId, UUID sharingAgreementId,
@@ -90,15 +94,17 @@ class CoefficientOverlapCheckRepositoryDatabaseTest extends BaseIntegrationTest 
     @Test
     void flushAndCheckNoOverlapThrowsWhenTwoDirectlyPersistedRowsOverlap() {
         SupplyEntity supply = persistSupply();
-        SharingAgreementEntity agreement = persistPlantAndPublishedAgreement(supply);
+        SharingAgreement agreement = persistPlantAndPublishedAgreement(supply);
+        // A supply holds one coefficient per agreement (#601): its next period belongs to another one
+        SharingAgreement later = persistPublishedAgreement(agreement.getPlantId());
         Instant t0 = Instant.parse("2024-01-01T00:00:00Z");
         Instant t1 = Instant.parse("2025-01-01T00:00:00Z");
         Instant t2 = Instant.parse("2024-06-01T00:00:00Z");
         Instant t3 = Instant.parse("2025-06-01T00:00:00Z");
 
         // Bypasses all service-level validation entirely -- these two rows overlap by construction.
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
-        persist(supply.getId(), agreement.getPlant().getId(), agreement.getId(), BigDecimal.valueOf(2.0), t2, t3);
+        persist(supply.getId(), agreement.getPlantId(), agreement.getId(), BigDecimal.valueOf(1.0), t0, t1);
+        persist(supply.getId(), agreement.getPlantId(), later.getId(), BigDecimal.valueOf(2.0), t2, t3);
 
         assertThrows(SupplyPartitionCoefficientOverlapException.class, repository::flushAndCheckNoOverlap);
     }
