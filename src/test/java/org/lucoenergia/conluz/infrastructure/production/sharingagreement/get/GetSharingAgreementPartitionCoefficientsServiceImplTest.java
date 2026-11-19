@@ -1,6 +1,5 @@
 package org.lucoenergia.conluz.infrastructure.production.sharingagreement.get;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
@@ -16,13 +15,15 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingA
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.SharingAgreementCoefficient;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementPlantMismatchException;
+import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,9 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,13 +45,17 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
     private GetSupplyPartitionCoefficientRepository getCoefficientRepository;
     @Mock
     private GetSupplyRepository getSupplyRepository;
+    @Mock
+    private ZoneResolver zoneResolver;
 
     private static final UUID PLANT_ID = UUID.randomUUID();
     private static final Instant AGREEMENT_CREATED_AT = Instant.parse("2025-01-01T00:00:00Z");
+    private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
 
     private GetSharingAgreementPartitionCoefficientsServiceImpl service() {
         return new GetSharingAgreementPartitionCoefficientsServiceImpl(
-                getSharingAgreementService, getSharingAgreementRepository, getCoefficientRepository, getSupplyRepository);
+                getSharingAgreementService, getSharingAgreementRepository, getCoefficientRepository, getSupplyRepository,
+                zoneResolver);
     }
 
     private SharingAgreement agreement(UUID id, UUID plantId) {
@@ -94,7 +97,8 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
     void returnsEmptyList_whenAgreementHasNoCoefficients() {
         UUID agreementId = UUID.randomUUID();
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, PLANT_ID));
-        when(getCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(List.of());
+        when(getCoefficientRepository.findAllByPlantId(PLANT_ID)).thenReturn(List.of(
+                coefficient(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), null, null)));
 
         List<SharingAgreementCoefficient> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
 
@@ -102,137 +106,39 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
     }
 
     @Test
-    void closedState_whenValidToIsAuthoredNotCascadeDerived() {
+    void endStatesAreDerivedFromThePlantsAgreementsAndCoefficients() {
         UUID agreementId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validTo = Instant.parse("2025-06-01T00:00:00Z");
+        Instant handoff = Instant.parse("2025-06-01T00:00:00Z");
         SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
-                Instant.parse("2025-01-01T00:00:00Z"), validTo);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, row.getId(), row.getValidFrom()))
-                .thenReturn(Optional.empty());
+                Instant.parse("2025-01-01T00:00:00Z"), handoff);
+        SharingAgreement next = agreement(UUID.randomUUID(), PLANT_ID);
+        SupplyPartitionCoefficient successor = coefficient(UUID.randomUUID(), next.getId(), supplyId, handoff, null);
+        stubAgreementAndCoefficients(agreementId, supplyId, List.of(row, successor), List.of(next));
 
         SharingAgreementCoefficient view = onlyView(agreementId);
 
-        assertEquals(CoefficientEndState.CLOSED, view.getEndState());
-        assertEquals(validTo, view.getEndDate());
+        assertEquals(CoefficientEndState.DERIVED, view.getEndState());
+        assertEquals(handoff, view.getEndDate());
         assertEquals(CoefficientApplicationState.APPLIED, view.getApplicationState());
     }
 
     @Test
-    void derivedState_whenValidToIsCascadeDerived() {
+    void returnsOnlyTheRowsOfTheAgreementRead() {
         UUID agreementId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
-        Instant validTo = Instant.parse("2025-06-01T00:00:00Z");
-        SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
-                Instant.parse("2025-01-01T00:00:00Z"), validTo);
-        SupplyPartitionCoefficient successor = coefficient(UUID.randomUUID(), UUID.randomUUID(), supplyId, validTo, null);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getCoefficientRepository.findNextActivatedAfter(PLANT_ID, supplyId, row.getId(), row.getValidFrom()))
-                .thenReturn(Optional.of(successor));
-
-        SharingAgreementCoefficient view = onlyView(agreementId);
-
-        assertEquals(CoefficientEndState.DERIVED, view.getEndState());
-        assertEquals(validTo, view.getEndDate());
-    }
-
-    @Test
-    void derivedState_whenValidToIsNullAndNextCoefficientIsActivated() {
-        UUID agreementId = UUID.randomUUID();
-        UUID supplyId = UUID.randomUUID();
-        Instant successorValidFrom = Instant.parse("2025-06-01T00:00:00Z");
         SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
                 Instant.parse("2025-01-01T00:00:00Z"), null);
-        SupplyPartitionCoefficient successor = coefficient(UUID.randomUUID(), UUID.randomUUID(), supplyId,
-                successorValidFrom, null);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
-                .thenReturn(true);
-        when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
-                PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.of(successor));
+        SharingAgreement historical = agreement(UUID.randomUUID(), PLANT_ID);
+        SupplyPartitionCoefficient historicalRow = coefficient(UUID.randomUUID(), historical.getId(), supplyId,
+                Instant.parse("2023-01-01T00:00:00Z"), Instant.parse("2025-01-01T00:00:00Z"));
+        stubAgreementAndCoefficients(agreementId, supplyId, List.of(historicalRow, row), List.of(historical));
 
         SharingAgreementCoefficient view = onlyView(agreementId);
 
-        assertEquals(CoefficientEndState.DERIVED, view.getEndState());
-        assertEquals(successorValidFrom, view.getEndDate());
-    }
-
-    @Test
-    @DisplayName("SHA-008 an applied open row stays OPEN when the next later agreement's row was placed before it")
-    void openState_whenValidToIsNullAndNextCoefficientWasPlacedBeforeIt() {
-        UUID agreementId = UUID.randomUUID();
-        UUID supplyId = UUID.randomUUID();
-        SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
-                Instant.parse("2024-05-23T00:00:00Z"), null);
-        SupplyPartitionCoefficient placedBefore = coefficient(UUID.randomUUID(), UUID.randomUUID(), supplyId,
-                Instant.parse("2023-04-12T00:00:00Z"), Instant.parse("2024-05-23T00:00:00Z"));
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
-                .thenReturn(true);
-        when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
-                PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.of(placedBefore));
-
-        SharingAgreementCoefficient view = onlyView(agreementId);
-
+        assertEquals(row.getId(), view.getCoefficientId());
         assertEquals(CoefficientEndState.OPEN, view.getEndState());
         assertNull(view.getEndDate());
-    }
-
-    @Test
-    void pendingSuccessionState_whenValidToIsNullAndNextCoefficientIsPending() {
-        UUID agreementId = UUID.randomUUID();
-        UUID supplyId = UUID.randomUUID();
-        SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
-                Instant.parse("2025-01-01T00:00:00Z"), null);
-        SupplyPartitionCoefficient pendingSuccessor = coefficient(UUID.randomUUID(), UUID.randomUUID(), supplyId, null, null);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
-                .thenReturn(true);
-        when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
-                PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.of(pendingSuccessor));
-
-        SharingAgreementCoefficient view = onlyView(agreementId);
-
-        assertEquals(CoefficientEndState.PENDING_SUCCESSION, view.getEndState());
-        assertNull(view.getEndDate());
-    }
-
-    @Test
-    void openOrphanState_whenValidToIsNullNoNextCoefficientButLaterAgreementExists() {
-        UUID agreementId = UUID.randomUUID();
-        UUID supplyId = UUID.randomUUID();
-        SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
-                Instant.parse("2025-01-01T00:00:00Z"), null);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
-                .thenReturn(true);
-        when(getCoefficientRepository.findNextCoefficientForSupplyInLaterAgreement(
-                PLANT_ID, supplyId, agreementId, AGREEMENT_CREATED_AT)).thenReturn(Optional.empty());
-
-        SharingAgreementCoefficient view = onlyView(agreementId);
-
-        assertEquals(CoefficientEndState.OPEN_ORPHAN, view.getEndState());
-        assertNull(view.getEndDate());
-    }
-
-    @Test
-    void openState_whenValidToIsNullAndNoLaterAgreementExists_skipsPerSupplyLookup() {
-        UUID agreementId = UUID.randomUUID();
-        UUID supplyId = UUID.randomUUID();
-        SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId,
-                Instant.parse("2025-01-01T00:00:00Z"), null);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
-                .thenReturn(false);
-
-        SharingAgreementCoefficient view = onlyView(agreementId);
-
-        assertEquals(CoefficientEndState.OPEN, view.getEndState());
-        assertNull(view.getEndDate());
-        // The short-circuit means the per-supply lookup must never even be attempted.
-        org.mockito.Mockito.verify(getCoefficientRepository, org.mockito.Mockito.never())
-                .findNextCoefficientForSupplyInLaterAgreement(any(), any(), any(), any());
     }
 
     @Test
@@ -240,9 +146,7 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         UUID agreementId = UUID.randomUUID();
         UUID supplyId = UUID.randomUUID();
         SupplyPartitionCoefficient row = coefficient(UUID.randomUUID(), agreementId, supplyId, null, null);
-        stubAgreementAndCoefficients(agreementId, supplyId, row);
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(PLANT_ID, agreementId, AGREEMENT_CREATED_AT))
-                .thenReturn(false);
+        stubAgreementAndCoefficients(agreementId, supplyId, List.of(row), List.of());
 
         SharingAgreementCoefficient view = onlyView(agreementId);
 
@@ -258,12 +162,12 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         SupplyPartitionCoefficient rowB = coefficient(UUID.randomUUID(), agreementId, supplyIdB, null, null);
         SupplyPartitionCoefficient rowA = coefficient(UUID.randomUUID(), agreementId, supplyIdA, null, null);
         when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, PLANT_ID));
-        when(getCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(List.of(rowB, rowA));
+        when(getCoefficientRepository.findAllByPlantId(PLANT_ID)).thenReturn(List.of(rowB, rowA));
         when(getSupplyRepository.findAllByIds(anySet())).thenReturn(List.of(
                 supply(supplyIdB, "ES0000000000000000ZZ", "Supply B"),
                 supply(supplyIdA, "ES0000000000000000AA", "Supply A")));
-        when(getSharingAgreementRepository.existsLaterNonDraftAgreement(eq(PLANT_ID), eq(agreementId), any()))
-                .thenReturn(false);
+        when(getSharingAgreementRepository.findByPlantId(PLANT_ID, null)).thenReturn(List.of());
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(ZONE);
 
         List<SharingAgreementCoefficient> result = service().findBySharingAgreementId(PLANT_ID, agreementId);
 
@@ -272,9 +176,16 @@ class GetSharingAgreementPartitionCoefficientsServiceImplTest {
         assertEquals("ES0000000000000000ZZ", result.get(1).getSupplyCode());
     }
 
-    private void stubAgreementAndCoefficients(UUID agreementId, UUID supplyId, SupplyPartitionCoefficient row) {
-        when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement(agreementId, PLANT_ID));
-        when(getCoefficientRepository.findAllBySharingAgreementId(agreementId)).thenReturn(List.of(row));
+    private void stubAgreementAndCoefficients(UUID agreementId, UUID supplyId,
+                                              List<SupplyPartitionCoefficient> plantCoefficients,
+                                              List<SharingAgreement> otherAgreements) {
+        SharingAgreement agreement = agreement(agreementId, PLANT_ID);
+        when(getSharingAgreementService.findById(agreementId)).thenReturn(agreement);
+        when(getCoefficientRepository.findAllByPlantId(PLANT_ID)).thenReturn(plantCoefficients);
+        List<SharingAgreement> plantAgreements = new ArrayList<>(otherAgreements);
+        plantAgreements.add(agreement);
+        when(getSharingAgreementRepository.findByPlantId(PLANT_ID, null)).thenReturn(plantAgreements);
+        when(zoneResolver.resolveApplicationZoneId()).thenReturn(ZONE);
         when(getSupplyRepository.findAllByIds(Set.of(supplyId)))
                 .thenReturn(List.of(supply(supplyId, "ES0000000000000000AA", "Test supply")));
     }

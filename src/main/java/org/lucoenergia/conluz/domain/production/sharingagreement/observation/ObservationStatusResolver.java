@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import org.lucoenergia.conluz.domain.production.sharingagreement.RegisteredOrder;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;

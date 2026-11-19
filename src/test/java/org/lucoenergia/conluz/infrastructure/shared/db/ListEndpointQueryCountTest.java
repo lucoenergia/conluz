@@ -36,7 +36,9 @@ import org.lucoenergia.conluz.domain.admin.community.Community;
 import org.lucoenergia.conluz.domain.admin.community.CommunityMother;
 import org.lucoenergia.conluz.domain.admin.community.create.CreateCommunityRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
+import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantEntity;
 import org.lucoenergia.conluz.infrastructure.production.plant.PlantRepository;
 import org.lucoenergia.conluz.infrastructure.production.sharingagreement.SharingAgreementEntity;
@@ -85,6 +87,8 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     private SharingAgreementRepository sharingAgreementRepository;
     @Autowired
     private SaveSupplyPartitionCoefficientRepository saveCoefficientRepository;
+    @Autowired
+    private CreateSharingAgreementRepository createSharingAgreementRepository;
     @Autowired
     private ManagePlatformAdminRepository managePlatformAdminRepository;
     @Autowired
@@ -407,6 +411,35 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
         assertEquals(forOne, forFive, "a plant's active coefficients must not issue a query per supply");
     }
 
+    /**
+     * End states are derived in memory from the plant's agreements and coefficients, so 32 open rows cost what one
+     * does, even with historical agreements created after the agreement read.
+     */
+    @Test
+    void anAgreementsCoefficientsCostTheSameForOneSupplyAndForThirtyTwo() throws Exception {
+        String adminToken = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
+        Supply plantSupply = persistSupplyInDefaultCommunity();
+        Plant plant = createPlantRepository.create(PlantMother.random(plantSupply).build(),
+                SupplyId.of(plantSupply.getId()));
+        SharingAgreement one = createAgreement(plant, Instant.parse("2026-01-01T00:00:00Z"));
+        SharingAgreement thirtyTwo = createAgreement(plant, Instant.parse("2026-01-02T00:00:00Z"));
+        // Created after both, holding none of their supplies, and placed before them.
+        SharingAgreement historical = createAgreement(plant, Instant.parse("2026-01-03T00:00:00Z"));
+        persistCoefficient(persistSupplyInDefaultCommunity(), plant, historical, ACTIVATED.minus(Duration.ofDays(365)),
+                null);
+        Instant later = ACTIVATED.plus(Duration.ofDays(30));
+        persistCoefficient(persistSupplyInDefaultCommunity(), plant, one, later, null);
+        for (int i = 0; i < 32; i++) {
+            persistCoefficient(persistSupplyInDefaultCommunity(), plant, thirtyTwo, later, null);
+        }
+        String url = "/api/v1/plants/" + plant.getId() + "/sharing-agreements/";
+
+        long forOne = statementsFor(url + one.getId() + "/partition-coefficients", adminToken);
+        long forThirtyTwo = statementsFor(url + thirtyTwo.getId() + "/partition-coefficients", adminToken);
+
+        assertEquals(forOne, forThirtyTwo, "an agreement's coefficients must not issue a query per row");
+    }
+
     private long statementsFor(String url, String authHeader) throws Exception {
         entityManager.flush();
         entityManager.clear();
@@ -527,6 +560,30 @@ class ListEndpointQueryCountTest extends BaseControllerTest {
     }
 
     private void persistCoefficient(Supply supply, Plant plant, SharingAgreementEntity agreement, Instant from,
+                                    Instant to) {
+        saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
+                .withId(UUID.randomUUID())
+                .withSupplyId(supply.getId())
+                .withPlantId(plant.getId())
+                .withSharingAgreementId(agreement.getId())
+                .withCoefficient(BigDecimal.ONE)
+                .withValidFrom(from)
+                .withValidTo(to)
+                .withCreatedAt(Instant.now())
+                .build());
+    }
+
+    private SharingAgreement createAgreement(Plant plant, Instant createdAt) {
+        return createSharingAgreementRepository.create(new SharingAgreement.Builder()
+                .withId(UUID.randomUUID())
+                .withPlantId(plant.getId())
+                .withName("Agreement " + UUID.randomUUID())
+                .withStatus(SharingAgreementStatus.PUBLISHED)
+                .withCreatedAt(createdAt)
+                .build());
+    }
+
+    private void persistCoefficient(Supply supply, Plant plant, SharingAgreement agreement, Instant from,
                                     Instant to) {
         saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
                 .withId(UUID.randomUUID())
