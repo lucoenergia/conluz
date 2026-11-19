@@ -560,7 +560,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 Instant.parse("2026-10-23T22:00:00Z"), Instant.parse("2026-10-26T23:00:00Z"), madrid);
 
         assertEquals(2, days.size(), "a day without records is absent: " + days);
-        assertEquals(new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 25.0, 12.5, 6.25, 25, "Real"), days.get(0));
+        assertEquals(new DailyPublishedAggregate(LocalDate.of(2026, 10, 25), 25.0, 12.5, 6.25, 25, 25, "Real"), days.get(0));
         assertEquals(LocalDate.of(2026, 10, 26), days.get(1).day());
         assertEquals(2.0, days.get(1).selfConsumptionKWh(), 1e-6);
         assertEquals(4.0, days.get(1).surplusKWh(), 1e-6);
@@ -599,16 +599,63 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 List.of(first, second, silent), may10, may10.plusSeconds(2 * 86_400), madrid);
 
         assertEquals(2, days.size(), "a supply without records is absent: " + days);
-        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 2.0, 2.0, 1.0, 2, "Real")),
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 2.0, 2.0, 1.0, 2, 2, "Real")),
                 days.get(first.getCode()));
-        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 1.0, 3.0, 0.0, 1, "Real")),
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 11), 1.0, 3.0, 0.0, 1, 1, "Real")),
                 days.get(second.getCode()));
+    }
+
+    @Test
+    @DisplayName("OBS-001 ENM-009 the daily totals count the records carrying surplus, zeros included, and skip those without it")
+    void aggregateByLocalDayCountsTheRecordsCarryingSurplus() {
+        Supply supply = supply();
+        ZoneId madrid = ZoneId.of("Europe/Madrid");
+        Instant may10 = Instant.parse("2026-05-09T22:00:00Z");
+        fixture.writeAt(supply.getCode(), List.of(may10, may10.plusSeconds(3600)), 1f, null, 2f);
+        fixture.writeAt(supply.getCode(), may10.plusSeconds(2 * 3600), 1f, null, 0f);
+        fixture.writeAt(supply.getCode(), may10.plusSeconds(3 * 3600), 1f, null, null);
+
+        List<DailyPublishedAggregate> days = repository.aggregateByLocalDay(supply, may10,
+                may10.plusSeconds(86_400), madrid);
+
+        assertEquals(List.of(new DailyPublishedAggregate(LocalDate.of(2026, 5, 10), 4.0, 0.0, 4.0, 0, 3, "Real")),
+                days);
     }
 
     @Test
     void aggregateByLocalDayOfNoSupplyReadsNothing() {
         assertTrue(repository.aggregateByLocalDay(List.of(), Instant.parse("2026-05-09T22:00:00Z"),
                 Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
+    }
+
+    @Test
+    @DisplayName("OBS-001 ENM-009 the surplus period runs from the first to the last record carrying surplus, zeros included")
+    void findSurplusPeriodIgnoresRecordsWithoutSurplus() {
+        Supply supply = supply();
+        Instant consumptionOnly = Instant.parse("2023-05-31T20:00:00Z");
+        Instant firstSurplus = Instant.parse("2023-05-31T22:00:00Z");
+        Instant zeroedSurplus = Instant.parse("2024-12-01T10:00:00Z");
+        Instant laterConsumptionOnly = Instant.parse("2024-12-02T10:00:00Z");
+        fixture.writeAt(supply.getCode(), consumptionOnly, 1f, null, null);
+        fixture.writeAt(supply.getCode(), firstSurplus, 1f, null, 3f);
+        fixture.writeAt(supply.getCode(), zeroedSurplus, 1f, null, 0f);
+        fixture.writeAt(supply.getCode(), laterConsumptionOnly, 1f, null, null);
+
+        Optional<RecordedConsumptionPeriod> period = repository.findSurplusPeriod(supply);
+
+        assertTrue(period.isPresent());
+        assertEquals(firstSurplus, period.get().getFirstRecord());
+        assertEquals(zeroedSurplus, period.get().getLastRecord());
+    }
+
+    @Test
+    @DisplayName("OBS-001 ENM-009 a supply whose records carry no surplus has no surplus period")
+    void findSurplusPeriodIsEmptyWithoutSurplus() {
+        Supply supply = supply();
+        fixture.writeAt(supply.getCode(), Instant.parse("2024-05-31T22:00:00Z"), 1f, 0.5f, null);
+
+        assertTrue(repository.findSurplusPeriod(supply).isEmpty());
+        assertTrue(repository.findSurplusPeriod(supply()).isEmpty());
     }
 
     @Test

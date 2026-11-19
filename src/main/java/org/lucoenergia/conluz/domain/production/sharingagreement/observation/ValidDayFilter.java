@@ -48,7 +48,7 @@ final class ValidDayFilter {
     NavigableMap<LocalDate, Double> plantValidDays(List<PlantDailyEnergy> plantDays, LocalDate from, LocalDate to) {
         NavigableMap<LocalDate, Double> valid = new TreeMap<>();
         for (PlantDailyEnergy day : plantDays) {
-            if (inside(day.day(), from, to) && isPublished(day.day(), day.publishedHours())
+            if (inside(day.day(), from, to) && isPublished(day.day(), day.hours())
                     && day.productionKWh() >= minProductionKWh) {
                 valid.put(day.day(), day.productionKWh());
             }

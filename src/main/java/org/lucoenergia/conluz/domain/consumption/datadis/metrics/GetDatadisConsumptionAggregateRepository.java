@@ -48,6 +48,13 @@ public interface GetDatadisConsumptionAggregateRepository {
     Optional<RecordedConsumptionPeriod> findRecordedPeriod(Supply supply);
 
     /**
+     * The instants of the first and the last of the supply's records carrying
+     * {@code surplus_energy_kwh}, zero included, or empty when none does. Records without the field
+     * are ignored, whatever else they carry.
+     */
+    Optional<RecordedConsumptionPeriod> findSurplusPeriod(Supply supply);
+
+    /**
      * The first and the last of the supply's hourly records in the half-open interval
      * {@code [from, toExclusive)} whose assigned production has been published, or empty when none
      * has.

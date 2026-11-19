@@ -6,7 +6,7 @@ import java.time.LocalDate;
  * The plant supply's Datadis totals over one local day.
  *
  * @param productionKWh  the plant supply's surplus: the energy the distributor shares
- * @param publishedHours the number of the plant supply's records carrying self-consumption, zeros included
+ * @param hours          the number of the plant supply's records the day's energy rests on, zeros included
  */
-public record PlantDailyEnergy(LocalDate day, double productionKWh, long publishedHours) {
+public record PlantDailyEnergy(LocalDate day, double productionKWh, long hours) {
 }
