@@ -12,7 +12,6 @@ import org.lucoenergia.conluz.infrastructure.production.sharingagreement.Sharing
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -77,12 +76,6 @@ public class GetSharingAgreementRepositoryDatabase implements GetSharingAgreemen
         return agreements.stream()
                 .map(agreement -> agreement.withFile(fileSummariesByAgreementId.get(agreement.getId())))
                 .toList();
-    }
-
-    @Override
-    public boolean existsLaterNonDraftAgreement(UUID plantId, UUID excludeSharingAgreementId, Instant afterCreatedAt) {
-        return sharingAgreementRepository.existsLaterNonDraftAgreement(
-                plantId, SharingAgreementStatus.DRAFT, afterCreatedAt, excludeSharingAgreementId);
     }
 
     @Override

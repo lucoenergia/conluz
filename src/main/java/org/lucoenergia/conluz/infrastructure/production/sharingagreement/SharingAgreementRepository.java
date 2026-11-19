@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -45,15 +44,6 @@ public interface SharingAgreementRepository extends JpaRepository<SharingAgreeme
             WHERE sa.id = :sharingAgreementId AND sa.status <> 'DRAFT'
             """, nativeQuery = true)
     void recomputeStatus(@Param("sharingAgreementId") UUID sharingAgreementId);
-
-    // DRAFT is always excluded: a draft-in-progress can be freely edited or deleted before publish
-    // and must never change how an existing, already-published agreement's coefficients are displayed.
-    @Query("SELECT COUNT(sa) > 0 FROM sharing_agreement sa WHERE sa.plant.id = :plantId " +
-            "AND sa.status <> :draftStatus AND sa.createdAt > :afterCreatedAt AND sa.id <> :excludeId")
-    boolean existsLaterNonDraftAgreement(@Param("plantId") UUID plantId,
-                                          @Param("draftStatus") SharingAgreementStatus draftStatus,
-                                          @Param("afterCreatedAt") Instant afterCreatedAt,
-                                          @Param("excludeId") UUID excludeId);
 
     // Native SQL, not read-then-write: folding the PUBLISHED-status and inert (no coefficient has
     // valid_from set) preconditions into the same UPDATE's WHERE clause makes the whole check-and-write

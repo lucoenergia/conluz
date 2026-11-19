@@ -117,16 +117,6 @@ public interface GetSupplyPartitionCoefficientRepository {
     List<SupplyPartitionCoefficient> findAllBySharingAgreementId(UUID sharingAgreementId);
 
     /**
-     * The coefficient for {@code (plantId, supplyId)} belonging to the nearest later non-DRAFT
-     * agreement of the plant (by {@code sharing_agreement.created_at} ASC, strictly after
-     * {@code afterAgreementCreatedAt}, excluding {@code excludeSharingAgreementId}) -- regardless of
-     * whether that row is itself activated. DRAFT agreements are always excluded: a draft-in-progress
-     * must never change the displayed state of an existing, already-published row.
-     */
-    Optional<SupplyPartitionCoefficient> findNextCoefficientForSupplyInLaterAgreement(
-            UUID plantId, UUID supplyId, UUID excludeSharingAgreementId, Instant afterAgreementCreatedAt);
-
-    /**
      * Every coefficient row -- any agreement, any time, pending or not -- for {@code plantId} and
      * any of {@code supplyIds}. Used to project a batch's writes onto the complete history for the
      * supplies it touches, so {@link CoefficientOverlapDetector} can check for an overlap against
