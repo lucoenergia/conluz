@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import org.lucoenergia.conluz.domain.production.sharingagreement.RegisteredOrder;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 
 import java.time.LocalDate;
@@ -47,8 +48,10 @@ public final class ObservedSharingCalculator {
 
     public PlantSharingObservation calculate(ObservationInput input) {
         List<ObservedAgreement> agreements = RegisteredOrder.sort(input.agreements().stream()
-                .filter(agreement -> agreement.status() != SharingAgreementStatus.DRAFT)
-                .toList(), input.coefficients(), input.zone());
+                        .filter(agreement -> agreement.status() != SharingAgreementStatus.DRAFT)
+                        .toList(), ObservedAgreement::id, ObservedAgreement::distributorFileSentOn,
+                ObservedAgreement::createdAt, RegisteredOrder.earliestValidFrom(input.coefficients(),
+                        ObservedCoefficient::sharingAgreementId, ObservedCoefficient::validFrom, input.zone()));
         Set<UUID> agreementIds = agreements.stream().map(ObservedAgreement::id).collect(Collectors.toSet());
         List<ObservedCoefficient> coefficients = input.coefficients().stream()
                 .filter(coefficient -> agreementIds.contains(coefficient.sharingAgreementId()))
