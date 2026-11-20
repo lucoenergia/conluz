@@ -202,7 +202,7 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
                             day.publishedHours()))
                     .toList());
         }
-        return new ObservationInput(zone, plant.getPeakPowerKWp(), plantSupply.getId(), from, to,
+        return new ObservationInput(zone, plant.getPeakPowerKWp(), observed(plantSupply), from, to,
                 plantDays.stream().filter(day -> !day.day().isAfter(to)).toList(),
                 supplies, supplyDays, notComputable, agreements, coefficients);
     }
@@ -214,8 +214,8 @@ public class GetSharingObservationServiceImpl implements GetSharingObservationSe
                                                  List<ObservedSupply> notComputable,
                                                  List<ObservedAgreement> agreements,
                                                  List<ObservedCoefficient> coefficients) {
-        return new ObservationInput(zone, plant.getPeakPowerKWp(), plant.getSupply().getId(), null, null, List.of(),
-                supplies, Map.of(), notComputable, agreements, coefficients);
+        return new ObservationInput(zone, plant.getPeakPowerKWp(), observed(plant.getSupply()), null, null,
+                List.of(), supplies, Map.of(), notComputable, agreements, coefficients);
     }
 
     private static ObservedSupply observed(Supply supply) {

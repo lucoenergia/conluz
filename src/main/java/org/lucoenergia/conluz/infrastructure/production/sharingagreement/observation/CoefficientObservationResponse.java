@@ -33,7 +33,9 @@ public class CoefficientObservationResponse {
             "period is open.", example = "2025-04-01", types = {"string", "null"})
     private final LocalDate storedValidTo;
 
-    @Schema(description = "How its observed application compares with what is stored", example = "APPLIED_SAME_DATE")
+    @Schema(description = "How its observed application compares with what is stored. NOT_OBSERVABLE for a " +
+            "coefficient of the plant's own supply, whose share cannot be observed from Datadis",
+            example = "APPLIED_SAME_DATE")
     private final ObservationStatus status;
 
     @Schema(description = "When the distributor was observed to start applying it. Null when not observed.",

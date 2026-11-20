@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.lucoenergia.conluz.domain.production.sharingagreement.observation.ObservationFixture.agreementOf;
 import static org.lucoenergia.conluz.domain.production.sharingagreement.observation.ObservationFixture.anomaliesOf;
 import static org.lucoenergia.conluz.domain.production.sharingagreement.observation.ObservationFixture.day;
@@ -1368,6 +1370,292 @@ class ObservedSharingCalculatorTest {
             assertThat(rowOf(result, atUtcMidnight).storedValidFrom()).isEqualTo(day("2024-03-01"));
             assertThat(rowOf(result, atUtcMidnight).storedValidTo()).isEqualTo(day("2024-05-10"));
             assertThat(rowOf(result, open).storedValidTo()).isNull();
+        }
+    }
+
+    @Nested
+    class PlantSupplyRows {
+
+        private static final Offset<Double> PRECISION = Offset.offset(1e-9);
+
+        @Test
+        @DisplayName("OBS-011 a plant supply's coefficient is listed as not observable, with its stored period, and counted")
+        void plantSupplyRowIsNotObservable() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(second, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(first, b, "0.6", day("2024-05-01"), null);
+            fixture.row(second, b, "0.39", day("2024-05-01"), null);
+            ObservedCoefficient plantInB = fixture.row(plant, b, "0.01", day("2024-05-01"), day("2024-07-01"));
+            fixture.beta(first, FROM, day("2024-04-30"), 0.5).beta(first, day("2024-05-01"), TO, 0.6);
+            fixture.beta(second, FROM, day("2024-04-30"), 0.5).beta(second, day("2024-05-01"), TO, 0.39);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            CoefficientObservation row = rowOf(result, plantInB);
+            assertThat(row.supply()).isEqualTo(plant);
+            assertThat(row.coefficient()).isEqualByComparingTo("0.01");
+            assertThat(row.status()).isEqualTo(ObservationStatus.NOT_OBSERVABLE);
+            assertThat(row.storedValidFrom()).isEqualTo(day("2024-05-01"));
+            assertThat(row.storedValidTo()).isEqualTo(day("2024-07-01"));
+            assertThat(row.observedDate()).isNull();
+            assertThat(row.proposedDate()).isNull();
+            assertThat(row.observedBeta()).isEqualTo(ObservedBeta.NONE);
+            assertThat(agreementOf(result, b).coefficients()).extracting(CoefficientObservation::supply)
+                    .containsExactlyInAnyOrder(plant, first, second);
+            assertThat(agreementOf(result, b).coefficientStatusCounts())
+                    .containsEntry(ObservationStatus.NOT_OBSERVABLE, 1)
+                    .containsEntry(ObservationStatus.APPLIED_SAME_DATE, 2);
+            assertThat(agreementOf(result, a).coefficientStatusCounts())
+                    .containsEntry(ObservationStatus.NOT_OBSERVABLE, 0);
+            assertThat(agreementOf(result, b).leavingStatusCounts())
+                    .containsEntry(ObservationStatus.NOT_OBSERVABLE, 0);
+        }
+
+        @Test
+        @DisplayName("OBS-002 a row of the plant's own supply is not observable, never no data, while a consumer without valid days is")
+        void plantSupplyRowIsNeverNoData() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply silent = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            fixture.agreement("B", null);
+            fixture.row(first, a, "0.9", day("2024-03-01"), null);
+            ObservedCoefficient silentInA = fixture.row(silent, a, "0.09", day("2024-03-01"), null);
+            ObservedCoefficient plantInA = fixture.row(plant, a, "0.01", day("2024-03-01"), null);
+            fixture.beta(first, FROM, TO, 0.9);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, silentInA).status()).isEqualTo(ObservationStatus.NO_DATA);
+            assertThat(rowOf(result, plantInA).status()).isEqualTo(ObservationStatus.NOT_OBSERVABLE);
+            assertThat(result.analysis().suppliesWithoutData()).containsExactly(silent);
+        }
+
+        @Test
+        @DisplayName("OBS-011 several rows of the plant supply in one agreement are each listed and counted")
+        void severalPlantSupplyRows() {
+            PlantSharingObservation result = switchingMidWindow();
+            AgreementObservation b = result.agreements().get(1);
+
+            assertThat(b.coefficients()).filteredOn(row -> row.supply().code().equals("PLANT"))
+                    .extracting(CoefficientObservation::coefficient, CoefficientObservation::status)
+                    .containsExactly(
+                            tuple(new BigDecimal("0.01"), ObservationStatus.NOT_OBSERVABLE),
+                            tuple(new BigDecimal("0.02"), ObservationStatus.NOT_OBSERVABLE));
+            assertThat(b.coefficientStatusCounts()).containsEntry(ObservationStatus.NOT_OBSERVABLE, 2);
+        }
+
+        @Test
+        @DisplayName("OBS-011 the share without data follows the plant supply's row whose stored period holds each day")
+        void shareWithoutDataFollowsTheRowOfTheDay() {
+            PlantSharingObservation result = switchingMidWindow();
+
+            // B is applied from 2024-05-01: 31 days at 100 kWh under 0.01, then 30 days at 200 kWh under 0.02.
+            UnallocatedShare share = result.agreements().get(1).unallocatedShare();
+            assertThat(share.days()).isEqualTo(61);
+            assertThat(share.registeredShareWithoutData())
+                    .isCloseTo((31 * 100 * 0.01 + 30 * 200 * 0.02) / (31 * 100 + 30 * 200), PRECISION);
+            // A holds no row of the plant supply: its days before the switch are unchanged.
+            assertThat(result.agreements().get(0).unallocatedShare().registeredShareWithoutData())
+                    .isCloseTo(0, PRECISION);
+        }
+
+        /**
+         * A, then B from 2024-05-01, in which the plant supply holds 0.01 until 2024-06-01 and 0.02 from then on,
+         * while the plant produces 200 kWh a day in June.
+         */
+        private PlantSharingObservation switchingMidWindow() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO)
+                    .production(day("2024-06-01"), 200);
+            for (LocalDate day = day("2024-06-02"); !day.isAfter(TO); day = day.plusDays(1)) {
+                fixture.production(day, 200);
+            }
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(second, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(first, b, "0.6", day("2024-05-01"), null);
+            fixture.row(second, b, "0.38", day("2024-05-01"), null);
+            fixture.row(plant, b, "0.02", day("2024-06-01"), null);
+            fixture.row(plant, b, "0.01", day("2024-05-01"), day("2024-06-01"));
+            fixture.beta(first, FROM, day("2024-04-30"), 0.5).beta(first, day("2024-05-01"), TO, 0.6);
+            fixture.beta(second, FROM, day("2024-04-30"), 0.5).beta(second, day("2024-05-01"), TO, 0.38);
+            return fixture.calculate();
+        }
+
+        @Test
+        @DisplayName("OBS-011 the plant supply's coefficient counts as without data, and 1 − Σβ does not change")
+        void plantCoefficientCountsAsWithoutData() {
+            UnallocatedShare without = shareOfB(false);
+            UnallocatedShare with = shareOfB(true);
+
+            assertThat(with.registeredShareWithoutData())
+                    .isCloseTo(without.registeredShareWithoutData() + 0.01, PRECISION);
+            assertThat(with.unallocated()).isEqualTo(without.unallocated());
+            assertThat(with.days()).isEqualTo(without.days());
+        }
+
+        private UnallocatedShare shareOfB(boolean plantHoldsARow) {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply silent = fixture.supply("S3");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(second, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(first, b, "0.6", day("2024-05-01"), null);
+            fixture.row(second, b, "0.34", day("2024-05-01"), null);
+            fixture.row(silent, b, "0.05", day("2024-05-01"), null);
+            if (plantHoldsARow) {
+                fixture.row(plant, b, "0.01", day("2024-05-01"), null);
+            }
+            fixture.beta(first, FROM, day("2024-04-30"), 0.5).beta(first, day("2024-05-01"), TO, 0.6);
+            fixture.beta(second, FROM, day("2024-04-30"), 0.5).beta(second, day("2024-05-01"), TO, 0.34);
+            return agreementOf(fixture.calculate(), b).unallocatedShare();
+        }
+
+        @Test
+        @DisplayName("OBS-011 a production month's shape: the plant supply's 0.3167 % coefficient explains the unallocated share up to rounding")
+        void productionMonthShapeIsExplained() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply withoutData = fixture.supply("S3");
+            ObservedSupply alsoWithoutData = fixture.supply("S4");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement synthetic = fixture.agreement("Synthetic", null);
+            ObservedAgreement second2026 = fixture.agreement("Second", day("2024-03-01"));
+            fixture.row(first, synthetic, "0.7", (LocalDate) null, null);
+            fixture.row(second, synthetic, "0.3", (LocalDate) null, null);
+            // Registered for the supplies with data: 0.9435, which is what they receive.
+            fixture.row(first, second2026, "0.5", day("2024-03-01"), null);
+            fixture.row(second, second2026, "0.4435", day("2024-03-01"), null);
+            fixture.row(withoutData, second2026, "0.020000", day("2024-03-01"), null);
+            fixture.row(alsoWithoutData, second2026, "0.033333", day("2024-03-01"), null);
+            fixture.row(plant, second2026, "0.003167", day("2024-03-01"), null);
+            fixture.beta(first, FROM, TO, 0.5).beta(second, FROM, TO, 0.4435);
+
+            UnallocatedShare share = agreementOf(fixture.calculate(), second2026).unallocatedShare();
+
+            assertThat(share.unallocated()).isCloseTo(0.0565, Offset.offset(1e-6));
+            assertThat(share.registeredShareWithoutData()).isCloseTo(0.0565, Offset.offset(1e-6));
+            assertThat(share.unallocated() - share.registeredShareWithoutData())
+                    .isCloseTo(0, Offset.offset(1e-6));
+        }
+
+        @Test
+        @DisplayName("OBS-011 the plant supply gets no β, anomaly, leaving row or recommendation, whatever its own data")
+        void plantSupplyIsNeverObserved() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.5", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(second, a, "0.49", day("2024-03-01"), day("2024-05-01"));
+            // Held in A, absent from B: a consumer would leave in B.
+            ObservedCoefficient plantInA = fixture.row(plant, a, "0.01", (LocalDate) null, day("2024-03-15"));
+            fixture.row(first, b, "0.6", day("2024-05-01"), null);
+            fixture.row(second, b, "0.4", day("2024-05-01"), null);
+            fixture.beta(first, FROM, day("2024-04-30"), 0.5).beta(first, day("2024-05-01"), TO, 0.6);
+            fixture.beta(second, FROM, day("2024-04-30"), 0.49).beta(second, day("2024-05-01"), TO, 0.4);
+            // Its own data matches its row in A, then nothing: it must not be read as a consumer.
+            fixture.beta(plant, FROM, day("2024-04-30"), 0.01).beta(plant, day("2024-05-01"), TO, 0.3);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, plantInA).status()).isEqualTo(ObservationStatus.NOT_OBSERVABLE);
+            assertThat(rowOf(result, plantInA).observedBeta()).isEqualTo(ObservedBeta.NONE);
+            assertThat(leavingsOf(result, b, plant)).isEmpty();
+            assertThat(anomaliesOf(result, plant)).isEmpty();
+            assertThat(result.analysis().suppliesWithData()).containsExactly(first, second);
+            // Its stored dates differ from anything observed, yet nothing asks to set them.
+            assertThat(agreementOf(result, a).recommendations()).containsExactly(SharingRecommendation.NONE);
+            assertThat(agreementOf(result, b).recommendations()).containsExactly(SharingRecommendation.NONE);
+        }
+
+        @Test
+        @DisplayName("OBS-011 an unsent agreement whose only coefficient is the plant supply's is still to deactivate")
+        void onlyPlantCoefficientIsNotObserved() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement plantOnly = fixture.agreement("Plant only", null);
+            fixture.row(first, a, "0.5", day("2024-03-01"), null);
+            fixture.row(second, a, "0.5", day("2024-03-01"), null);
+            ObservedCoefficient plantRow = fixture.row(plant, plantOnly, "1", (LocalDate) null, null);
+            fixture.beta(first, FROM, TO, 0.5).beta(second, FROM, TO, 0.5);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            AgreementObservation observation = agreementOf(result, plantOnly);
+            assertThat(observation.coefficients()).extracting(CoefficientObservation::coefficientId)
+                    .containsExactly(plantRow.id());
+            assertThat(observation.coefficientStatusCounts()).containsEntry(ObservationStatus.NOT_OBSERVABLE, 1);
+            assertThat(observation.recommendations()).containsExactly(SharingRecommendation.DEACTIVATE);
+            assertThat(observation.mostFrequentObservedDate()).isNull();
+            assertThat(observation.unallocatedShare()).isNull();
+        }
+
+        @Test
+        @DisplayName("OBS-011 an agreement's slice holds the plant supply's row exactly as the plant result does")
+        void sliceHoldsThePlantSupplyRow() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.5", day("2024-03-01"), null);
+            fixture.row(second, a, "0.5", day("2024-03-01"), null);
+            fixture.row(first, b, "0.6", (LocalDate) null, null);
+            fixture.row(second, b, "0.39", (LocalDate) null, null);
+            ObservedCoefficient plantInB = fixture.row(plant, b, "0.01", (LocalDate) null, null);
+            fixture.beta(first, FROM, TO, 0.5).beta(second, FROM, TO, 0.5);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(result.sliceFor(b.id())).hasValueSatisfying(slice -> {
+                assertThat(slice.agreement()).isEqualTo(agreementOf(result, b));
+                assertThat(slice.agreement().coefficients()).contains(rowOf(result, plantInB));
+            });
+            assertThat(rowOf(result, plantInB).status()).isEqualTo(ObservationStatus.NOT_OBSERVABLE);
+        }
+
+        @Test
+        @DisplayName("OBS-011 a plant that is not computable lists no row, the plant supply's included")
+        void notComputablePlantListsNoPlantSupplyRow() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO).plantWithoutData();
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply plant = fixture.plantSupply();
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            fixture.agreement("B", null);
+            fixture.row(first, a, "0.5", day("2024-03-01"), null);
+            fixture.row(second, a, "0.49", day("2024-03-01"), null);
+            fixture.row(plant, a, "0.01", day("2024-03-01"), null);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(result.agreements()).hasSize(2).allSatisfy(observation -> {
+                assertThat(observation.coefficients()).isEmpty();
+                assertThat(observation.coefficientStatusCounts()).containsEntry(ObservationStatus.NOT_OBSERVABLE, 0);
+            });
         }
     }
 }

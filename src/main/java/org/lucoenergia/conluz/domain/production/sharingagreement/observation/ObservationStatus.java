@@ -16,5 +16,7 @@ public enum ObservationStatus {
     /** Not observed. */
     NOT_OBSERVED,
     /** The supply has no valid day. */
-    NO_DATA
+    NO_DATA,
+    /** A row of the plant's own supply, whose share cannot be measured from Datadis (OBS-011). */
+    NOT_OBSERVABLE
 }

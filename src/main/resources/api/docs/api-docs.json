@@ -327,14 +327,15 @@
             ]
           },
           "status" : {
-            "description" : "How its observed application compares with what is stored",
+            "description" : "How its observed application compares with what is stored. NOT_OBSERVABLE for a coefficient of the plant's own supply, whose share cannot be observed from Datadis",
             "enum" : [
               "APPLIED_SAME_DATE",
               "APPLIED_DIFFERENT_DATE",
               "PENDING_APPLICATION",
               "NOT_DISTINGUISHABLE",
               "NOT_OBSERVED",
-              "NO_DATA"
+              "NO_DATA",
+              "NOT_OBSERVABLE"
             ],
             "example" : "APPLIED_SAME_DATE",
             "type" : "string"
@@ -2497,7 +2498,8 @@
               "PENDING_APPLICATION",
               "NOT_DISTINGUISHABLE",
               "NOT_OBSERVED",
-              "NO_DATA"
+              "NO_DATA",
+              "NOT_OBSERVABLE"
             ],
             "example" : "APPLIED_DIFFERENT_DATE",
             "type" : "string"
@@ -3517,6 +3519,12 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "notObservable" : {
+            "description" : "Rows of the plant's own supply, whose share cannot be observed from Datadis",
+            "example" : 1,
+            "format" : "int32",
+            "type" : "integer"
+          },
           "notObserved" : {
             "description" : "Rows not observed, of an agreement whose distributor file was not sent",
             "example" : 0,
@@ -3535,6 +3543,7 @@
           "appliedSameDate",
           "noData",
           "notDistinguishable",
+          "notObservable",
           "notObserved",
           "pendingApplication"
         ],
@@ -6659,8 +6668,8 @@
             "type" : "integer"
           },
           "registeredShareWithoutData" : {
-            "description" : "The share the agreement registers for the supplies without data on each day, on a 0-1 scale, weighted by the plant's daily production",
-            "example" : 0.0533,
+            "description" : "The share the agreement registers for the supplies without data and for the plant's own supply on each day, on a 0-1 scale, weighted by the plant's daily production",
+            "example" : 0.0565,
             "format" : "double",
             "type" : "number"
           },
