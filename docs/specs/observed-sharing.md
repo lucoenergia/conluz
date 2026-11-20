@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #604 |
+| **Last reviewed against code** | #607 |
 
 ## Purpose
 
@@ -36,6 +36,7 @@ observes: it never writes, and never proposes a coefficient.
 | Registered order | The agreements ordered by their distributor file's sent date, else the earliest stored start of their rows as a local day; then by creation instant; then by id. |
 | Leaving row | A supply absent from an agreement, after the agreement observed applied before it gave the supply a non-zero value. |
 | Applied window | The days an agreement is taken as applied to the plant: from its most frequent observed application date to the day before the next agreement's in that order, or to the end of the analysed range. An agreement none of whose coefficient rows was observed has none, nor one whose window would end before it starts. 1 − Σβ is computed over it. |
+| Share without data | The share an agreement registers for the supplies without a valid day on each plant-valid day of its applied window, the plant's own supply always among them (OBS-011), weighted by G (`registeredShareWithoutData`). Set next to 1 − Σβ, it tells how much of the production no supply with data received is explained. |
 | Row window | The days a coefficient or leaving row is taken as applied to its supply: from the row's observed application or leaving date (the end of a range, or the day of an open date) to the end of its agreement's applied window; the whole applied window when the row has no observed date. None when the agreement has no applied window or the row's start falls after its end. |
 
 ## Rules
@@ -70,7 +71,8 @@ observes: it never writes, and never proposes a coefficient.
 
 - **Status:** Active
 - **Rule:** A coefficient row's stored date is its `validFrom`; a leaving row's is the `validTo` of the supply's
-  row in the previous agreement. A row MUST be:
+  row in the previous agreement. A coefficient row of the plant's own supply MUST be `NOT_OBSERVABLE` (OBS-011).
+  Any other row MUST be:
   - `NO_DATA` when the supply has no valid day;
   - `APPLIED_SAME_DATE` when observed and its stored date, as a local day, is the observed day, lies within the
     observed range, or is on or before an open date;
@@ -79,8 +81,9 @@ observes: it never writes, and never proposes a coefficient.
   - `PENDING_APPLICATION` when not observed and the agreement records a sent date;
   - `NOT_OBSERVED` otherwise.
 - **Rationale:** An admin needs each coefficient's state to know which dates to set and which agreements the
-  distributor has not applied yet.
-- **Source:** #579
+  distributor has not applied yet. The plant's own supply never has a valid day, but its row is not missing data:
+  its share cannot be measured at all, so `NO_DATA` would suggest a gap that later data could fill.
+- **Source:** #579, #607
 
 ### OBS-003 — A coefficient equal to the previously observed one is not distinguishable
 
@@ -198,6 +201,24 @@ observes: it never writes, and never proposes a coefficient.
 - **Rationale:** The registered period is shown next to the observation without a second request.
 - **Source:** #597
 
+### OBS-011 — A plant supply's coefficient is listed, never observed
+
+- **Status:** Active
+- **Rule:** Each coefficient row the plant's own supply holds in an agreement in scope MUST be listed among the
+  agreement's coefficient rows as `NOT_OBSERVABLE`, with its stored period (OBS-010), no observed date, no proposed
+  date, and an observed β of null over 0 days, and MUST be counted in the agreement's coefficient status counts. Its
+  registered value MUST count in the agreement's share without data on every plant-valid day of the applied window,
+  as for a supply without data: its only row in the agreement, or the row whose stored period holds the day. Such a
+  row MUST NOT count as observed, MUST NOT trigger `SET_DATES` or any other recommendation, and MUST NOT change 1 − Σβ.
+  The plant's own supply is still never analysed as a consumer (OBS-006): it has no β, no run, no anomaly and no
+  leaving row. A plant that is not computable lists no row, this one included (OBS-006).
+- **Rationale:** The plant's own supply can hold a coefficient, but its Datadis surplus is the plant's production
+  and it has no self-consumption, so its share cannot be measured. Left out, its registered share appeared as
+  production no one received, unexplained. Its application date is set by hand, from the distributor file. The share
+  without data follows the same row choice as for every other supply without data, because most rows are published
+  without stored dates.
+- **Source:** #607, PLT-002
+
 ## Impossible states
 
 - An open leaving date — prevented by OBS-008: a leaving is observed only after a previous observation, so a valid
@@ -206,6 +227,11 @@ observes: it never writes, and never proposes a coefficient.
   valid days.
 - An observed β on a plant that is not computable — prevented by OBS-006: such a result lists no coefficient row, no
   leaving row and no anomaly, and a supply that is not computable has none either, so nothing carries one.
+- A leaving row with status `NOT_OBSERVABLE`, or a non-zero `notObservable` count among an agreement's leaving rows
+  — prevented by OBS-006 and OBS-011: only the plant's own supply has `NOT_OBSERVABLE` rows, and it is never matched
+  as a consumer, so it never leaves.
+- A `NOT_OBSERVABLE` row with an observed date, a proposed date or an observed β — prevented by OBS-011: the plant's
+  own supply has no timeline.
 - An anomaly with a null observed β — prevented by OBS-004: every anomaly starts on a valid day of its supply, which
   is one of its own valid days.
 
