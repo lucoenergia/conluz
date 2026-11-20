@@ -9,7 +9,7 @@ import java.util.Map;
  * The number of rows in each observation status.
  */
 @Schema(requiredProperties = {"appliedSameDate", "appliedDifferentDate", "pendingApplication", "notDistinguishable",
-        "notObserved", "noData"})
+        "notObserved", "noData", "notObservable"})
 public class ObservationStatusCountsResponse {
 
     @Schema(description = "Rows observed applied on their stored date", example = "12")
@@ -31,6 +31,9 @@ public class ObservationStatusCountsResponse {
     @Schema(description = "Rows of supplies without any valid day", example = "1")
     private final int noData;
 
+    @Schema(description = "Rows of the plant's own supply, whose share cannot be observed from Datadis", example = "1")
+    private final int notObservable;
+
     public ObservationStatusCountsResponse(Map<ObservationStatus, Integer> counts) {
         this.appliedSameDate = counts.getOrDefault(ObservationStatus.APPLIED_SAME_DATE, 0);
         this.appliedDifferentDate = counts.getOrDefault(ObservationStatus.APPLIED_DIFFERENT_DATE, 0);
@@ -38,6 +41,7 @@ public class ObservationStatusCountsResponse {
         this.notDistinguishable = counts.getOrDefault(ObservationStatus.NOT_DISTINGUISHABLE, 0);
         this.notObserved = counts.getOrDefault(ObservationStatus.NOT_OBSERVED, 0);
         this.noData = counts.getOrDefault(ObservationStatus.NO_DATA, 0);
+        this.notObservable = counts.getOrDefault(ObservationStatus.NOT_OBSERVABLE, 0);
     }
 
     public int getAppliedSameDate() {
@@ -62,5 +66,9 @@ public class ObservationStatusCountsResponse {
 
     public int getNoData() {
         return noData;
+    }
+
+    public int getNotObservable() {
+        return notObservable;
     }
 }

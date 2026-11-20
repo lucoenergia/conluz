@@ -27,20 +27,20 @@ final class AgreementObservationSummarizer {
 
     /**
      * @param agreements    the agreements in scope, in registered order
-     * @param supplies      the analysed supplies, in the order their rows are listed
-     * @param rows          each analysed supply's rows, keyed by supply id
+     * @param supplies      the supplies whose rows are listed, in that order: the analysed ones and the plant's own
+     * @param rows          each listed supply's rows, keyed by supply id
      * @param anomalies     the anomalies of every analysed supply
      * @param plantValid    the plant's valid days and their production
      * @param energy        each analysed supply's energy on its valid days, keyed by supply id
      * @param betas         each analysed supply's observed β on its valid days, keyed by supply id
      * @param coefficients  the rows of the agreements in scope, not-computable supplies included
-     * @param notComputable the supplies whose energy is not counted
+     * @param notCounted    the supplies whose energy is not counted: the not-computable ones and the plant's own
      */
     record Context(List<ObservedAgreement> agreements, List<ObservedSupply> supplies, Map<UUID, SupplyRows> rows,
                    List<SharingAnomaly> anomalies, NavigableMap<LocalDate, Double> plantValid,
                    Map<UUID, Map<LocalDate, Double>> energy, Map<UUID, NavigableMap<LocalDate, Double>> betas,
                    List<ObservedCoefficient> coefficients,
-                   Set<UUID> notComputable, LocalDate analysedTo, ZoneId zone) {
+                   Set<UUID> notCounted, LocalDate analysedTo, ZoneId zone) {
     }
 
     List<AgreementObservation> summarize(Context context) {
@@ -66,6 +66,11 @@ final class AgreementObservationSummarizer {
                 SupplyRows rows = context.rows().get(supply.id());
                 NavigableMap<LocalDate, Double> betas = context.betas().get(supply.id());
                 for (CoefficientObservation row : rows.coefficients().getOrDefault(agreement.id(), List.of())) {
+                    if (row.status() == ObservationStatus.NOT_OBSERVABLE) {
+                        // Never observed: it has no date and no observed β to set (OBS-011).
+                        coefficients.add(row);
+                        continue;
+                    }
                     coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
                             row.storedValidFrom(), row.storedValidTo(), row.status(), row.observedDate(),
                             row.status() == ObservationStatus.NOT_DISTINGUISHABLE ? mostFrequent : row.proposedDate(),
@@ -133,7 +138,8 @@ final class AgreementObservationSummarizer {
 
     /**
      * 1 − ΣE / ΣG over the plant's valid days in the agreement's window, and the share it registers for the
-     * supplies without a valid day, both weighted by production. Null when no valid day falls in the window.
+     * supplies without a valid day, the not-computable ones and the plant's own supply included (OBS-011), both
+     * weighted by production. Null when no valid day falls in the window.
      */
     private static UnallocatedShare unallocatedShare(Context context, ObservedAgreement agreement, LocalDate[] window) {
         if (window == null || window[1].isBefore(window[0])) {
@@ -143,7 +149,7 @@ final class AgreementObservationSummarizer {
         for (ObservedCoefficient coefficient : context.coefficients()) {
             if (coefficient.sharingAgreementId().equals(agreement.id())
                     && (context.energy().containsKey(coefficient.supplyId())
-                    || context.notComputable().contains(coefficient.supplyId()))) {
+                    || context.notCounted().contains(coefficient.supplyId()))) {
                 rowsBySupply.computeIfAbsent(coefficient.supplyId(), id -> new ArrayList<>()).add(coefficient);
             }
         }

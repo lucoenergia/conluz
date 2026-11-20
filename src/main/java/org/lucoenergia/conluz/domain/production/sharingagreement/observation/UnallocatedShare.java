@@ -5,7 +5,8 @@ package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
  * applied, next to the share the agreement registers for the supplies without data.
  *
  * @param unallocated               1 − ΣE / ΣG over the days used, weighted by production
- * @param registeredShareWithoutData the registered share of the supplies without data, weighted by production
+ * @param registeredShareWithoutData the registered share of the supplies without data and of the plant's own supply,
+ *                                  weighted by production
  * @param days                      the number of plant-valid days used
  */
 public record UnallocatedShare(double unallocated, double registeredShareWithoutData, int days) {

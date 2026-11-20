@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,9 +105,19 @@ public final class ObservedSharingCalculator {
         }
         anomalies.sort(ANOMALY_ORDER);
 
+        // The plant's own supply is never analysed, but its rows are listed, not observable (OBS-011).
+        ObservedSupply plantSupply = input.plantSupply();
+        rows.put(plantSupply.id(), resolver.notObservable(plantSupply, agreements,
+                candidates(plantSupply, agreements, coefficients)));
+        List<ObservedSupply> listed = new ArrayList<>(supplies);
+        listed.add(plantSupply);
+        listed.sort(BY_CODE);
+        Set<UUID> notCounted = new HashSet<>(notComputable);
+        notCounted.add(plantSupply.id());
+
         List<AgreementObservation> observations = new AgreementObservationSummarizer().summarize(
-                new AgreementObservationSummarizer.Context(agreements, supplies, rows, anomalies, plantValid, energy,
-                        betas, coefficients, notComputable, input.analysedTo(), input.zone()));
+                new AgreementObservationSummarizer.Context(agreements, listed, rows, anomalies, plantValid, energy,
+                        betas, coefficients, notCounted, input.analysedTo(), input.zone()));
         return new PlantSharingObservation(
                 new AnalysisStatus(true, null, input.analysedFrom(), input.analysedTo(), withData, withoutData,
                         notComputableSupplies),

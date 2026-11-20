@@ -14,8 +14,8 @@ public class UnallocatedShareResponse {
             "plant's daily production", example = "0.0565")
     private final double unallocated;
 
-    @Schema(description = "The share the agreement registers for the supplies without data on each day, on a 0-1 " +
-            "scale, weighted by the plant's daily production", example = "0.0533")
+    @Schema(description = "The share the agreement registers for the supplies without data and for the plant's own " +
+            "supply on each day, on a 0-1 scale, weighted by the plant's daily production", example = "0.0565")
     private final double registeredShareWithoutData;
 
     @Schema(description = "Number of the plant's valid days the figures rest on", example = "184")
