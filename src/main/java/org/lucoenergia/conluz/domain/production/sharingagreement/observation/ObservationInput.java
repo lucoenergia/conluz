@@ -13,7 +13,7 @@ import java.util.UUID;
  *
  * @param zone                   the zone the local days are read in
  * @param peakPowerKWp           the plant's peak power
- * @param plantSupplyId          the plant's own supply, never analysed as a consumer
+ * @param plantSupply            the plant's own supply, never analysed as a consumer
  * @param analysedFrom           the first local day analysed, or null when the plant supply has no data
  * @param analysedTo             the last local day analysed, or null when the plant supply has no data
  * @param plantDays              the plant supply's days inside the range
@@ -23,8 +23,8 @@ import java.util.UUID;
  * @param agreements             the plant's agreements, DRAFT ones included; they are filtered here
  * @param coefficients           every coefficient row of the plant, of every agreement
  */
-public record ObservationInput(ZoneId zone, double peakPowerKWp, UUID plantSupplyId, LocalDate analysedFrom,
-                               LocalDate analysedTo, List<PlantDailyEnergy> plantDays,
+public record ObservationInput(ZoneId zone, double peakPowerKWp, ObservedSupply plantSupply,
+                               LocalDate analysedFrom, LocalDate analysedTo, List<PlantDailyEnergy> plantDays,
                                List<ObservedSupply> supplies, Map<UUID, List<SupplyDailyEnergy>> supplyDays,
                                List<ObservedSupply> notComputableSupplies, List<ObservedAgreement> agreements,
                                List<ObservedCoefficient> coefficients) {

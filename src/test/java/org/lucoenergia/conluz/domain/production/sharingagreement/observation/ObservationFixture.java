@@ -28,7 +28,7 @@ final class ObservationFixture {
 
     private final LocalDate from;
     private final LocalDate to;
-    private final UUID plantSupplyId = UUID.randomUUID();
+    private final ObservedSupply plantSupply = new ObservedSupply(UUID.randomUUID(), "PLANT", "Plant supply");
     private double peakPowerKWp = 100;
     private int consecutiveDays = 3;
     private final TreeMap<LocalDate, Double> production = new TreeMap<>();
@@ -77,10 +77,9 @@ final class ObservationFixture {
     }
 
     ObservedSupply plantSupply() {
-        ObservedSupply supply = new ObservedSupply(plantSupplyId, "PLANT", "Plant supply");
-        supplies.add(supply);
-        betas.put(supply.id(), new TreeMap<>());
-        return supply;
+        supplies.add(plantSupply);
+        betas.put(plantSupply.id(), new TreeMap<>());
+        return plantSupply;
     }
 
     ObservedSupply notComputableSupply(String code) {
@@ -161,7 +160,7 @@ final class ObservationFixture {
                     supplyHours.getOrDefault(supplyId, Map.of()).getOrDefault(day, hoursOf(day)))));
             supplyDays.put(supplyId, days);
         });
-        return new ObservationInput(ZONE, peakPowerKWp, plantSupplyId,
+        return new ObservationInput(ZONE, peakPowerKWp, plantSupply,
                 plantWithoutData ? null : from, plantWithoutData ? null : to,
                 plantWithoutData ? List.of() : plantDays, supplies, supplyDays, notComputable, agreements,
                 coefficients);

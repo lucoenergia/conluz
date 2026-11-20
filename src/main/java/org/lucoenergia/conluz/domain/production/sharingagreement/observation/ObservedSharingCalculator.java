@@ -60,12 +60,12 @@ public final class ObservedSharingCalculator {
                 .map(ObservedSupply::id)
                 .collect(Collectors.toSet());
         List<ObservedSupply> notComputableSupplies = input.notComputableSupplies().stream()
-                .filter(supply -> !supply.id().equals(input.plantSupplyId()))
+                .filter(supply -> !supply.id().equals(input.plantSupply().id()))
                 .sorted(BY_CODE)
                 .toList();
         // The plant's own supply is never a consumer (PLT-002).
         List<ObservedSupply> supplies = input.supplies().stream()
-                .filter(supply -> !supply.id().equals(input.plantSupplyId()) && !notComputable.contains(supply.id()))
+                .filter(supply -> !supply.id().equals(input.plantSupply().id()) && !notComputable.contains(supply.id()))
                 .sorted(BY_CODE)
                 .toList();
 
