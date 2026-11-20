@@ -43,7 +43,7 @@ jobs:
 
     - name: Publish test report
       if: ${{ !cancelled() }}
-      uses: mikepenz/action-junit-report@a9170d5795813c01ab4901ffb045b52bab4ab09d # v6.5.0
+      uses: mikepenz/action-junit-report@a16be3a69023e9bd7e748ede768b3282ea7b30ce # v6.7.1
       with:
         report_paths: 'build/test-results/test/*.xml'
         annotate_only: true
