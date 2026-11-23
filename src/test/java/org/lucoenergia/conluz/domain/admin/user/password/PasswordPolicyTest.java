@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.admin.user.password;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -19,21 +20,25 @@ class PasswordPolicyTest {
     private static final String E_ACUTE = "é";
 
     @Test
+    @DisplayName("ACC-021 nine code points are too short")
     void nineCodePointsAreTooShort() {
         assertRule(PasswordPolicyViolation.TOO_SHORT, "a".repeat(9));
     }
 
     @Test
-    void fifteenCodePointsAreAccepted() {
-        assertDoesNotThrow(() -> PasswordPolicy.check("a".repeat(15)));
+    @DisplayName("ACC-021 ten code points are accepted")
+    void tenCodePointsAreAccepted() {
+        assertDoesNotThrow(() -> PasswordPolicy.check("a".repeat(10)));
     }
 
     @Test
+    @DisplayName("ACC-021 sixty-four code points are accepted")
     void sixtyFourCodePointsAreAccepted() {
         assertDoesNotThrow(() -> PasswordPolicy.check("a".repeat(64)));
     }
 
     @Test
+    @DisplayName("ACC-021 sixty-five code points are too long")
     void sixtyFiveCodePointsAreTooLong() {
         assertRule(PasswordPolicyViolation.TOO_LONG, "a".repeat(65));
     }
@@ -47,6 +52,7 @@ class PasswordPolicyTest {
     }
 
     @Test
+    @DisplayName("ACC-021 more than 72 bytes within 64 code points are too many bytes")
     void seventyThreeBytesAreTooManyBytes() {
         String password = E_ACUTE.repeat(36) + "a";
         assertEquals(73, password.getBytes(StandardCharsets.UTF_8).length);
@@ -56,6 +62,7 @@ class PasswordPolicyTest {
     }
 
     @Test
+    @DisplayName("ACC-021 ten characters outside the BMP are accepted, and nine are too short")
     void lengthIsCountedInCodePointsNotInJavaChars() {
         // 9 code points but 18 Java chars: counting chars would wrongly accept it
         assertRule(PasswordPolicyViolation.TOO_SHORT, EMOJI.repeat(9));
@@ -70,11 +77,13 @@ class PasswordPolicyTest {
     }
 
     @Test
+    @DisplayName("ACC-021 too long is reported before too many bytes")
     void tooLongIsReportedBeforeTooManyBytes() {
         assertRule(PasswordPolicyViolation.TOO_LONG, "a".repeat(73));
     }
 
     @Test
+    @DisplayName("ACC-021 the value is never transformed: surrounding spaces count")
     void surroundingSpacesAreNotTrimmed() {
         // 8 visible characters: trimming would make it too short
         assertDoesNotThrow(() -> PasswordPolicy.check(" " + "a".repeat(8) + " "));
@@ -82,8 +91,9 @@ class PasswordPolicyTest {
     }
 
     @Test
+    @DisplayName("ACC-021 any character is accepted: ten spaces are a password")
     void onlySpacesAreAcceptedWhenLongEnough() {
-        assertDoesNotThrow(() -> PasswordPolicy.check(" ".repeat(15)));
+        assertDoesNotThrow(() -> PasswordPolicy.check(" ".repeat(10)));
     }
 
     @Test
@@ -94,6 +104,7 @@ class PasswordPolicyTest {
 
     @ParameterizedTest
     @NullAndEmptySource
+    @DisplayName("ACC-021 an absent password is too short")
     void absentPasswordsAreTooShort(String password) {
         assertRule(PasswordPolicyViolation.TOO_SHORT, password);
     }

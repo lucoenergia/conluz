@@ -196,6 +196,25 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
     }
 
     @Test
+    @DisplayName("ACC-021 resetPassword refuses a new password of 9 code points as too short, and accepts one of 10")
+    void aNewPasswordOf9CodePoints_isTooShort_andOneOf10IsAccepted() throws Exception {
+        User user = newUser();
+        String token = issueDirectly(user);
+        Map<String, Object> before = userRow(user);
+        String nine = UUID.randomUUID().toString().replace("-", "").substring(0, 9);
+        String ten = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+
+        reset(token, nine)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
+        assertThat(userRow(user)).isEqualTo(before);
+
+        reset(token, ten).andExpect(status().isNoContent());
+        login(user.getPersonalId(), ten).andExpect(status().isOk());
+    }
+
+    @Test
     void aUserThrottledForFailedLogins_canLogInAtOnceAfterAReset() throws Exception {
         User user = newUser();
         for (int i = 0; i < 5; i++) {
