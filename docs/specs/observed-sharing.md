@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #607 |
+| **Last reviewed against code** | #611 |
 
 ## Purpose
 
@@ -219,6 +219,33 @@ observes: it never writes, and never proposes a coefficient.
   without stored dates.
 - **Source:** #607, PLT-002
 
+### OBS-012 — Every anomaly reports the expected β it departs from
+
+- **Status:** Active
+- **Rule:** Every anomaly MUST report its expected β: the supply's registered value in the agreement the anomaly is
+  attributed to (OBS-004), or 0 when the supply holds no row in it. It MUST be null when the anomaly has no
+  attributed agreement. For `APPLIED_BEFORE_SENT` it MUST be the supply's value in the late-sent agreement it is
+  attributed to. It MUST be on the 0-1 scale, rounded half-up to 6 decimals, and MUST NOT change any status, date,
+  anomaly, recommendation, observed β or 1 − Σβ.
+- **Rationale:** An admin must compare what the supply received with what it should have received before acting on
+  an anomaly or claiming to the distributor; the expected β is read next to the observed β of OBS-009. It is the
+  registered value, never a proposal (OBS-005). A `REVERTED` anomaly expects the later agreement's value, since the
+  value it reverts to is what the supply received. An `APPLIED_BEFORE_SENT` anomaly is about a date: its expected β
+  matching its observed β shows that the value was right. Nothing is expected of a supply when no agreement was in
+  force for it, so an unattributed anomaly has none, rather than a 0 that no agreement states.
+- **Source:** #611, OBS-004, OBS-009
+
+### OBS-013 — Every row reports the plant-valid days of its row window
+
+- **Status:** Active
+- **Rule:** Every coefficient row and every leaving row MUST report the number of plant-valid days in its row window,
+  0 when it has none. A row without an observed date, a `NOT_OBSERVABLE` row (OBS-011) included, counts them over the
+  whole applied window. It MUST NOT change anything else.
+- **Rationale:** A supply's valid days (OBS-009) only show a data gap next to the days it could have had. The row
+  window differs per row, so the agreement's window days are the wrong denominator for any row observed on another
+  date than the agreement's, and only the analysis has the plant's valid days to count them.
+- **Source:** #611, OBS-009, OBS-011
+
 ## Impossible states
 
 - An open leaving date — prevented by OBS-008: a leaving is observed only after a previous observation, so a valid
@@ -234,6 +261,9 @@ observes: it never writes, and never proposes a coefficient.
   own supply has no timeline.
 - An anomaly with a null observed β — prevented by OBS-004: every anomaly starts on a valid day of its supply, which
   is one of its own valid days.
+- An unattributed anomaly with a non-null expected β — prevented by OBS-012.
+- A row whose observed valid days exceed its window days — prevented by OBS-001 and OBS-013: a supply's valid days
+  are plant-valid days, and both are counted over the same row window.
 
 ## Accepted exceptions
 
