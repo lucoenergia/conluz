@@ -15,7 +15,8 @@ import java.util.UUID;
  * was observed applied for it.
  */
 @Schema(requiredProperties = {"supply", "previousSharingAgreement", "previousCoefficientId", "previousCoefficient",
-        "observedLeavingDate", "storedValidTo", "status", "proposedDate", "observedBeta", "observedValidDays"})
+        "observedLeavingDate", "storedValidTo", "status", "proposedDate", "observedBeta", "observedValidDays",
+        "windowDays"})
 public class LeavingObservationResponse {
 
     @Schema(description = "Supply leaving the distribution")
@@ -61,6 +62,13 @@ public class LeavingObservationResponse {
     @Schema(description = "Number of valid days the observed β rests on. 0 when it is null.", example = "184")
     private final int observedValidDays;
 
+    @Schema(description = "Number of plant-valid days in the row's window: from its observed leaving date (the " +
+            "latest day of a range or of an open date), or from the start of the agreement's applied window when " +
+            "it has none, to the end of the agreement's applied window. The days observedValidDays is counted " +
+            "over, so never less than it. 0 when the agreement has no applied window or the row's start falls " +
+            "after its end.", example = "335")
+    private final int windowDays;
+
     public LeavingObservationResponse(LeavingObservation row) {
         this.supply = new SupplyReferenceResponse(row.supply().id(), row.supply().code(), row.supply().name());
         this.previousSharingAgreement = new SharingAgreementReferenceResponse(row.previousAgreement().id(),
@@ -73,6 +81,7 @@ public class LeavingObservationResponse {
         this.proposedDate = ObservedDateResponse.of(row.proposedDate());
         this.observedBeta = row.observedBeta().value();
         this.observedValidDays = row.observedBeta().validDays();
+        this.windowDays = row.windowDays();
     }
 
     public SupplyReferenceResponse getSupply() {
@@ -113,5 +122,9 @@ public class LeavingObservationResponse {
 
     public int getObservedValidDays() {
         return observedValidDays;
+    }
+
+    public int getWindowDays() {
+        return windowDays;
     }
 }
