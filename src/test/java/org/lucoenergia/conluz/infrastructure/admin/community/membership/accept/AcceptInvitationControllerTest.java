@@ -130,6 +130,27 @@ class AcceptInvitationControllerTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
+    @DisplayName("ACC-022 acceptInvitation refuses a compromised password, changes nothing, and the same link then "
+            + "accepts another")
+    void aCompromisedPassword_isRefused_andTheSameLinkAcceptsAnother() throws Exception {
+        InvitedMember member = invitedMember();
+        Map<String, Object> accountBefore = accountRow(member.personalId());
+        String compromised = "lucoenergia1";
+        remember(compromised);
+
+        accept(member.token(), compromised, "192.0.2.27")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+        assertThat(accountRow(member.personalId())).isEqualTo(accountBefore);
+        assertThat(acceptedAt(member.personalId(), member.community().getId())).isNull();
+
+        String valid = newPassword();
+        accept(member.token(), valid, "192.0.2.27").andExpect(status().isNoContent());
+        login(member.personalId(), valid).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("ACC-007 a passwordless account without an email takes the accepted record's contact email")
     void anAccountWithoutAnEmail_takesTheContactEmailOfTheAcceptedRecord() throws Exception {
         Community first = newCommunity();

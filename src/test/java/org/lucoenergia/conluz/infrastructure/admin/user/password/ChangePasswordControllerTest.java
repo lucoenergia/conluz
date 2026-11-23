@@ -146,6 +146,20 @@ class ChangePasswordControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-022 changePassword refuses a compromised new password, changes nothing, and the old one still "
+            + "logs in")
+    void aCompromisedNewPassword_isRefused() throws Exception {
+        User user = createFlaggedUser();
+        String token = login(user.getPersonalId(), user.getPassword());
+
+        expectPolicyViolation(changePassword(token, user.getPassword(), "lucoenergia1"), "COMPROMISED");
+
+        getCurrentUser(token).andExpect(status().isOk());
+        login(user.getPersonalId(), user.getPassword());
+        loginExpectingStatus(user.getPersonalId(), "lucoenergia1", 401);
+    }
+
+    @Test
     @DisplayName("ACC-021 changePassword accepts a new password of 10 code points, which then logs in")
     void newPasswordOf10CodePoints_isAccepted() throws Exception {
         User user = createFlaggedUser();

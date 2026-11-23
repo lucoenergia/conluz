@@ -72,6 +72,21 @@ class InitControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-022 init refuses a compromised password, stores nothing, and can then be run with another")
+    void aCompromisedPassword_isRefused_andNothingIsStored() throws Exception {
+        allowInitialisationAgain();
+
+        postInit(objectMapper.writeValueAsString(bodyWith("33600012W", "lucoenergia1")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+
+        Assertions.assertFalse(getUserRepository.existsByPersonalId(UserPersonalId.of("33600012W")));
+        postInit(objectMapper.writeValueAsString(bodyWith("33600012W", "Rv3kq9wzLm-init")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("ACC-004 a default admin without a password is refused, and nothing is stored")
     void aDefaultAdminWithoutAPassword_isRefused_andNothingIsStored() throws Exception {
         allowInitialisationAgain();

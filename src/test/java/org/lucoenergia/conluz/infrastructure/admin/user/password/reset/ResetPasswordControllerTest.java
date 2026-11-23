@@ -215,6 +215,25 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
     }
 
     @Test
+    @DisplayName("ACC-022 resetPassword refuses a compromised new password, changes nothing, and the same link then "
+            + "accepts another")
+    void aCompromisedNewPassword_isRefused_andTheSameLinkAcceptsAnother() throws Exception {
+        User user = newUser();
+        String token = issueDirectly(user);
+        Map<String, Object> before = userRow(user);
+        String valid = "reset-" + UUID.randomUUID();
+
+        reset(token, "lucoenergia1")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+        assertThat(userRow(user)).isEqualTo(before);
+
+        reset(token, valid).andExpect(status().isNoContent());
+        login(user.getPersonalId(), valid).andExpect(status().isOk());
+    }
+
+    @Test
     void aUserThrottledForFailedLogins_canLogInAtOnceAfterAReset() throws Exception {
         User user = newUser();
         for (int i = 0; i < 5; i++) {
