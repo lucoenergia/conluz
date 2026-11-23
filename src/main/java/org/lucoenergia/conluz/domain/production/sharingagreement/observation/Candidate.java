@@ -1,5 +1,7 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 /**
@@ -22,6 +24,16 @@ record Candidate(UUID sharingAgreementId, ObservedCoefficient row, double value,
 
     static Candidate implicitZero(UUID sharingAgreementId, int rank) {
         return new Candidate(sharingAgreementId, null, 0d, rank);
+    }
+
+    /**
+     * The supply's registered value in the agreement: the row's coefficient, or 0 for the implicit 0, on the scale
+     * of an observed β.
+     */
+    BigDecimal registeredValue() {
+        return isImplicitZero()
+                ? BigDecimal.ZERO.setScale(ObservedBeta.SCALE)
+                : row.coefficient().setScale(ObservedBeta.SCALE, RoundingMode.HALF_UP);
     }
 
     boolean isImplicitZero() {

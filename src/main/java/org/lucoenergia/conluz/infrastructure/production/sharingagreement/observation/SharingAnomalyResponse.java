@@ -12,7 +12,8 @@ import java.util.UUID;
 /**
  * A sustained disagreement between what the distributor applies to a supply and the registered agreements.
  */
-@Schema(requiredProperties = {"id", "supply", "type", "start", "end", "observedBeta", "observedValidDays"})
+@Schema(requiredProperties = {"id", "supply", "type", "start", "end", "observedBeta", "observedValidDays",
+        "expectedBeta"})
 public class SharingAnomalyResponse {
 
     @Schema(description = "Identifier derived from the supply, the type and the first anomalous day: the same " +
@@ -41,6 +42,14 @@ public class SharingAnomalyResponse {
     @Schema(description = "Number of valid days the observed β rests on", example = "5")
     private final int observedValidDays;
 
+    @Schema(description = "The supply's registered coefficient in the agreement the anomaly is attributed to, or 0 " +
+            "when the supply holds no row in it; for APPLIED_BEFORE_SENT, its value in the agreement sent late. " +
+            "The value the supply should have received, to read next to observedBeta. On a 0-1 scale, rounded " +
+            "half-up to 6 decimals. Null when the anomaly is attributed to no agreement.",
+            example = "0.031500",
+            types = {"number", "null"})
+    private final BigDecimal expectedBeta;
+
     public SharingAnomalyResponse(SharingAnomaly anomaly) {
         this.id = anomaly.id();
         this.supply = new SupplyReferenceResponse(anomaly.supply().id(), anomaly.supply().code(),
@@ -50,6 +59,7 @@ public class SharingAnomalyResponse {
         this.end = anomaly.end();
         this.observedBeta = anomaly.observedBeta().value();
         this.observedValidDays = anomaly.observedBeta().validDays();
+        this.expectedBeta = anomaly.expectedBeta();
     }
 
     public UUID getId() {
@@ -78,5 +88,9 @@ public class SharingAnomalyResponse {
 
     public int getObservedValidDays() {
         return observedValidDays;
+    }
+
+    public BigDecimal getExpectedBeta() {
+        return expectedBeta;
     }
 }

@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -11,7 +12,10 @@ import java.util.UUID;
  * @param end                  its last day, or null when it lasts until the end of the data
  * @param attributedAgreementId the agreement it is attributed to, or null
  * @param observedBeta         what the supply received over the anomaly's valid days
+ * @param expectedBeta         the supply's registered value in the attributed agreement, 0 when it holds no row
+ *                             there, null when unattributed
  */
 public record SharingAnomaly(UUID id, ObservedSupply supply, SharingAnomalyType type, ObservedDate start,
-                             LocalDate end, UUID attributedAgreementId, ObservedBeta observedBeta) {
+                             LocalDate end, UUID attributedAgreementId, ObservedBeta observedBeta,
+                             BigDecimal expectedBeta) {
 }

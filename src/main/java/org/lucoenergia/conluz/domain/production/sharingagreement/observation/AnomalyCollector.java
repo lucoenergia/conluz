@@ -88,7 +88,8 @@ final class AnomalyCollector {
     private static SharingAnomaly anomaly(ObservedSupply supply, SupplyTimeline timeline, SharingAnomalyType type,
                                           ObservedDate start, LocalDate end, Candidate attributed) {
         return new SharingAnomaly(idOf(supply.id(), type, start.to()), supply, type, start, end,
-                attributed == null ? null : attributed.sharingAgreementId(), observedBeta(timeline, start.to(), end));
+                attributed == null ? null : attributed.sharingAgreementId(), observedBeta(timeline, start.to(), end),
+                attributed == null ? null : attributed.registeredValue());
     }
 
     /**

@@ -5580,6 +5580,14 @@
               "null"
             ]
           },
+          "expectedBeta" : {
+            "description" : "The supply's registered coefficient in the agreement the anomaly is attributed to, or 0 when the supply holds no row in it; for APPLIED_BEFORE_SENT, its value in the agreement sent late. The value the supply should have received, to read next to observedBeta. On a 0-1 scale, rounded half-up to 6 decimals. Null when the anomaly is attributed to no agreement.",
+            "example" : 0.0315,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
           "id" : {
             "description" : "Identifier derived from the supply, the type and the first anomalous day: the same anomaly keeps it from one read to the next",
             "example" : "5f0c2d4e-8a1b-3c9d-9e7f-1a2b3c4d5e6f",
@@ -5620,6 +5628,7 @@
         },
         "required" : [
           "end",
+          "expectedBeta",
           "id",
           "observedBeta",
           "observedValidDays",
