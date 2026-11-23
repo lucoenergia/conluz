@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.community.membership.payback;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
 import org.springframework.test.web.servlet.MvcResult;
@@ -101,20 +102,22 @@ class GetMembershipPaybackControllerApiDocsTest extends BaseControllerTest {
     }
 
     /**
-     * AC10 (#315). savedEur prices the energy term before taxes, consistently with energy-metrics;
-     * neither the operation nor the field may claim otherwise.
+     * AC10 (#315), changed by #610. savedEur prices the energy term with the electricity tax and VAT,
+     * consistently with energy-metrics; neither the operation nor the field may still claim it is
+     * priced before taxes.
      */
     @Test
-    void describesSavedEurAsTheEnergyTermBeforeTaxes() throws Exception {
+    @DisplayName("TRF-001 savedEur is described as the energy term with electricity tax and VAT")
+    void describesSavedEurAsTheEnergyTermWithElectricityTaxAndVat() throws Exception {
         String operationDescription = operation(PAYBACK_PATH, "get").path("description").asText();
         String savedEurDescription = schema(SCHEMA).path("properties").path("savedEur")
                 .path("description").asText();
 
         for (String description : List.of(operationDescription, savedEurDescription)) {
-            assertTrue(!description.toLowerCase().contains("taxes included"),
-                    () -> "still claims taxes are included: " + description);
-            assertTrue(description.contains("energy term before taxes"),
-                    () -> "does not state the energy term before taxes: " + description);
+            assertTrue(!description.contains("energy term before taxes"),
+                    () -> "still claims the energy term before taxes: " + description);
+            assertTrue(description.contains("energy term with electricity tax and VAT"),
+                    () -> "does not state the energy term with electricity tax and VAT: " + description);
         }
     }
 

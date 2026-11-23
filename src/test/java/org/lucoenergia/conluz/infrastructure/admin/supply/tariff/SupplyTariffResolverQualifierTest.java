@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.DateRange;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.SupplyTariffResolver;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSchedule;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TaxRatePeriods;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,8 +47,11 @@ class SupplyTariffResolverQualifierTest {
          */
         @Bean
         EstimatedSupplyTariffResolver resolverUnderANonMatchingBeanName() {
+            TaxRatePeriods noTax = new TaxRatePeriods(List.of(), BigDecimal.ZERO);
             return new EstimatedSupplyTariffResolver(
-                    new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO));
+                    new EstimatedTariffProperties(new BigDecimal("0.15"),
+                            new EstimatedTariffProperties.Taxes(BigDecimal.ZERO, BigDecimal.ZERO, List.of(), List.of())),
+                    new EstimatedTaxRates(noTax, noTax));
         }
 
         /**

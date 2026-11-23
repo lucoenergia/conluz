@@ -90,7 +90,7 @@ public class GetMembershipDailyConsumptionController {
                     The energy figures add up only the supplies with data that day; a day on which
                     no supply has data reports zero energy. `savingsEur` is an
                     **estimate** of what the day's self-consumed energy was worth, pricing the
-                    **energy term before taxes** only, exactly as the per-supply series does. It is
+                    **energy term with electricity tax and VAT**, exactly as the per-supply series does. It is
                     `null` when no supply has data that day (`suppliesWithData` is 0), and only
                     then: a day without data is a different statement from a day that saved
                     nothing, which reports `0.00` -- as does a day whose published self-consumption

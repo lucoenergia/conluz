@@ -5,11 +5,11 @@ import java.util.Objects;
 
 /**
  * Immutable value object binding a {@link TariffPlan} to a specific
- * {@link DateRange}, together with the VAT rate that applies and the
- * {@link TariffSource} indicating whether the data is real or estimated.
+ * {@link DateRange}, together with the electricity tax and VAT rates that apply
+ * and the {@link TariffSource} indicating whether the data is real or estimated.
  *
  * <p>It is the building block of a {@link TariffSchedule}: a schedule is a
- * sequence of these segments, each answering "which plan, at which VAT, from
+ * sequence of these segments, each answering "which plan, at which taxes, from
  * which source, over which dates".
  */
 public class TariffSegment {
@@ -21,12 +21,20 @@ public class TariffSegment {
      * percentage: {@code 0.21} is 21%, and {@code 0} means no VAT.
      */
     private final BigDecimal vatRate;
+    /**
+     * Electricity tax rate (Impuesto Especial sobre la Electricidad) applied on the plan's price per
+     * kWh before VAT, as a fraction rather than a percentage: {@code 0.0511269632} is 5.11269632%, and
+     * {@code 0} means no electricity tax.
+     */
+    private final BigDecimal electricityTaxRate;
     private final TariffSource source;
 
-    public TariffSegment(DateRange range, TariffPlan plan, BigDecimal vatRate, TariffSource source) {
+    public TariffSegment(DateRange range, TariffPlan plan, BigDecimal vatRate, BigDecimal electricityTaxRate,
+                         TariffSource source) {
         this.range = range;
         this.plan = plan;
         this.vatRate = vatRate;
+        this.electricityTaxRate = electricityTaxRate;
         this.source = source;
     }
 
@@ -42,6 +50,10 @@ public class TariffSegment {
         return vatRate;
     }
 
+    public BigDecimal getElectricityTaxRate() {
+        return electricityTaxRate;
+    }
+
     public TariffSource getSource() {
         return source;
     }
@@ -54,12 +66,13 @@ public class TariffSegment {
         return Objects.equals(range, that.range)
                 && Objects.equals(plan, that.plan)
                 && Objects.equals(vatRate, that.vatRate)
+                && Objects.equals(electricityTaxRate, that.electricityTaxRate)
                 && source == that.source;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(range, plan, vatRate, source);
+        return Objects.hash(range, plan, vatRate, electricityTaxRate, source);
     }
 
     @Override
@@ -68,6 +81,7 @@ public class TariffSegment {
                 "range=" + range +
                 ", plan=" + plan +
                 ", vatRate=" + vatRate +
+                ", electricityTaxRate=" + electricityTaxRate +
                 ", source=" + source +
                 '}';
     }

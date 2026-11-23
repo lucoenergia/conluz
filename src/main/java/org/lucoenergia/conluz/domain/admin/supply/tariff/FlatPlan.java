@@ -14,8 +14,8 @@ public class FlatPlan implements TariffPlan {
 
     /**
      * Energy-term price of one kWh, excluding taxes: the taxable base, not the final
-     * amount. VAT is not included here -- it is held by the {@link TariffSegment} this plan
-     * is attached to.
+     * amount. Neither the electricity tax nor VAT is included here -- both are held by the
+     * {@link TariffSegment} this plan is attached to.
      */
     private final BigDecimal pricePerKwh;
 

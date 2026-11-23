@@ -93,7 +93,7 @@ public class GetMembershipHourlyConsumptionController {
                     The energy figures add up only the supplies with data that hour; an hour in which
                     no supply has data reports zero energy. `savingsEur` is an
                     **estimate** of what the hour's self-consumed energy was worth, pricing the
-                    **energy term before taxes** only, exactly as the per-supply series does. It is
+                    **energy term with electricity tax and VAT**, exactly as the per-supply series does. It is
                     `null` when no supply has data that hour (`suppliesWithData` is 0), and only
                     then: an hour without data is a different statement from an hour that saved
                     nothing, which reports `0.00` -- as does an hour whose published self-consumption

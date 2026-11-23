@@ -525,18 +525,18 @@ class GetSupplyEnergyMetricsControllerTest extends BaseControllerTest {
     }
 
     /**
-     * The "Estimate · price before taxes" label shown next to the amount is only truthful if the
-     * amount is the self-consumed energy times that price, rounded once. With the default
-     * configuration (VAT rate 0) it must be exactly that.
+     * Under the tax-free test profile only, the amount is the self-consumed energy times the
+     * exposed estimated price, rounded once. The test profile configures no electricity tax and no
+     * VAT; in production the amount also carries both taxes (#610, TRF-001), so it is above that
+     * product and this equality does not hold there.
      *
      * <p>The self-consumption of 1.50 + 2.50 + 0.25 = 4.25 kWh is worth 4.25 x 0.15 = 0.6375, so
-     * 0.64 rounded once; rounding each hour first would give 0.23 + 0.38 + 0.04 = 0.65. If this
-     * fails, the amount is not the simple product the label implies and the label must be revisited
-     * -- a tolerance here would hide exactly that. It also fails if a non-zero VAT rate is ever
-     * configured, since the exposed price is the pre-VAT base.
+     * 0.64 rounded once; rounding each hour first would give 0.23 + 0.38 + 0.04 = 0.65. A tolerance
+     * here would hide exactly that difference. It also fails if the test profile ever configures a
+     * non-zero tax rate, since the exposed price is the base before taxes.
      */
     @Test
-    void amountEqualsSelfConsumedKWhTimesExposedPriceUnderDefaultVat() throws Exception {
+    void amountEqualsSelfConsumedKWhTimesExposedPriceUnderTheTaxFreeTestProfile() throws Exception {
         String authHeader = loginAsCommunityAdmin(DEFAULT_COMMUNITY_ID);
         Supply supply = createSupplyOwnedBy(createUserRepository.create(UserMother.randomUser()));
 

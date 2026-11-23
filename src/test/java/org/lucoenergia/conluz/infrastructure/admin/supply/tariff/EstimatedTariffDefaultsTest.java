@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.DateRange;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.FlatPlan;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TaxRatePeriod;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -31,22 +32,63 @@ class EstimatedTariffDefaultsTest {
             .withUserConfiguration(ResolverConfiguration.class);
 
     @Test
-    void theShippedDefaultsArePricedAtFifteenCentsWithoutVat() {
+    void theShippedPriceIsFifteenCentsBeforeTaxes() {
         contextRunner.run(context -> {
             assertThat(context).hasNotFailed();
 
             TariffSegment segment = context.getBean(EstimatedSupplyTariffResolver.class)
-                    .scheduleFor(ANY_SUPPLY, new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2026, 1, 1)))
+                    .scheduleFor(ANY_SUPPLY, new DateRange(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 2, 1)))
                     .getSegments()
                     .get(0);
 
             assertThat(((FlatPlan) segment.getPlan()).getPricePerKwh()).isEqualByComparingTo("0.15");
-            assertThat(segment.getVatRate()).isEqualByComparingTo(BigDecimal.ZERO);
         });
     }
 
+    @Test
+    void theShippedVatPeriodsAndDefault() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            EstimatedTaxRates rates = context.getBean(EstimatedTaxRates.class);
+
+            assertThat(rates.vat().getPeriods()).containsExactly(
+                    period("2024-01-01", "2024-03-01", "0.10"),
+                    period("2024-03-01", "2024-07-01", "0.21"),
+                    period("2024-07-01", "2025-01-01", "0.10"),
+                    period("2025-01-01", "2026-03-22", "0.21"),
+                    period("2026-03-22", "2026-06-01", "0.10"),
+                    period("2026-06-01", null, "0.21"));
+            assertThat(rates.vat().getDefaultRate()).isEqualTo(new BigDecimal("0.21"));
+        });
+    }
+
+    @Test
+    void theShippedElectricityTaxPeriodsAndDefault() {
+        contextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            EstimatedTaxRates rates = context.getBean(EstimatedTaxRates.class);
+
+            assertThat(rates.electricityTax().getPeriods()).containsExactly(
+                    period("2024-01-01", "2024-04-01", "0.025"),
+                    period("2024-04-01", "2024-07-01", "0.038"),
+                    period("2024-07-01", "2026-03-22", "0.0511269632"),
+                    period("2026-03-22", "2026-06-01", "0.005"),
+                    period("2026-06-01", null, "0.0511269632"));
+            assertThat(rates.electricityTax().getDefaultRate()).isEqualTo(new BigDecimal("0.0511269632"));
+        });
+    }
+
+    /**
+     * Exact {@code BigDecimal} equality, scale included, through the record's {@code equals}: the
+     * shipped values are pinned as written.
+     */
+    private static TaxRatePeriod period(String from, String to, String rate) {
+        return new TaxRatePeriod(LocalDate.parse(from), to == null ? null : LocalDate.parse(to),
+                new BigDecimal(rate));
+    }
+
     @Configuration(proxyBeanMethods = false)
-    @Import(EstimatedSupplyTariffResolver.class)
+    @Import({EstimatedTaxRatesConfiguration.class, EstimatedSupplyTariffResolver.class})
     static class ResolverConfiguration {
     }
 }

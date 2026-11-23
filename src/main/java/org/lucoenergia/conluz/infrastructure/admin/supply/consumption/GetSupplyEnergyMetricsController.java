@@ -98,9 +98,9 @@ public class GetSupplyEnergyMetricsController {
 
                     **Savings:**
                     `savings.amountEur` is an **estimate** of what the self-consumed energy of the period
-                    was worth. It prices the **energy term before taxes** only: the power term, access
-                    tolls, charges and electricity tax are all excluded, and VAT is applied only where the
-                    resolved tariff carries a rate. `savings.tariffSource` says where the prices came from
+                    was worth. It prices the **energy term with electricity tax and VAT**,
+                    each at the rate in force on the day the energy was consumed: the power term,
+                    access tolls and charges are excluded. `savings.tariffSource` says where the prices came from
                     -- `ESTIMATE` for a computed approximation, `REAL_TARIFF` for the supply's contracted
                     tariff -- and a single estimated stretch of the period makes the whole amount an
                     estimate.

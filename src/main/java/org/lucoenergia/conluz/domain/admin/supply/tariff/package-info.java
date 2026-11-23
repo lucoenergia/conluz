@@ -5,18 +5,27 @@
  * every implementation of {@link org.lucoenergia.conluz.domain.admin.supply.tariff.SupplyTariffResolver}
  * and every consumer of the schedules it returns.
  *
- * <h2>1. Price excludes taxes; VAT travels with the segment</h2>
+ * <h2>1. Price excludes taxes; the taxes travel with the segment</h2>
  *
  * <p>{@link org.lucoenergia.conluz.domain.admin.supply.tariff.FlatPlan#getPricePerKwh()} is the
- * energy term per kWh <em>before</em> tax -- the taxable base. VAT is never folded into it; it
- * is carried separately by each
+ * energy term per kWh <em>before</em> tax -- the taxable base. Neither the electricity tax nor VAT
+ * is ever folded into it; both are carried separately by each
  * {@link org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment}, so a rate change
- * mid-period is expressed by splitting the timeline rather than by rewriting prices.
+ * mid-period is expressed by splitting the timeline rather than by rewriting prices. A kWh is
+ * priced as {@code base * (1 + electricityTaxRate) * (1 + vatRate)}: VAT is charged on the base
+ * plus the electricity tax.
+ *
+ * <p>The rates of each tax are dated periods,
+ * {@link org.lucoenergia.conluz.domain.admin.supply.tariff.TaxRatePeriods}, applied by consumption
+ * date: the timeline is split at every boundary of either tax, and a date no period covers is
+ * priced at that tax's default rate.
  *
  * <p>The estimated price is currently <em>global</em>, not per supply point: it is configured
- * through {@code conluz.supply.tariff.estimated.*} and ships as 0.15 &euro;/kWh with a VAT rate
- * of 0. A per-supply-point price is anticipated; it lands behind the existing
- * {@code SupplyId} parameter of
+ * through {@code conluz.supply.tariff.estimated.*} and ships as 0.15 &euro;/kWh before taxes, with
+ * the electricity tax and VAT periods configured under
+ * {@code conluz.supply.tariff.estimated.taxes.*}. VAT is the reduced regime for a contracted power
+ * of 10 kW or less, applied to every supply. A per-supply-point price is anticipated; it lands
+ * behind the existing {@code SupplyId} parameter of
  * {@link org.lucoenergia.conluz.domain.admin.supply.tariff.SupplyTariffResolver#scheduleFor}
  * without changing the port.
  *
@@ -77,8 +86,8 @@
  *
  * <h2>Out of scope</h2>
  *
- * <p>This model covers the energy term and VAT only. Electricity tax, access tolls, charges,
- * the power term, surpluses and time-of-use discrimination are all deliberately absent;
+ * <p>This model covers the energy term, the electricity tax on it and VAT only. Access tolls,
+ * charges, the power term, surpluses and time-of-use discrimination are all deliberately absent;
  * {@link org.lucoenergia.conluz.domain.admin.supply.tariff.TimeOfUsePlan} is a placeholder
  * carrying no rates.
  *

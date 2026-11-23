@@ -92,3 +92,4 @@ are always called **tests**, never specs.
 | `PIP` | Inverter production of today (plant and supply) | [`plant-inverter-production.md`](plant-inverter-production.md) |
 | `SHA` | Sharing agreements | [`sharing-agreements.md`](sharing-agreements.md) |
 | `OBS` | Observed sharing of a plant's agreements | [`observed-sharing.md`](observed-sharing.md) |
+| `TRF` | Estimated tariff and its taxes | [`estimated-tariff.md`](estimated-tariff.md) |

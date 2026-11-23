@@ -10,8 +10,8 @@ import java.util.Objects;
  * Immutable value object holding what a supply's self-consumed energy was worth over a resolved
  * period, together with the origin of the prices it was computed from.
  *
- * <p>The amount is the energy term before tax multiplied by the segment's VAT factor, summed over
- * the tariff segments covering the period. It is unrounded here: rounding is a presentational
+ * <p>The amount is the energy term before tax multiplied by the segment's electricity tax factor
+ * and then by its VAT factor, summed over the tariff segments covering the period. It is unrounded here: rounding is a presentational
  * concern and happens once, where the response is built, so a period cut into several segments is
  * not rounded once per segment.
  *

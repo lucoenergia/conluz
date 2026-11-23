@@ -83,9 +83,9 @@ public class GetSupplyMonthlyConsumptionController {
                     15th returns that month's first half.
 
                     **Savings:** `savingsEur` is an **estimate** of what the bucket's self-consumed
-                    energy was worth. It prices the **energy term before taxes** only: the power
-                    term, access tolls, charges and electricity tax are all excluded, and VAT is
-                    applied only where the resolved tariff carries a rate. `tariffSource` says where
+                    energy was worth. It prices the **energy term with electricity tax and VAT**,
+                    each at the rate in force on the day the energy was consumed: the power term,
+                    access tolls and charges are excluded. `tariffSource` says where
                     the prices came from -- `ESTIMATE` for a computed approximation, `REAL_TARIFF`
                     for the supply's contracted tariff -- and a single estimated stretch of the
                     bucket makes the whole amount an estimate. A month whose published

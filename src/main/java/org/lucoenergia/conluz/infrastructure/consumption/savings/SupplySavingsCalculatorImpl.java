@@ -90,7 +90,7 @@ public class SupplySavingsCalculatorImpl implements SupplySavingsCalculator {
             double kWh = singleSegment && knownTotalSelfConsumptionKWh != null
                     ? knownTotalSelfConsumptionKWh
                     : selfConsumptionOf(segment, supply, from, toExclusive, zone);
-            amount = amount.add(pricePerKwhIncludingVat(segment).multiply(BigDecimal.valueOf(kWh)));
+            amount = amount.add(pricePerKwhIncludingTaxes(segment).multiply(BigDecimal.valueOf(kWh)));
         }
 
         TariffSource source = aggregateSourceOf(schedule);
@@ -109,7 +109,7 @@ public class SupplySavingsCalculatorImpl implements SupplySavingsCalculator {
      * priced with another one.
      *
      * <p>It is the energy-term price before taxes -- the plan's taxable base, without the
-     * segment's VAT factor.
+     * segment's electricity tax and VAT factors.
      */
     private EstimatedPrice estimatedPriceFor(TariffSource source) {
         return source == TariffSource.ESTIMATE
@@ -151,15 +151,18 @@ public class SupplySavingsCalculatorImpl implements SupplySavingsCalculator {
     }
 
     /**
-     * The price a kWh consumed under this segment saved, taxes included. The plan's price is the
-     * taxable base and VAT travels with the segment, so the two are multiplied here rather than
-     * being folded into the plan.
+     * The price a kWh consumed under this segment saved, electricity tax and VAT included. The plan's
+     * price is the taxable base and both taxes travel with the segment, so they are applied here rather
+     * than being folded into the plan: the electricity tax on the base first, then VAT on the base plus
+     * the electricity tax, as an electricity bill charges them.
      */
-    private BigDecimal pricePerKwhIncludingVat(TariffSegment segment) {
+    private BigDecimal pricePerKwhIncludingTaxes(TariffSegment segment) {
         if (!(segment.getPlan() instanceof FlatPlan flatPlan)) {
             throw new UnsupportedTariffPlanException(segment.getPlan().getClass());
         }
-        return flatPlan.getPricePerKwh().multiply(BigDecimal.ONE.add(segment.getVatRate()));
+        return flatPlan.getPricePerKwh()
+                .multiply(BigDecimal.ONE.add(segment.getElectricityTaxRate()))
+                .multiply(BigDecimal.ONE.add(segment.getVatRate()));
     }
 
     /**

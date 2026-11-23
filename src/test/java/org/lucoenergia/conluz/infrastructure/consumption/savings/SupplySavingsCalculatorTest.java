@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.consumption.savings;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
@@ -59,7 +60,8 @@ class SupplySavingsCalculatorTest {
      * in production, where the estimated resolver builds its segments from this same value.
      */
     private static final EstimatedTariffProperties CONFIGURED_ESTIMATE =
-            new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO);
+            new EstimatedTariffProperties(new BigDecimal("0.15"),
+                    new EstimatedTariffProperties.Taxes(BigDecimal.ZERO, BigDecimal.ZERO, List.of(), List.of()));
 
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =
             mock(GetDatadisConsumptionAggregateRepository.class);
@@ -227,7 +229,7 @@ class SupplySavingsCalculatorTest {
     void vatIsAppliedOnTopOfTheEnergyTerm() {
         givenSegments(new TariffSegment(
                 new DateRange(LocalDate.parse("2024-02-01"), LocalDate.parse("2024-02-02")),
-                TariffPlan.flat(new BigDecimal("0.10")), new BigDecimal("0.21"), TariffSource.ESTIMATE));
+                TariffPlan.flat(new BigDecimal("0.10")), new BigDecimal("0.21"), BigDecimal.ZERO, TariffSource.ESTIMATE));
 
         SupplySavings savings = calculator.estimate(supply,
                 madrid("2024-02-01T00:00+01:00"), madrid("2024-02-02T00:00+01:00"), 100d);
@@ -235,6 +237,55 @@ class SupplySavingsCalculatorTest {
         // 100 kWh * 0.10 * 1.21 = 12.10
         assertEquals(0, new BigDecimal("12.10").compareTo(savings.getAmountEur()),
                 () -> "amount was " + savings.getAmountEur());
+    }
+
+    @Test
+    @DisplayName("TRF-001 the electricity tax is applied on the energy term, then VAT on both")
+    void electricityTaxIsAppliedBeforeVat() {
+        givenSegments(taxedSegment("2024-02-15", "2024-02-16", "0.10", "0.025"));
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2024-02-15T00:00+01:00"), madrid("2024-02-16T00:00+01:00"), 10d);
+
+        // 10 kWh * 0.15 * 1.025 * 1.10 = 1.69125, unrounded. VAT on the base alone would give
+        // 1.6875 (10 * 0.15 * 1.125), and VAT without the electricity tax 1.65.
+        assertEquals(0, new BigDecimal("1.69125").compareTo(savings.getAmountEur()),
+                () -> "amount was " + savings.getAmountEur());
+    }
+
+    @Test
+    @DisplayName("TRF-001 each segment is priced with its own electricity tax and VAT")
+    void eachSegmentIsPricedWithItsOwnTaxes() {
+        givenSegments(
+                taxedSegment("2026-03-21", "2026-03-22", "0.21", "0.0511269632"),
+                taxedSegment("2026-03-22", "2026-03-23", "0.10", "0.005"));
+        when(aggregateRepository.sumSelfConsumptionKWh(any(Supply.class),
+                eq(madrid("2026-03-21T00:00+01:00")), eq(madrid("2026-03-22T00:00+01:00"))))
+                .thenReturn(4d);
+        when(aggregateRepository.sumSelfConsumptionKWh(any(Supply.class),
+                eq(madrid("2026-03-22T00:00+01:00")), eq(madrid("2026-03-23T00:00+01:00"))))
+                .thenReturn(8d);
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2026-03-21T00:00+01:00"), madrid("2026-03-23T00:00+01:00"));
+
+        // 4 * 0.15 * 1.0511269632 * 1.21 + 8 * 0.15 * 1.005 * 1.10
+        //   = 0.7631181752832 + 1.3266 = 2.0897181752832
+        assertEquals(0, new BigDecimal("2.0897181752832").compareTo(savings.getAmountEur()),
+                () -> "amount was " + savings.getAmountEur());
+    }
+
+    @Test
+    @DisplayName("TRF-005 the estimated price reported is the configured base, before taxes")
+    void theEstimatedPriceIsTheBaseBeforeTaxes() {
+        givenSegments(taxedSegment("2024-02-15", "2024-02-16", "0.10", "0.025"));
+
+        SupplySavings savings = calculator.estimate(supply,
+                madrid("2024-02-15T00:00+01:00"), madrid("2024-02-16T00:00+01:00"), 10d);
+
+        // The amount carries both taxes, the price it reports does not.
+        assertEquals(0, new BigDecimal("1.69125").compareTo(savings.getAmountEur()));
+        assertEquals(EstimatedPrice.of(new BigDecimal("0.15")), savings.getEstimatedPrice());
     }
 
     @Test
@@ -346,7 +397,7 @@ class SupplySavingsCalculatorTest {
     void aPlanThatCannotBePricedIsRejectedRatherThanSilentlySkipped() {
         givenSegments(new TariffSegment(
                 new DateRange(LocalDate.parse("2024-02-01"), LocalDate.parse("2024-02-02")),
-                new TimeOfUsePlan(), BigDecimal.ZERO, TariffSource.ESTIMATE));
+                new TimeOfUsePlan(), BigDecimal.ZERO, BigDecimal.ZERO, TariffSource.ESTIMATE));
 
         UnsupportedTariffPlanException exception = assertThrows(UnsupportedTariffPlanException.class,
                 () -> calculator.estimate(supply,
@@ -384,6 +435,7 @@ class SupplySavingsCalculatorTest {
                         invocation.getArgument(1),
                         TariffPlan.flat(new BigDecimal(pricePerKwh)),
                         BigDecimal.ZERO,
+                        BigDecimal.ZERO,
                         TariffSource.ESTIMATE))));
     }
 
@@ -398,7 +450,18 @@ class SupplySavingsCalculatorTest {
                 new DateRange(LocalDate.parse(startIso), LocalDate.parse(endExclusiveIso)),
                 TariffPlan.flat(new BigDecimal(pricePerKwh)),
                 BigDecimal.ZERO,
+                BigDecimal.ZERO,
                 source);
+    }
+
+    private TariffSegment taxedSegment(String startIso, String endExclusiveIso, String vatRate,
+                                       String electricityTaxRate) {
+        return new TariffSegment(
+                new DateRange(LocalDate.parse(startIso), LocalDate.parse(endExclusiveIso)),
+                TariffPlan.flat(new BigDecimal("0.15")),
+                new BigDecimal(vatRate),
+                new BigDecimal(electricityTaxRate),
+                TariffSource.ESTIMATE);
     }
 
     private DateRange capturedRange() {

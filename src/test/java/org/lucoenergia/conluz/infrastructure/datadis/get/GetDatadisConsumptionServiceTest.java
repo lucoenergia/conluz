@@ -79,7 +79,8 @@ class GetDatadisConsumptionServiceTest {
      * in production, where the estimated resolver builds its segments from this same value.
      */
     private static final EstimatedTariffProperties CONFIGURED_ESTIMATE =
-            new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO);
+            new EstimatedTariffProperties(new BigDecimal("0.15"),
+                    new EstimatedTariffProperties.Taxes(BigDecimal.ZERO, BigDecimal.ZERO, List.of(), List.of()));
 
     private final GetDatadisConsumptionRepository consumptionRepository =
             mock(GetDatadisConsumptionRepository.class);
@@ -520,6 +521,7 @@ class GetDatadisConsumptionServiceTest {
                         invocation.getArgument(1),
                         TariffPlan.flat(new BigDecimal(pricePerKwh)),
                         BigDecimal.ZERO,
+                        BigDecimal.ZERO,
                         TariffSource.ESTIMATE))));
     }
 
@@ -532,6 +534,7 @@ class GetDatadisConsumptionServiceTest {
         return new TariffSegment(
                 new DateRange(LocalDate.parse(startIso), LocalDate.parse(endExclusiveIso)),
                 TariffPlan.flat(new BigDecimal(pricePerKwh)),
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 TariffSource.ESTIMATE);
     }

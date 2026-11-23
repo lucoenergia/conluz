@@ -92,7 +92,7 @@ public class GetMembershipMonthlyConsumptionController {
 
                     **Savings:**
                     `savingsEur` is an **estimate** of what the month's self-consumed energy was
-                    worth, pricing the **energy term before taxes** only, exactly as the per-supply
+                    worth, pricing the **energy term with electricity tax and VAT**, exactly as the per-supply
                     series does. It is `null` when no supply has data that month, and only then: a
                     month without data is a different statement from a month that saved nothing,
                     which reports `0.00` -- as does a month whose published self-consumption is zero,

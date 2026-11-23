@@ -85,7 +85,8 @@ class GetSupplyEnergyMetricsServiceTest {
      * in production, where the estimated resolver builds its segments from this same value.
      */
     private static final EstimatedTariffProperties CONFIGURED_ESTIMATE =
-            new EstimatedTariffProperties(new BigDecimal("0.15"), BigDecimal.ZERO);
+            new EstimatedTariffProperties(new BigDecimal("0.15"),
+                    new EstimatedTariffProperties.Taxes(BigDecimal.ZERO, BigDecimal.ZERO, List.of(), List.of()));
 
     private final GetDatadisConsumptionAggregateRepository aggregateRepository =
             mock(GetDatadisConsumptionAggregateRepository.class);
@@ -537,7 +538,7 @@ class GetSupplyEnergyMetricsServiceTest {
         when(tariffResolver.scheduleFor(eq(supplyId), any(DateRange.class))).thenReturn(
                 new TariffSchedule(List.of(new TariffSegment(
                         new DateRange(LocalDate.parse("2024-02-01"), LocalDate.parse("2024-02-03")),
-                        new TimeOfUsePlan(), BigDecimal.ZERO, TariffSource.REAL_TARIFF))));
+                        new TimeOfUsePlan(), BigDecimal.ZERO, BigDecimal.ZERO, TariffSource.REAL_TARIFF))));
 
         UnsupportedTariffPlanException exception = assertThrows(UnsupportedTariffPlanException.class,
                 () -> service.getEnergyMetrics(supplyId, START_DATE, END_DATE));
@@ -684,7 +685,7 @@ class GetSupplyEnergyMetricsServiceTest {
     private static TariffSegment segment(DateRange range, String pricePerKwh, String vatRate,
                                          TariffSource source) {
         return new TariffSegment(range, TariffPlan.flat(new BigDecimal(pricePerKwh)),
-                new BigDecimal(vatRate), source);
+                new BigDecimal(vatRate), BigDecimal.ZERO, source);
     }
 
     private static TariffSegment segment(String startDate, String endDate, String pricePerKwh,

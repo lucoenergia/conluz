@@ -419,12 +419,12 @@ class SupplyHourlySeriesControllerTest extends BaseControllerTest {
 
     /**
      * What {@code selfConsumptionKWh} is worth at the configured estimated tariff, rounded to cents
-     * half-up, as every series rounds an amount.
+     * half-up, as every series rounds an amount. The test profile configures no tax, so it is the
+     * base price alone.
      */
     private double priced(String selfConsumptionKWh) {
         return new BigDecimal(selfConsumptionKWh)
                 .multiply(estimatedTariff.getBaseEurPerKwh())
-                .multiply(BigDecimal.ONE.add(estimatedTariff.getVatRate()))
                 .setScale(2, RoundingMode.HALF_UP)
                 .doubleValue();
     }
