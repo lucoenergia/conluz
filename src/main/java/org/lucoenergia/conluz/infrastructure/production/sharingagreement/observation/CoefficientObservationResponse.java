@@ -13,7 +13,7 @@ import java.util.UUID;
  * What was observed of one coefficient row of the agreement.
  */
 @Schema(requiredProperties = {"coefficientId", "supply", "coefficient", "storedValidFrom", "storedValidTo", "status",
-        "observedDate", "proposedDate", "observedBeta", "observedValidDays"})
+        "observedDate", "proposedDate", "observedBeta", "observedValidDays", "windowDays"})
 public class CoefficientObservationResponse {
 
     @Schema(description = "Identifier of the coefficient row", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -60,6 +60,13 @@ public class CoefficientObservationResponse {
     @Schema(description = "Number of valid days the observed β rests on. 0 when it is null.", example = "184")
     private final int observedValidDays;
 
+    @Schema(description = "Number of plant-valid days in the row's window: from its observed application date (the " +
+            "latest day of a range or of an open date), or from the start of the agreement's applied window when " +
+            "it has none, to the end of the agreement's applied window. The days observedValidDays is counted " +
+            "over, so never less than it. 0 when the agreement has no applied window or the row's start falls " +
+            "after its end.", example = "335")
+    private final int windowDays;
+
     public CoefficientObservationResponse(CoefficientObservation row) {
         this.coefficientId = row.coefficientId();
         this.supply = new SupplyReferenceResponse(row.supply().id(), row.supply().code(), row.supply().name());
@@ -71,6 +78,7 @@ public class CoefficientObservationResponse {
         this.proposedDate = ObservedDateResponse.of(row.proposedDate());
         this.observedBeta = row.observedBeta().value();
         this.observedValidDays = row.observedBeta().validDays();
+        this.windowDays = row.windowDays();
     }
 
     public UUID getCoefficientId() {
@@ -111,5 +119,9 @@ public class CoefficientObservationResponse {
 
     public int getObservedValidDays() {
         return observedValidDays;
+    }
+
+    public int getWindowDays() {
+        return windowDays;
     }
 }

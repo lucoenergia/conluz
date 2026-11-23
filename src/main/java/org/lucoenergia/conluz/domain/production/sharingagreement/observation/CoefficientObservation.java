@@ -13,8 +13,10 @@ import java.util.UUID;
  * @param proposedDate    for {@link ObservationStatus#NOT_DISTINGUISHABLE}, the agreement's most frequent observed
  *                        date; otherwise null
  * @param observedBeta    what the supply received over the agreement's applied window
+ * @param windowDays      the plant-valid days in the row window, 0 when it has none
  */
 public record CoefficientObservation(UUID coefficientId, ObservedSupply supply, BigDecimal coefficient,
                                      LocalDate storedValidFrom, LocalDate storedValidTo, ObservationStatus status,
-                                     ObservedDate observedDate, ObservedDate proposedDate, ObservedBeta observedBeta) {
+                                     ObservedDate observedDate, ObservedDate proposedDate, ObservedBeta observedBeta,
+                                     int windowDays) {
 }
