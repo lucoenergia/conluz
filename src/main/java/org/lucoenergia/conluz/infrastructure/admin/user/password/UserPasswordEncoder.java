@@ -14,9 +14,11 @@ import org.springframework.stereotype.Component;
 public class UserPasswordEncoder {
 
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicy passwordPolicy;
 
-    public UserPasswordEncoder(PasswordEncoder passwordEncoder) {
+    public UserPasswordEncoder(PasswordEncoder passwordEncoder, PasswordPolicy passwordPolicy) {
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicy = passwordPolicy;
     }
 
     /**
@@ -24,7 +26,7 @@ public class UserPasswordEncoder {
      *                                                                                            does not satisfy the policy
      */
     public String encode(String rawPassword) {
-        PasswordPolicy.check(rawPassword);
+        passwordPolicy.check(rawPassword);
         return passwordEncoder.encode(rawPassword);
     }
 

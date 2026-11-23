@@ -19,6 +19,8 @@ class PasswordPolicyTest {
     /** U+00E9: one code point, one Java char, two UTF-8 bytes. */
     private static final String E_ACUTE = "é";
 
+    private final PasswordPolicy policy = new PasswordPolicy();
+
     @Test
     @DisplayName("ACC-021 nine code points are too short")
     void nineCodePointsAreTooShort() {
@@ -28,13 +30,13 @@ class PasswordPolicyTest {
     @Test
     @DisplayName("ACC-021 ten code points are accepted")
     void tenCodePointsAreAccepted() {
-        assertDoesNotThrow(() -> PasswordPolicy.check("a".repeat(10)));
+        assertDoesNotThrow(() -> policy.check("a".repeat(10)));
     }
 
     @Test
     @DisplayName("ACC-021 sixty-four code points are accepted")
     void sixtyFourCodePointsAreAccepted() {
-        assertDoesNotThrow(() -> PasswordPolicy.check("a".repeat(64)));
+        assertDoesNotThrow(() -> policy.check("a".repeat(64)));
     }
 
     @Test
@@ -48,7 +50,7 @@ class PasswordPolicyTest {
         String password = E_ACUTE.repeat(36);
         assertEquals(72, password.getBytes(StandardCharsets.UTF_8).length);
 
-        assertDoesNotThrow(() -> PasswordPolicy.check(password));
+        assertDoesNotThrow(() -> policy.check(password));
     }
 
     @Test
@@ -67,12 +69,12 @@ class PasswordPolicyTest {
         // 9 code points but 18 Java chars: counting chars would wrongly accept it
         assertRule(PasswordPolicyViolation.TOO_SHORT, EMOJI.repeat(9));
         // 10 code points, 40 bytes
-        assertDoesNotThrow(() -> PasswordPolicy.check(EMOJI.repeat(10)));
+        assertDoesNotThrow(() -> policy.check(EMOJI.repeat(10)));
     }
 
     @Test
     void charactersOutsideTheBmpCountFourBytesEach() {
-        assertDoesNotThrow(() -> PasswordPolicy.check(EMOJI.repeat(18)));
+        assertDoesNotThrow(() -> policy.check(EMOJI.repeat(18)));
         assertRule(PasswordPolicyViolation.TOO_MANY_BYTES, EMOJI.repeat(19));
     }
 
@@ -86,20 +88,20 @@ class PasswordPolicyTest {
     @DisplayName("ACC-021 the value is never transformed: surrounding spaces count")
     void surroundingSpacesAreNotTrimmed() {
         // 8 visible characters: trimming would make it too short
-        assertDoesNotThrow(() -> PasswordPolicy.check(" " + "a".repeat(8) + " "));
+        assertDoesNotThrow(() -> policy.check(" " + "a".repeat(8) + " "));
         assertRule(PasswordPolicyViolation.TOO_SHORT, " " + "a".repeat(7) + " ");
     }
 
     @Test
     @DisplayName("ACC-021 any character is accepted: ten spaces are a password")
     void onlySpacesAreAcceptedWhenLongEnough() {
-        assertDoesNotThrow(() -> PasswordPolicy.check(" ".repeat(10)));
+        assertDoesNotThrow(() -> policy.check(" ".repeat(10)));
     }
 
     @Test
     void noCompositionRulesApply() {
-        assertDoesNotThrow(() -> PasswordPolicy.check("correct horse battery staple"));
-        assertDoesNotThrow(() -> PasswordPolicy.check("onlylowercaselettershere"));
+        assertDoesNotThrow(() -> policy.check("correct horse battery staple"));
+        assertDoesNotThrow(() -> policy.check("onlylowercaselettershere"));
     }
 
     @ParameterizedTest
@@ -115,14 +117,14 @@ class PasswordPolicyTest {
         String tooLong = password.repeat(5);
 
         PasswordPolicyViolationException e = assertThrows(PasswordPolicyViolationException.class,
-                () -> PasswordPolicy.check(tooLong));
+                () -> policy.check(tooLong));
 
         assertFalse(e.getMessage().contains(password));
     }
 
-    private static void assertRule(PasswordPolicyViolation expected, String password) {
+    private void assertRule(PasswordPolicyViolation expected, String password) {
         PasswordPolicyViolationException e = assertThrows(PasswordPolicyViolationException.class,
-                () -> PasswordPolicy.check(password));
+                () -> policy.check(password));
         assertEquals(expected, e.getRule());
     }
 }

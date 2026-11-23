@@ -24,8 +24,6 @@ public final class PasswordPolicy {
     public static final int MAX_CODE_POINTS = 64;
     public static final int MAX_UTF8_BYTES = 72;
 
-    private PasswordPolicy() {
-    }
 
     /**
      * Checks a password against the policy, reporting the first rule that fails, in this order: too short, too
@@ -33,7 +31,7 @@ public final class PasswordPolicy {
      *
      * @throws PasswordPolicyViolationException if the password does not satisfy the policy
      */
-    public static void check(String password) {
+    public void check(String password) {
         if (password == null) {
             throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_SHORT);
         }

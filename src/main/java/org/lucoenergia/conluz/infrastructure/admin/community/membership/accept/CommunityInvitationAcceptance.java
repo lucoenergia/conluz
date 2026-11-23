@@ -45,6 +45,7 @@ public class CommunityInvitationAcceptance {
     private final UpdateUserEmailRepository updateUserEmailRepository;
     private final AcceptMembershipRepository acceptMembershipRepository;
     private final UserPasswordEncoder userPasswordEncoder;
+    private final PasswordPolicy passwordPolicy;
     private final GetMembershipsRepository getMembershipsRepository;
     private final CommunityAdminChangeNotifier notifier;
     private final Clock clock;
@@ -55,6 +56,7 @@ public class CommunityInvitationAcceptance {
                                          UpdateUserEmailRepository updateUserEmailRepository,
                                          AcceptMembershipRepository acceptMembershipRepository,
                                          UserPasswordEncoder userPasswordEncoder,
+                                         PasswordPolicy passwordPolicy,
                                          GetMembershipsRepository getMembershipsRepository,
                                          CommunityAdminChangeNotifier notifier,
                                          Clock clock) {
@@ -64,6 +66,7 @@ public class CommunityInvitationAcceptance {
         this.updateUserEmailRepository = updateUserEmailRepository;
         this.acceptMembershipRepository = acceptMembershipRepository;
         this.userPasswordEncoder = userPasswordEncoder;
+        this.passwordPolicy = passwordPolicy;
         this.getMembershipsRepository = getMembershipsRepository;
         this.notifier = notifier;
         this.clock = clock;
@@ -80,7 +83,7 @@ public class CommunityInvitationAcceptance {
         if (user.getPassword() != null) {
             throw new InvitationLoginRequiredException();
         }
-        PasswordPolicy.check(newPassword);
+        passwordPolicy.check(newPassword);
 
         consume(rawToken, invitation.token(), attempt);
 
