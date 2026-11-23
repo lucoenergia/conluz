@@ -16,7 +16,7 @@ import java.util.UUID;
 
 /**
  * Resolves the status of each of a supply's coefficient rows, and of its leaving rows (OBS-002, OBS-003,
- * OBS-008), from its timeline. Their observed β rests on the agreement's applied window, which only all the
+ * OBS-008), from its timeline; the plant's own supply's rows are not observable (OBS-011). Their observed β rests on the agreement's applied window, which only all the
  * supplies' rows together decide: {@link AgreementObservationSummarizer} sets it.
  */
 final class ObservationStatusResolver {
@@ -53,6 +53,28 @@ final class ObservationStatusResolver {
             }
         }
         return new SupplyRows(coefficients, leavings);
+    }
+
+    /**
+     * The rows of the plant's own supply (OBS-011): never observed, so no timeline, no date, no observed β and no
+     * leaving row.
+     *
+     * @param candidates the supply's candidates, built from the same order as {@code agreements}
+     */
+    SupplyRows notObservable(ObservedSupply supply, List<ObservedAgreement> agreements, List<Candidate> candidates) {
+        Map<UUID, List<CoefficientObservation>> coefficients = new LinkedHashMap<>();
+        for (Candidate candidate : candidates) {
+            if (candidate.isImplicitZero()) {
+                continue;
+            }
+            ObservedCoefficient row = candidate.row();
+            LocalDate storedValidFrom = RegisteredOrder.localDay(row.validFrom(), zone);
+            LocalDate storedValidTo = RegisteredOrder.localDay(row.validTo(), zone);
+            coefficients.computeIfAbsent(agreements.get(candidate.rank()).id(), id -> new ArrayList<>())
+                    .add(new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom,
+                            storedValidTo, ObservationStatus.NOT_OBSERVABLE, null, null, ObservedBeta.NONE));
+        }
+        return new SupplyRows(coefficients, Map.of());
     }
 
     private CoefficientObservation coefficientRow(ObservedSupply supply, SupplyTimeline timeline,

@@ -272,6 +272,36 @@ class SharingObservationControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("OBS-011 the plant supply's coefficient is listed as not observable, counted, and in the share without data")
+    void plantSupplyCoefficientIsNotObservable() throws Exception {
+        data.coefficient(plant.getSupply(), plant, b, "0.01", CHANGE, null);
+        String admin = loginAsCommunityAdmin(community.getId());
+        String plantRow = "$.coefficients[?(@.supply.id == '" + plant.getSupply().getId() + "')]";
+
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients").value(hasSize(2)))
+                .andExpect(jsonPath(plantRow + ".status").value(contains("NOT_OBSERVABLE")))
+                .andExpect(jsonPath(plantRow + ".storedValidFrom").value(contains("2025-11-01")))
+                .andExpect(jsonPath(plantRow + ".observedDate").value(contains(nullValue())))
+                .andExpect(jsonPath(plantRow + ".proposedDate").value(contains(nullValue())))
+                .andExpect(jsonPath(plantRow + ".observedBeta").value(contains(nullValue())))
+                .andExpect(jsonPath(plantRow + ".observedValidDays").value(contains(0)))
+                .andExpect(jsonPath("$.summary.coefficientStatusCounts.notObservable").value(1));
+        perform(plantUrl(plant.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.analysis.suppliesWithValidDays[*].id")
+                        .value(containsInAnyOrder(staying.getId().toString(), leaving.getId().toString())))
+                .andExpect(jsonPath("$.sharingAgreements[0].coefficientStatusCounts.notObservable").value(0))
+                .andExpect(jsonPath("$.sharingAgreements[1].coefficientStatusCounts.notObservable").value(1))
+                .andExpect(jsonPath("$.sharingAgreements[1].coefficientStatusCounts.appliedSameDate").value(1))
+                .andExpect(jsonPath("$.sharingAgreements[1].leavingStatusCounts.notObservable").value(0))
+                .andExpect(jsonPath("$.sharingAgreements[1].unallocatedShare.registeredShareWithoutData")
+                        .value(closeTo(0.01, 1e-9), Double.class))
+                .andExpect(jsonPath("$.sharingAgreements[1].recommendations").value(contains("NONE")));
+    }
+
+    @Test
     @DisplayName("OBS-007 reading the observed sharing writes nothing")
     void readingWritesNothing() throws Exception {
         String before = snapshot();

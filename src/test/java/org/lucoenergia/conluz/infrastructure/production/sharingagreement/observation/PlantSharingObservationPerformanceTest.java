@@ -39,7 +39,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 2024-02-01 to the latest published month, October 2026, and four agreements, one of them a synthetic agreement
  * without a sent date. The plant supply has the shape the Datadis sync gave it (#604): its legacy surplus from
  * 2023-06-01, then production from 2024-12-01 with the surplus stored as 0, and no self-consumption. Computed on
- * read, it must answer in under 5 s (#579, D2).
+ * read, it must answer in under 5 s (#579, D2). The time is that of a second request: the first one warms the JVM
+ * and the connection pools, whose cost on a shared CI runner is not the operation's. Nothing caches the result
+ * (OBS-007), so the second request computes it in full.
  */
 class PlantSharingObservationPerformanceTest extends BaseControllerTest {
 
@@ -116,10 +118,12 @@ class PlantSharingObservationPerformanceTest extends BaseControllerTest {
             }
         }
         String admin = loginAsCommunityAdmin(community.getId());
+        String path = "/api/v1/plants/" + plant.getId() + "/sharing-agreements/observation";
 
+        mockMvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, admin))
+                .andExpect(status().isOk());
         long start = System.nanoTime();
-        MvcResult result = mockMvc.perform(get("/api/v1/plants/" + plant.getId() + "/sharing-agreements/observation")
-                        .header(HttpHeaders.AUTHORIZATION, admin))
+        MvcResult result = mockMvc.perform(get(path).header(HttpHeaders.AUTHORIZATION, admin))
                 .andExpect(status().isOk())
                 .andReturn();
         Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
