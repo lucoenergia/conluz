@@ -7,10 +7,13 @@ import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffPlan;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSchedule;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSegment;
 import org.lucoenergia.conluz.domain.admin.supply.tariff.TariffSource;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TaxRatePeriod;
+import org.lucoenergia.conluz.domain.admin.supply.tariff.TaxRatePeriods;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,11 +21,24 @@ import static org.junit.jupiter.api.Assertions.*;
 class EstimatedSupplyTariffResolverTest {
 
     private static final BigDecimal BASE_PRICE = new BigDecimal("0.15");
-    private static final BigDecimal VAT_RATE = new BigDecimal("0.21");
+    private static final BigDecimal VAT_RATE = new BigDecimal("0.10");
+    private static final BigDecimal ELECTRICITY_TAX_RATE = new BigDecimal("0.025");
+    private static final BigDecimal DEFAULT_VAT = new BigDecimal("0.21");
+    private static final BigDecimal DEFAULT_ELECTRICITY_TAX = new BigDecimal("0.0511269632");
     private static final SupplyId SUPPLY_ID = SupplyId.of(UUID.randomUUID());
 
-    private final EstimatedSupplyTariffResolver resolver =
-            new EstimatedSupplyTariffResolver(new EstimatedTariffProperties(BASE_PRICE, VAT_RATE));
+    private final EstimatedSupplyTariffResolver resolver = resolverWith(
+            List.of(new TaxRatePeriod(LocalDate.of(2024, 1, 1), null, VAT_RATE)),
+            List.of(new TaxRatePeriod(LocalDate.of(2024, 1, 1), null, ELECTRICITY_TAX_RATE)));
+
+    private static EstimatedSupplyTariffResolver resolverWith(List<TaxRatePeriod> vat,
+                                                              List<TaxRatePeriod> electricityTax) {
+        return new EstimatedSupplyTariffResolver(
+                new EstimatedTariffProperties(BASE_PRICE,
+                        new EstimatedTariffProperties.Taxes(DEFAULT_VAT, DEFAULT_ELECTRICITY_TAX, List.of(), List.of())),
+                new EstimatedTaxRates(new TaxRatePeriods(vat, DEFAULT_VAT),
+                        new TaxRatePeriods(electricityTax, DEFAULT_ELECTRICITY_TAX)));
+    }
 
     @Test
     void returnsExactlyOneSegment() {
