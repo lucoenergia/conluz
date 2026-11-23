@@ -66,29 +66,29 @@ final class AgreementObservationSummarizer {
                 SupplyRows rows = context.rows().get(supply.id());
                 NavigableMap<LocalDate, Double> betas = context.betas().get(supply.id());
                 for (CoefficientObservation row : rows.coefficients().getOrDefault(agreement.id(), List.of())) {
+                    // A row without an observed date, a not observable one included, keeps the whole window.
+                    LocalDate[] rowWindow = rowWindow(row.observedDate(), window);
                     if (row.status() == ObservationStatus.NOT_OBSERVABLE) {
-                        // Never observed: it has no date and no observed β to set (OBS-011), only the whole
-                        // applied window.
+                        // Never observed: it has no date and no observed β to set (OBS-011).
                         coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(),
                                 row.coefficient(), row.storedValidFrom(), row.storedValidTo(), row.status(), null,
-                                null, row.observedBeta(), windowDays(context.plantValid(), null, window)));
+                                null, row.observedBeta(), windowDays(context.plantValid(), rowWindow)));
                         continue;
                     }
                     coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
                             row.storedValidFrom(), row.storedValidTo(), row.status(), row.observedDate(),
                             row.status() == ObservationStatus.NOT_DISTINGUISHABLE ? mostFrequent : row.proposedDate(),
-                            observedBeta(betas, row.observedDate(), window),
-                            windowDays(context.plantValid(), row.observedDate(), window)));
+                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow)));
                 }
                 LeavingObservation leaving = rows.leavings().get(agreement.id());
                 if (leaving != null) {
+                    LocalDate[] rowWindow = rowWindow(leaving.observedLeavingDate(), window);
                     leavings.add(new LeavingObservation(leaving.supply(), leaving.previousAgreement(),
                             leaving.previousCoefficientId(), leaving.previousCoefficient(),
                             leaving.observedLeavingDate(), leaving.storedValidTo(), leaving.status(),
                             leaving.status() == ObservationStatus.NOT_DISTINGUISHABLE
                                     ? mostFrequent : leaving.proposedDate(),
-                            observedBeta(betas, leaving.observedLeavingDate(), window),
-                            windowDays(context.plantValid(), leaving.observedLeavingDate(), window)));
+                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow)));
                 }
             }
             List<SharingAnomaly> anomalies = context.anomalies().stream()
@@ -124,14 +124,10 @@ final class AgreementObservationSummarizer {
     }
 
     /**
-     * What a supply received under a row (OBS-009): the median of its observed β on its valid days from the row's
-     * observed date (the last day it may have started) to the end of the agreement's window, or over the whole
-     * window when the row has no observed date. {@link ObservedBeta#NONE} when the row has no window or the supply
-     * has no valid day in it.
+     * What a supply received under a row (OBS-009): the median of its observed β on its valid days in the row's
+     * window. {@link ObservedBeta#NONE} when the row has no window or the supply has no valid day in it.
      */
-    private static ObservedBeta observedBeta(NavigableMap<LocalDate, Double> betas, ObservedDate observed,
-                                             LocalDate[] window) {
-        LocalDate[] rowWindow = rowWindow(observed, window);
+    private static ObservedBeta observedBeta(NavigableMap<LocalDate, Double> betas, LocalDate[] rowWindow) {
         if (rowWindow == null) {
             return ObservedBeta.NONE;
         }
@@ -142,9 +138,7 @@ final class AgreementObservationSummarizer {
      * The plant-valid days in a row's window, 0 when it has none (OBS-013). Never fewer than its supply's valid days
      * there, since those are plant-valid days too.
      */
-    private static int windowDays(NavigableMap<LocalDate, Double> plantValid, ObservedDate observed,
-                                  LocalDate[] window) {
-        LocalDate[] rowWindow = rowWindow(observed, window);
+    private static int windowDays(NavigableMap<LocalDate, Double> plantValid, LocalDate[] rowWindow) {
         return rowWindow == null ? 0 : plantValid.subMap(rowWindow[0], true, rowWindow[1], true).size();
     }
 
