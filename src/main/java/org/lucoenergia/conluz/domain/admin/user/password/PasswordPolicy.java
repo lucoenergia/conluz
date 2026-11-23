@@ -3,8 +3,8 @@ package org.lucoenergia.conluz.domain.admin.user.password;
 import java.nio.charset.StandardCharsets;
 
 /**
- * The single password policy, applied to every password that is set: on user creation, on each row of a user
- * import, on the initial admin created by {@code /init}, and on a password change.
+ * The single password policy, applied to every password that is set: on the default admin created by
+ * {@code /init}, on a password change, on a password reset and on accepting an invitation.
  * <p>
  * It follows NIST SP 800-63B-4 for passwords used as the single authentication factor: a length rule and
  * nothing else. Every character is accepted, spaces and non-ASCII letters included, and there are no
