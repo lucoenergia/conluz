@@ -45,6 +45,7 @@ public class EstimatedSupplyTariffResolver implements SupplyTariffResolver {
                 range,
                 TariffPlan.flat(basePrice),
                 vatRate,
+                BigDecimal.ZERO,
                 TariffSource.ESTIMATE
         );
         return new TariffSchedule(List.of(segment));

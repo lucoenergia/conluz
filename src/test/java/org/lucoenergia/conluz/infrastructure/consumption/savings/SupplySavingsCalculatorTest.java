@@ -227,7 +227,7 @@ class SupplySavingsCalculatorTest {
     void vatIsAppliedOnTopOfTheEnergyTerm() {
         givenSegments(new TariffSegment(
                 new DateRange(LocalDate.parse("2024-02-01"), LocalDate.parse("2024-02-02")),
-                TariffPlan.flat(new BigDecimal("0.10")), new BigDecimal("0.21"), TariffSource.ESTIMATE));
+                TariffPlan.flat(new BigDecimal("0.10")), new BigDecimal("0.21"), BigDecimal.ZERO, TariffSource.ESTIMATE));
 
         SupplySavings savings = calculator.estimate(supply,
                 madrid("2024-02-01T00:00+01:00"), madrid("2024-02-02T00:00+01:00"), 100d);
@@ -346,7 +346,7 @@ class SupplySavingsCalculatorTest {
     void aPlanThatCannotBePricedIsRejectedRatherThanSilentlySkipped() {
         givenSegments(new TariffSegment(
                 new DateRange(LocalDate.parse("2024-02-01"), LocalDate.parse("2024-02-02")),
-                new TimeOfUsePlan(), BigDecimal.ZERO, TariffSource.ESTIMATE));
+                new TimeOfUsePlan(), BigDecimal.ZERO, BigDecimal.ZERO, TariffSource.ESTIMATE));
 
         UnsupportedTariffPlanException exception = assertThrows(UnsupportedTariffPlanException.class,
                 () -> calculator.estimate(supply,
@@ -384,6 +384,7 @@ class SupplySavingsCalculatorTest {
                         invocation.getArgument(1),
                         TariffPlan.flat(new BigDecimal(pricePerKwh)),
                         BigDecimal.ZERO,
+                        BigDecimal.ZERO,
                         TariffSource.ESTIMATE))));
     }
 
@@ -397,6 +398,7 @@ class SupplySavingsCalculatorTest {
         return new TariffSegment(
                 new DateRange(LocalDate.parse(startIso), LocalDate.parse(endExclusiveIso)),
                 TariffPlan.flat(new BigDecimal(pricePerKwh)),
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 source);
     }

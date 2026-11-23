@@ -26,6 +26,7 @@ class TariffScheduleTest {
                 new DateRange(LocalDate.parse(start), LocalDate.parse(end)),
                 TariffPlan.flat(PRICE),
                 VAT,
+                BigDecimal.ZERO,
                 TariffSource.ESTIMATE
         );
     }

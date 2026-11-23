@@ -520,6 +520,7 @@ class GetDatadisConsumptionServiceTest {
                         invocation.getArgument(1),
                         TariffPlan.flat(new BigDecimal(pricePerKwh)),
                         BigDecimal.ZERO,
+                        BigDecimal.ZERO,
                         TariffSource.ESTIMATE))));
     }
 
@@ -532,6 +533,7 @@ class GetDatadisConsumptionServiceTest {
         return new TariffSegment(
                 new DateRange(LocalDate.parse(startIso), LocalDate.parse(endExclusiveIso)),
                 TariffPlan.flat(new BigDecimal(pricePerKwh)),
+                BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 TariffSource.ESTIMATE);
     }
