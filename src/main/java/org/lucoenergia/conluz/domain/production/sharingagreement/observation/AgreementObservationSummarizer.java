@@ -72,13 +72,15 @@ final class AgreementObservationSummarizer {
                         // Never observed: it has no date and no observed β to set (OBS-011).
                         coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(),
                                 row.coefficient(), row.storedValidFrom(), row.storedValidTo(), row.status(), null,
-                                null, row.observedBeta(), windowDays(context.plantValid(), rowWindow)));
+                                null, row.observedBeta(), windowDays(context.plantValid(), rowWindow),
+                                firstDay(rowWindow), lastDay(rowWindow)));
                         continue;
                     }
                     coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
                             row.storedValidFrom(), row.storedValidTo(), row.status(), row.observedDate(),
                             row.status() == ObservationStatus.NOT_DISTINGUISHABLE ? mostFrequent : row.proposedDate(),
-                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow)));
+                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow),
+                            firstDay(rowWindow), lastDay(rowWindow)));
                 }
                 LeavingObservation leaving = rows.leavings().get(agreement.id());
                 if (leaving != null) {
@@ -88,7 +90,8 @@ final class AgreementObservationSummarizer {
                             leaving.observedLeavingDate(), leaving.storedValidTo(), leaving.status(),
                             leaving.status() == ObservationStatus.NOT_DISTINGUISHABLE
                                     ? mostFrequent : leaving.proposedDate(),
-                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow)));
+                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow),
+                            firstDay(rowWindow), lastDay(rowWindow)));
                 }
             }
             List<SharingAnomaly> anomalies = context.anomalies().stream()
@@ -140,6 +143,14 @@ final class AgreementObservationSummarizer {
      */
     private static int windowDays(NavigableMap<LocalDate, Double> plantValid, LocalDate[] rowWindow) {
         return rowWindow == null ? 0 : plantValid.subMap(rowWindow[0], true, rowWindow[1], true).size();
+    }
+
+    private static LocalDate firstDay(LocalDate[] rowWindow) {
+        return rowWindow == null ? null : rowWindow[0];
+    }
+
+    private static LocalDate lastDay(LocalDate[] rowWindow) {
+        return rowWindow == null ? null : rowWindow[1];
     }
 
     /**
@@ -198,7 +209,8 @@ final class AgreementObservationSummarizer {
         if (days == 0) {
             return null;
         }
-        return new UnallocatedShare(1 - energy / production, weightedShareWithoutData / production, days);
+        return new UnallocatedShare(1 - energy / production, weightedShareWithoutData / production, days, window[0],
+                window[1]);
     }
 
     /**
