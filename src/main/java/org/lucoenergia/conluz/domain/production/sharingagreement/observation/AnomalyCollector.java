@@ -26,7 +26,7 @@ final class AnomalyCollector {
         for (SupplyTimeline.Observation observation : timeline.observations()) {
             if (observation.reverted()) {
                 anomalies.add(anomaly(supply, timeline, SharingAnomalyType.REVERTED, observation.date(),
-                        lastDayCurrent(timeline, observation), observation.previous().sharingAgreementId()));
+                        lastDayCurrent(timeline, observation), observation.previous()));
             }
             if (observation.first()) {
                 LocalDate sentOn = agreements.get(observation.candidate().sharingAgreementId()).distributorFileSentOn();
@@ -37,7 +37,7 @@ final class AnomalyCollector {
                             ? dayBeforeSent : lastDayCurrent;
                     // Attributed to the agreement sent late, not to the one applied before it.
                     anomalies.add(anomaly(supply, timeline, SharingAnomalyType.APPLIED_BEFORE_SENT, observation.date(),
-                            end, observation.candidate().sharingAgreementId()));
+                            end, observation.candidate()));
                 }
             }
         }
@@ -66,9 +66,7 @@ final class AnomalyCollector {
                         ? ObservedDate.onOrBefore(days.get(i).day())
                         : new ObservedDate(days.get(i - 1).day().plusDays(1), days.get(i).day());
                 LocalDate end = last == types.length - 1 ? null : days.get(last).day();
-                Candidate current = timeline.currentBefore()[i];
-                anomalies.add(anomaly(supply, timeline, type, start, end,
-                        current == null ? null : current.sharingAgreementId()));
+                anomalies.add(anomaly(supply, timeline, type, start, end, timeline.currentBefore()[i]));
             }
             i = last + 1;
         }
@@ -84,10 +82,13 @@ final class AnomalyCollector {
                 .orElse(null);
     }
 
+    /**
+     * @param attributed the supply's candidate in the agreement the anomaly is attributed to, or null
+     */
     private static SharingAnomaly anomaly(ObservedSupply supply, SupplyTimeline timeline, SharingAnomalyType type,
-                                          ObservedDate start, LocalDate end, UUID attributedAgreementId) {
-        return new SharingAnomaly(idOf(supply.id(), type, start.to()), supply, type, start, end, attributedAgreementId,
-                observedBeta(timeline, start.to(), end));
+                                          ObservedDate start, LocalDate end, Candidate attributed) {
+        return new SharingAnomaly(idOf(supply.id(), type, start.to()), supply, type, start, end,
+                attributed == null ? null : attributed.sharingAgreementId(), observedBeta(timeline, start.to(), end));
     }
 
     /**
