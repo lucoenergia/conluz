@@ -109,7 +109,7 @@ public class SupplySavingsCalculatorImpl implements SupplySavingsCalculator {
      * priced with another one.
      *
      * <p>It is the energy-term price before taxes -- the plan's taxable base, without the
-     * segment's VAT factor.
+     * segment's electricity tax and VAT factors.
      */
     private EstimatedPrice estimatedPriceFor(TariffSource source) {
         return source == TariffSource.ESTIMATE

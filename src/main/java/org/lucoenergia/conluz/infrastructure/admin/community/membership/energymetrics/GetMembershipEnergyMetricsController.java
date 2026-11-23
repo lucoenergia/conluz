@@ -111,7 +111,7 @@ public class GetMembershipEnergyMetricsController {
 
                     **Savings:**
                     `savings.amountEur` is an **estimate** of what the self-consumed energy of all
-                    the member's supplies was worth, pricing the **energy term before taxes** only,
+                    the member's supplies was worth, pricing the **energy term with electricity tax and VAT**,
                     exactly as the per-supply endpoint does, and summed before being rounded.
                     It is `null` only when no period could be resolved; whenever a period exists it
                     is a figure, `0.00` when nothing was priced. An explicit period always resolves,

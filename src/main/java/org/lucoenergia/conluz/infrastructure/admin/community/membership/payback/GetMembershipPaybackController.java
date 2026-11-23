@@ -43,9 +43,9 @@ public class GetMembershipPaybackController {
 
                     `savedEur` is the estimated value of the self-consumed energy of **all** the
                     member's supplies in this community, from `startDate` until now, priced per
-                    tariff segment. It prices the **energy term before taxes** only: the power term,
-                    access tolls, charges and electricity tax are all excluded, and VAT is applied
-                    only where the resolved tariff carries a rate. It is computed on each request and
+                    tariff segment. It prices the **energy term with electricity tax and VAT**,
+                    each at the rate in force on the day the energy was consumed: the power term,
+                    access tolls and charges are excluded. It is computed on each request and
                     never stored, so it reflects both new consumption and any later correction.
                     Supplies in the member's other communities are not counted.
 
