@@ -285,6 +285,28 @@ class SharingObservationControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("OBS-013 the agreement's rows report the plant-valid days of their row window next to their supply's valid days")
+    void rowsReportTheirWindowDays() throws Exception {
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        // B's applied window is November and December: 61 plant-valid days, all of them valid for both supplies.
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[0].windowDays").value(61))
+                .andExpect(jsonPath("$.coefficients[0].observedValidDays").value(61))
+                .andExpect(jsonPath("$.leavingRows[0].windowDays").value(61))
+                .andExpect(jsonPath("$.leavingRows[0].observedValidDays").value(61));
+        // The silent supply has no valid day in A's window, which still holds A's plant-valid days.
+        data.coefficient(silent, plant, a, "0.1", LocalDate.parse("2025-08-25"), CHANGE);
+        perform(agreementUrl(plant.getId(), a.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].windowDays")
+                        .value(contains(61)))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].observedValidDays")
+                        .value(contains(0)));
+    }
+
+    @Test
     @DisplayName("OBS-010 a coefficient row reports its stored end as an exclusive local day, null when open")
     void rowsReportTheirStoredEnd() throws Exception {
         // Stored at 00:00 UTC of the change, 01:00 in Madrid: the same local day.
