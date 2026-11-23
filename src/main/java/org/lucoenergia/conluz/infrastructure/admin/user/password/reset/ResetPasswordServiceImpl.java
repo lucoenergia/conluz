@@ -32,6 +32,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
     private final GetUserRepository getUserRepository;
     private final ChangePasswordRepository changePasswordRepository;
     private final UserPasswordEncoder userPasswordEncoder;
+    private final PasswordPolicy passwordPolicy;
     private final Clock clock;
 
     public ResetPasswordServiceImpl(AuthenticationThrottleService authenticationThrottleService,
@@ -41,6 +42,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
                                     GetUserRepository getUserRepository,
                                     ChangePasswordRepository changePasswordRepository,
                                     UserPasswordEncoder userPasswordEncoder,
+                                    PasswordPolicy passwordPolicy,
                                     Clock clock) {
         this.authenticationThrottleService = authenticationThrottleService;
         this.getOneTimeTokenService = getOneTimeTokenService;
@@ -49,6 +51,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
         this.getUserRepository = getUserRepository;
         this.changePasswordRepository = changePasswordRepository;
         this.userPasswordEncoder = userPasswordEncoder;
+        this.passwordPolicy = passwordPolicy;
         this.clock = clock;
     }
 
@@ -78,7 +81,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
             }
 
             // Neither refusal consumes the token, so the user can try again with the same link
-            PasswordPolicy.check(newPassword);
+            passwordPolicy.check(newPassword);
             if (userPasswordEncoder.matches(newPassword, user.getPassword())) {
                 throw new PasswordUnchangedException();
             }

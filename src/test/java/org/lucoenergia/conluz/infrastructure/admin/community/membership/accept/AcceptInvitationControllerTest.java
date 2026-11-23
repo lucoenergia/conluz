@@ -130,6 +130,56 @@ class AcceptInvitationControllerTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
+    @DisplayName("ACC-022 acceptInvitation refuses a compromised password, changes nothing, and the same link then "
+            + "accepts another")
+    void aCompromisedPassword_isRefused_andTheSameLinkAcceptsAnother() throws Exception {
+        InvitedMember member = invitedMember();
+        Map<String, Object> accountBefore = accountRow(member.personalId());
+        String compromised = "lucoenergia1";
+        remember(compromised);
+
+        accept(member.token(), compromised, "192.0.2.27")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+        assertThat(accountRow(member.personalId())).isEqualTo(accountBefore);
+        assertThat(acceptedAt(member.personalId(), member.community().getId())).isNull();
+
+        String valid = newPassword();
+        accept(member.token(), valid, "192.0.2.27").andExpect(status().isNoContent());
+        login(member.personalId(), valid).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("ACC-022 acceptInvitation does not count a compromised password against the client address, nor "
+            + "reset the account counter of the invited user")
+    void aCompromisedPassword_isNotCounted_andDoesNotResetTheAccountCounter() throws Exception {
+        InvitedMember member = invitedMember();
+        String clientIp = "192.0.2.28";
+        for (int i = 0; i < 5; i++) {
+            login(member.personalId(), "a wrong password, " + i).andExpect(status().isUnauthorized());
+        }
+        for (int i = 0; i < 19; i++) {
+            accept("unknown-" + i, newPassword(), clientIp).andExpect(status().isBadRequest());
+        }
+        String compromised = "lucoenergia1";
+        remember(compromised);
+
+        accept(member.token(), compromised, clientIp)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+
+        // Not reset: the account is still throttled
+        login(member.personalId(), newPassword()).andExpect(status().isTooManyRequests());
+        // Not counted: the address takes a twentieth failure before it is throttled
+        accept("unknown-19", newPassword(), clientIp)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_TOKEN_INVALID"));
+        accept("unknown-20", newPassword(), clientIp).andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     @DisplayName("ACC-007 a passwordless account without an email takes the accepted record's contact email")
     void anAccountWithoutAnEmail_takesTheContactEmailOfTheAcceptedRecord() throws Exception {
         Community first = newCommunity();

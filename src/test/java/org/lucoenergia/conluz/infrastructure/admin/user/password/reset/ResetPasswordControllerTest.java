@@ -215,6 +215,53 @@ class ResetPasswordControllerTest extends BasePasswordResetTest {
     }
 
     @Test
+    @DisplayName("ACC-022 resetPassword refuses a compromised new password, changes nothing, and the same link then "
+            + "accepts another")
+    void aCompromisedNewPassword_isRefused_andTheSameLinkAcceptsAnother() throws Exception {
+        User user = newUser();
+        String token = issueDirectly(user);
+        Map<String, Object> before = userRow(user);
+        String valid = "reset-" + UUID.randomUUID();
+
+        reset(token, "lucoenergia1")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+        assertThat(userRow(user)).isEqualTo(before);
+
+        reset(token, valid).andExpect(status().isNoContent());
+        login(user.getPersonalId(), valid).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("ACC-022 resetPassword does not count a compromised new password against the client address, nor "
+            + "reset the account counter of the token's user")
+    void aCompromisedNewPassword_isNotCounted_andDoesNotResetTheAccountCounter() throws Exception {
+        User user = newUser();
+        String token = issueDirectly(user);
+        String clientIp = "203.0.113.54";
+        for (int i = 0; i < 5; i++) {
+            login(user.getPersonalId(), "a wrong password, " + i).andExpect(status().isUnauthorized());
+        }
+        for (int i = 0; i < 19; i++) {
+            reset(unknownToken(), newPassword(), clientIp).andExpect(status().isBadRequest());
+        }
+
+        reset(token, "lucoenergia1", clientIp)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+
+        // Not reset: the account is still throttled
+        login(user.getPersonalId(), user.getPassword()).andExpect(status().isTooManyRequests());
+        // Not counted: the address takes a twentieth failure before it is throttled
+        reset(unknownToken(), newPassword(), clientIp)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value(INVALID_TOKEN));
+        reset(unknownToken(), newPassword(), clientIp).andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     void aUserThrottledForFailedLogins_canLogInAtOnceAfterAReset() throws Exception {
         User user = newUser();
         for (int i = 0; i < 5; i++) {

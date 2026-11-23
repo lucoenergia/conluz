@@ -248,6 +248,28 @@ class AuthenticationThrottleControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("ACC-022 a compromised new password neither counts as a failure nor resets the account counter")
+    void aCompromisedNewPassword_isNotCounted_andDoesNotResetTheAccountCounter() throws Exception {
+        User user = createEnabledUser();
+        String token = token(user, OTHER_IP);
+        for (int i = 0; i < 4; i++) {
+            changePassword(token, WRONG_PASSWORD, NEW_PASSWORD, IP).andExpect(status().isBadRequest());
+        }
+
+        changePassword(token, user.getPassword(), "lucoenergia1", IP)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+
+        // Still 4 failures: had the refusal counted, this fifth one would be a 429; had it reset the counter, the
+        // change below would go through
+        changePassword(token, WRONG_PASSWORD, NEW_PASSWORD, IP)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_CURRENT_PASSWORD_INCORRECT"));
+        expectThrottled(changePassword(token, user.getPassword(), NEW_PASSWORD, IP), 900);
+    }
+
+    @Test
     void aWrongCurrentPassword_withTheSameValueAsTheNewOne_isReportedAsWrong_andCounted() throws Exception {
         User user = createEnabledUser();
         String token = token(user, OTHER_IP);

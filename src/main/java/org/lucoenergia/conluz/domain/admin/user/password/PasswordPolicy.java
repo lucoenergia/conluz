@@ -1,15 +1,19 @@
 package org.lucoenergia.conluz.domain.admin.user.password;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 /**
  * The single password policy, applied to every password that is set: on the default admin created by
  * {@code /init}, on a password change, on a password reset and on accepting an invitation.
  * <p>
- * It is a length rule and nothing else. Its minimum deliberately departs from NIST SP 800-63B-4, which asks for
- * 15 characters when the password is the single authentication factor; the reasons, the accepted risk and when to
- * revisit it are in
+ * It has two parts: a length rule, and a list of compromised passwords. The minimum length deliberately departs
+ * from NIST SP 800-63B-4, which asks for 15 characters when the password is the single authentication factor; the
+ * reasons, the accepted risk and when to revisit it are in
  * {@code docs/architecture/adr/0006-lower-the-minimum-password-length-to-10-code-points-to-ease-access-for-non-technical-members.md}.
+ * The list, which NIST SP 800-63B-4 also asks for, refuses a password that is common or has appeared in data
+ * breaches ({@link PasswordBlocklist}); it is compared case-insensitively, by lowercasing the candidate with
+ * {@link Locale#ROOT} for the lookup only.
  * Every character is accepted, spaces and non-ASCII letters included, and there are no
  * composition rules. The value is checked exactly as received: it is never trimmed, normalised or otherwise
  * transformed, so the password that is hashed is the password the user typed.
@@ -24,16 +28,21 @@ public final class PasswordPolicy {
     public static final int MAX_CODE_POINTS = 64;
     public static final int MAX_UTF8_BYTES = 72;
 
-    private PasswordPolicy() {
+    private final PasswordBlocklist blocklist;
+
+    public PasswordPolicy(PasswordBlocklist blocklist) {
+        this.blocklist = blocklist;
     }
+
 
     /**
      * Checks a password against the policy, reporting the first rule that fails, in this order: too short, too
-     * long, too many bytes. A {@code null} password is treated as empty, and so as too short.
+     * long, too many bytes, compromised. The list is consulted only for a password that passes the other three.
+     * A {@code null} password is treated as empty, and so as too short.
      *
      * @throws PasswordPolicyViolationException if the password does not satisfy the policy
      */
-    public static void check(String password) {
+    public void check(String password) {
         if (password == null) {
             throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_SHORT);
         }
@@ -46,6 +55,9 @@ public final class PasswordPolicy {
         }
         if (password.getBytes(StandardCharsets.UTF_8).length > MAX_UTF8_BYTES) {
             throw new PasswordPolicyViolationException(PasswordPolicyViolation.TOO_MANY_BYTES);
+        }
+        if (blocklist.contains(password.toLowerCase(Locale.ROOT))) {
+            throw new PasswordPolicyViolationException(PasswordPolicyViolation.COMPROMISED);
         }
     }
 }

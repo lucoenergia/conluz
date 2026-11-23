@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `enableUser`, `disableUser`, `deleteUser`, `getAllUsers`, `getUserById`, `getSuppliesByUserId`, `changePassword`, `getPlatformAdmins`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
 | **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`), ADR-0004 (`docs/architecture/adr/0004-grant-platform-admin-only-through-an-accepted-invitation-confirmed-out-of-band.md`), ADR-0006 (`docs/architecture/adr/0006-lower-the-minimum-password-length-to-10-code-points-to-ease-access-for-non-technical-members.md`) |
-| **Last reviewed against code** | #613 |
+| **Last reviewed against code** | #614 |
 
 ## Purpose
 
@@ -404,6 +404,20 @@ existing paths treat them; the rest of the capability is specified lazily, as is
   from NIST SP 800-63B-4 for single-factor passwords recorded with its risk and expiry conditions in ADR-0006. 72
   bytes is BCrypt's input limit: anything longer would be silently truncated.
 - **Source:** #330, #613
+
+### ACC-022 — A password that is set is not in the compromised-password list
+
+- **Status:** Active
+- **Rule:** A password that is set MUST NOT appear in the bundled compromised-password list, compared
+  case-insensitively; a match MUST be answered 400 `USER_PASSWORD_POLICY_VIOLATION` with `rule` `COMPROMISED`,
+  checked after `TOO_SHORT`, `TOO_LONG` and `TOO_MANY_BYTES`. A refusal MUST NOT consume a password-reset token or an
+  invitation, and MUST NOT reset the throttling counters.
+- **Rationale:** NIST SP 800-63B-4 requires a password that is set to be compared against a blocklist of commonly
+  used, expected or compromised values. It is also the compensating control for the 10-code-point minimum
+  (ADR-0006): the shorter passwords that minimum allows are the ones most likely to be common. The list is bundled
+  and read offline, so setting a password sends nothing to a third party. A refusal leaves the token or invitation
+  usable, as the other policy rules do, so the person can choose another password with the same link.
+- **Source:** #614
 
 ## Impossible states
 

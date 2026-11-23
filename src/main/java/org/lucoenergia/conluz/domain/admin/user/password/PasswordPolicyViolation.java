@@ -6,5 +6,6 @@ package org.lucoenergia.conluz.domain.admin.user.password;
 public enum PasswordPolicyViolation {
     TOO_SHORT,
     TOO_LONG,
-    TOO_MANY_BYTES
+    TOO_MANY_BYTES,
+    COMPROMISED
 }

@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.password.PasswordPolicy;
 import org.lucoenergia.conluz.infrastructure.admin.user.password.UserPasswordEncoder;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -28,7 +29,8 @@ class PasswordlessAccountAuthenticationProviderTest {
 
     // The lowest cost BCrypt accepts, to keep the test fast
     private final PasswordEncoder passwordEncoder = spy(new BCryptPasswordEncoder(4));
-    private final UserPasswordEncoder userPasswordEncoder = new UserPasswordEncoder(passwordEncoder);
+    private final UserPasswordEncoder userPasswordEncoder = new UserPasswordEncoder(passwordEncoder,
+            new PasswordPolicy(password -> false));
 
     @Test
     @DisplayName("ACC-001 a passwordless account is refused with the bad credentials exception")

@@ -92,6 +92,72 @@ class PlatformAdminInvitationAcceptanceTest extends BasePlatformAdminInvitationT
     }
 
     @Test
+    @DisplayName("ACC-022 an account without a password is refused a compromised password on the public path, nothing "
+            + "changes, and the same invitation then accepts another")
+    void aCompromisedPassword_isRefused_andTheSameInvitationAcceptsAnother() throws Exception {
+        Community community = newCommunity();
+        Map<String, Object> member = newRecord();
+        UUID userId = registered(loginAsAdminOf(community), community.getId(), member);
+        String personalId = (String) member.get("personalId");
+        PlatformInvitation invitation = invited(loginAsPlatformAdmin(), invitationBody(personalId));
+        Map<String, Object> accountBefore = accountRow(personalId);
+        String compromised = "lucoenergia1";
+        remember(compromised);
+
+        acceptPlatform(invitation.token(), compromised, invitation.code(), "192.0.2.173")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+
+        assertThat(accountRow(personalId)).isEqualTo(accountBefore);
+        assertThat(isPlatformAdmin(userId)).isFalse();
+        assertThat(invitationRow(userId).get("accepted_at")).isNull();
+        assertThat(failedCodeAttempts(userId)).isZero();
+        assertThat(platformLinkWorks(invitation.token())).isTrue();
+
+        String valid = newPassword();
+        acceptPlatform(invitation.token(), valid, invitation.code(), "192.0.2.173")
+                .andExpect(status().isNoContent());
+        assertThat(isPlatformAdmin(userId)).isTrue();
+        login(personalId, valid).andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("ACC-022 a compromised password on the public path is not counted against the client address, nor "
+            + "resets the account counter of the invited user")
+    void aCompromisedPassword_isNotCounted_andDoesNotResetTheAccountCounter() throws Exception {
+        Community community = newCommunity();
+        Map<String, Object> member = newRecord();
+        registered(loginAsAdminOf(community), community.getId(), member);
+        String personalId = (String) member.get("personalId");
+        PlatformInvitation invitation = invited(loginAsPlatformAdmin(), invitationBody(personalId));
+        String clientIp = "192.0.2.174";
+        for (int i = 0; i < 5; i++) {
+            login(personalId, "a wrong password, " + i).andExpect(status().isUnauthorized());
+        }
+        for (int i = 0; i < 19; i++) {
+            acceptPlatform("unknown-" + i, newPassword(), invitation.code(), clientIp)
+                    .andExpect(status().isBadRequest());
+        }
+        String compromised = "lucoenergia1";
+        remember(compromised);
+
+        acceptPlatform(invitation.token(), compromised, invitation.code(), clientIp)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("COMPROMISED"));
+
+        // Not reset: the account is still throttled
+        login(personalId, newPassword()).andExpect(status().isTooManyRequests());
+        // Not counted: the address takes a twentieth failure before it is throttled
+        acceptPlatform("unknown-19", newPassword(), invitation.code(), clientIp)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("MEMBERSHIP_INVITATION_TOKEN_INVALID"));
+        acceptPlatform("unknown-20", newPassword(), invitation.code(), clientIp)
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
     @DisplayName("ACC-014 MEM-016 an account with an email keeps it when it accepts")
     void anAccountWithAnEmail_keepsIt() throws Exception {
         Community community = newCommunity();

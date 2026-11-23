@@ -63,6 +63,7 @@ public class PlatformAdminInvitationAcceptance {
     private final ChangePasswordRepository changePasswordRepository;
     private final UpdateUserEmailRepository updateUserEmailRepository;
     private final UserPasswordEncoder userPasswordEncoder;
+    private final PasswordPolicy passwordPolicy;
     private final Clock clock;
 
     public PlatformAdminInvitationAcceptance(GetOneTimeTokenService getOneTimeTokenService,
@@ -77,6 +78,7 @@ public class PlatformAdminInvitationAcceptance {
                                              ChangePasswordRepository changePasswordRepository,
                                              UpdateUserEmailRepository updateUserEmailRepository,
                                              UserPasswordEncoder userPasswordEncoder,
+                                             PasswordPolicy passwordPolicy,
                                              Clock clock) {
         this.getOneTimeTokenService = getOneTimeTokenService;
         this.consumeOneTimeTokenService = consumeOneTimeTokenService;
@@ -90,6 +92,7 @@ public class PlatformAdminInvitationAcceptance {
         this.changePasswordRepository = changePasswordRepository;
         this.updateUserEmailRepository = updateUserEmailRepository;
         this.userPasswordEncoder = userPasswordEncoder;
+        this.passwordPolicy = passwordPolicy;
         this.clock = clock;
     }
 
@@ -119,7 +122,7 @@ public class PlatformAdminInvitationAcceptance {
         if (invitation.user().getPassword() != null) {
             throw new PlatformAdminInvitationLoginRequiredException();
         }
-        PasswordPolicy.check(newPassword);
+        passwordPolicy.check(newPassword);
 
         Optional<Outcome> refused = checkCode(invitation, confirmationCode, attempt);
         if (refused.isPresent()) {
