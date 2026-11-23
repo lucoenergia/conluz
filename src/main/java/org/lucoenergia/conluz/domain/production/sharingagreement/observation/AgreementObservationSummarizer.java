@@ -1,14 +1,10 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
-import org.lucoenergia.conluz.domain.production.sharingagreement.RegisteredOrder;
-
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -40,15 +36,15 @@ final class AgreementObservationSummarizer {
                    List<SharingAnomaly> anomalies, NavigableMap<LocalDate, Double> plantValid,
                    Map<UUID, Map<LocalDate, Double>> energy, Map<UUID, NavigableMap<LocalDate, Double>> betas,
                    List<ObservedCoefficient> coefficients,
-                   Set<UUID> notCounted, LocalDate analysedTo, ZoneId zone) {
+                   Set<UUID> notCounted, LocalDate analysedTo) {
     }
 
     List<AgreementObservation> summarize(Context context) {
         Map<UUID, ObservedDate[]> datesByAgreement = new HashMap<>();
         for (ObservedAgreement agreement : context.agreements()) {
             List<ObservedDate> observed = context.supplies().stream()
-                    .flatMap(supply -> context.rows().get(supply.id()).coefficients()
-                            .getOrDefault(agreement.id(), List.of()).stream())
+                    .map(supply -> context.rows().get(supply.id()).coefficients().get(agreement.id()))
+                    .filter(Objects::nonNull)
                     .map(CoefficientObservation::observedDate)
                     .filter(Objects::nonNull)
                     .toList();
@@ -65,7 +61,8 @@ final class AgreementObservationSummarizer {
             for (ObservedSupply supply : context.supplies()) {
                 SupplyRows rows = context.rows().get(supply.id());
                 NavigableMap<LocalDate, Double> betas = context.betas().get(supply.id());
-                for (CoefficientObservation row : rows.coefficients().getOrDefault(agreement.id(), List.of())) {
+                CoefficientObservation row = rows.coefficients().get(agreement.id());
+                if (row != null) {
                     // A row without an observed date, a not observable one included, keeps the whole window.
                     LocalDate[] rowWindow = rowWindow(row.observedDate(), window);
                     if (row.status() == ObservationStatus.NOT_OBSERVABLE) {
@@ -74,13 +71,15 @@ final class AgreementObservationSummarizer {
                                 row.coefficient(), row.storedValidFrom(), row.storedValidTo(), row.status(), null,
                                 null, row.observedBeta(), windowDays(context.plantValid(), rowWindow),
                                 firstDay(rowWindow), lastDay(rowWindow)));
-                        continue;
+                    } else {
+                        coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(),
+                                row.coefficient(), row.storedValidFrom(), row.storedValidTo(), row.status(),
+                                row.observedDate(),
+                                row.status() == ObservationStatus.NOT_DISTINGUISHABLE
+                                        ? mostFrequent : row.proposedDate(),
+                                observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow),
+                                firstDay(rowWindow), lastDay(rowWindow)));
                     }
-                    coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(), row.coefficient(),
-                            row.storedValidFrom(), row.storedValidTo(), row.status(), row.observedDate(),
-                            row.status() == ObservationStatus.NOT_DISTINGUISHABLE ? mostFrequent : row.proposedDate(),
-                            observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow),
-                            firstDay(rowWindow), lastDay(rowWindow)));
                 }
                 LeavingObservation leaving = rows.leavings().get(agreement.id());
                 if (leaving != null) {
@@ -178,12 +177,13 @@ final class AgreementObservationSummarizer {
         if (window == null || window[1].isBefore(window[0])) {
             return null;
         }
-        Map<UUID, List<ObservedCoefficient>> rowsBySupply = new LinkedHashMap<>();
+        // A supply holds at most one row in the agreement (#601): its value counts on every day it has no data.
+        List<ObservedCoefficient> rows = new ArrayList<>();
         for (ObservedCoefficient coefficient : context.coefficients()) {
             if (coefficient.sharingAgreementId().equals(agreement.id())
                     && (context.energy().containsKey(coefficient.supplyId())
                     || context.notCounted().contains(coefficient.supplyId()))) {
-                rowsBySupply.computeIfAbsent(coefficient.supplyId(), id -> new ArrayList<>()).add(coefficient);
+                rows.add(coefficient);
             }
         }
         double production = 0;
@@ -198,10 +198,10 @@ final class AgreementObservationSummarizer {
                 energy += supplyEnergy.getOrDefault(day.getKey(), 0d);
             }
             double shareWithoutData = 0;
-            for (Map.Entry<UUID, List<ObservedCoefficient>> rows : rowsBySupply.entrySet()) {
-                Map<LocalDate, Double> supplyEnergy = context.energy().get(rows.getKey());
+            for (ObservedCoefficient row : rows) {
+                Map<LocalDate, Double> supplyEnergy = context.energy().get(row.supplyId());
                 if (supplyEnergy == null || !supplyEnergy.containsKey(day.getKey())) {
-                    shareWithoutData += valueOn(rows.getValue(), day.getKey(), context.zone());
+                    shareWithoutData += row.coefficient().doubleValue();
                 }
             }
             weightedShareWithoutData += g * shareWithoutData;
@@ -211,24 +211,6 @@ final class AgreementObservationSummarizer {
         }
         return new UnallocatedShare(1 - energy / production, weightedShareWithoutData / production, days, window[0],
                 window[1]);
-    }
-
-    /**
-     * A supply's registered value on a day: its only row, or, when the agreement holds several, the one whose
-     * stored period holds the day.
-     */
-    private static double valueOn(List<ObservedCoefficient> rows, LocalDate day, ZoneId zone) {
-        if (rows.size() == 1) {
-            return rows.get(0).coefficient().doubleValue();
-        }
-        for (ObservedCoefficient row : rows) {
-            LocalDate from = RegisteredOrder.localDay(row.validFrom(), zone);
-            LocalDate to = RegisteredOrder.localDay(row.validTo(), zone);
-            if (from != null && !day.isBefore(from) && (to == null || day.isBefore(to))) {
-                return row.coefficient().doubleValue();
-            }
-        }
-        return 0d;
     }
 
     private static List<SharingRecommendation> recommendations(ObservedAgreement agreement,

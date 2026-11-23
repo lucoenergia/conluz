@@ -123,15 +123,14 @@ final class SupplyTimelineWalker {
 
     /**
      * The candidate whose run has reached N days. Ties go first to a candidate not yet observed, then to the
-     * earliest in registered order.
+     * earliest in registered order: a supply has one candidate per agreement, so its rank decides.
      */
     private Candidate completedRun(List<Candidate> candidates, Map<Candidate, Integer> runLength,
                                    Map<Candidate, SupplyTimeline.Observation> firstObservations) {
         return candidates.stream()
                 .filter(candidate -> runLength.getOrDefault(candidate, 0) >= consecutiveDays)
                 .min(Comparator.<Candidate, Boolean>comparing(firstObservations::containsKey)
-                        .thenComparingInt(Candidate::rank)
-                        .thenComparing(candidate -> candidate.isImplicitZero() ? "" : candidate.row().id().toString()))
+                        .thenComparingInt(Candidate::rank))
                 .orElse(null);
     }
 

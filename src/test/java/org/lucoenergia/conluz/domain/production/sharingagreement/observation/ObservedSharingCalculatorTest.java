@@ -152,30 +152,6 @@ class ObservedSharingCalculatorTest {
         }
 
         @Test
-        @DisplayName("OBS-001 each row of an agreement holding several for one supply is its own candidate")
-        void eachRowIsItsOwnCandidate() {
-            ObservationFixture fixture = new ObservationFixture(FROM, TO);
-            ObservedSupply first = fixture.supply("S1");
-            ObservedSupply second = fixture.supply("S2");
-            ObservedAgreement synthetic = fixture.agreement("Synthetic", null);
-            ObservedAgreement later = fixture.agreement("Later", day("2024-06-01"));
-            ObservedCoefficient early = fixture.row(first, synthetic, "0.02", day("2024-01-01"), day("2024-05-01"));
-            ObservedCoefficient second2 = fixture.row(first, synthetic, "0.03", day("2024-05-01"), null);
-            fixture.row(second, synthetic, "0.05", day("2024-01-01"), null);
-            fixture.row(first, later, "0.06", (LocalDate) null, null);
-            fixture.row(second, later, "0.05", (LocalDate) null, null);
-            fixture.beta(first, FROM, day("2024-04-30"), 0.02).beta(first, day("2024-05-01"), TO, 0.03);
-            fixture.beta(second, FROM, TO, 0.05);
-
-            PlantSharingObservation result = fixture.calculate();
-
-            assertThat(rowOf(result, early).observedDate()).isEqualTo(ObservedDate.onOrBefore(FROM));
-            assertThat(rowOf(result, second2).observedDate()).isEqualTo(ObservedDate.exact(day("2024-05-01")));
-            assertThat(rowOf(result, second2).status()).isEqualTo(ObservationStatus.APPLIED_SAME_DATE);
-            assertThat(anomaliesOf(result, first)).isEmpty();
-        }
-
-        @Test
         @DisplayName("OBS-001 a stored start at 00:00 UTC of the observed local day is the same date")
         void storedStartAtUtcMidnightIsTheSameLocalDay() {
             ObservationFixture fixture = new ObservationFixture(FROM, TO);
@@ -680,13 +656,12 @@ class ObservedSharingCalculatorTest {
             ObservationFixture fixture = new ObservationFixture(FROM, TO);
             ObservedSupply first = fixture.supply("S1");
             ObservedSupply second = fixture.supply("S2");
-            // Never sent and holding several rows per supply, all before the data.
+            // Never sent, with every row before the data.
             ObservedAgreement synthetic = fixture.agreement("Synthetic", null);
             ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
             ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
             ObservedAgreement c = fixture.agreement("C", day("2024-06-01"));
-            fixture.row(first, synthetic, "0.01", day("2022-01-01"), day("2022-06-01"));
-            fixture.row(first, synthetic, "0.015", day("2022-06-01"), day("2023-01-01"));
+            fixture.row(first, synthetic, "0.01", day("2022-01-01"), day("2023-01-01"));
             fixture.row(second, synthetic, "0.01", day("2022-01-01"), day("2023-01-01"));
             fixture.row(first, a, "0.03", day("2023-01-01"), day("2024-05-10"));
             fixture.row(second, a, "0.02", day("2023-01-01"), day("2024-05-10"));
@@ -1018,37 +993,6 @@ class ObservedSharingCalculatorTest {
             assertThat(rowOf(result, thirdInB).observedDate()).isEqualTo(ObservedDate.exact(day("2024-05-20")));
             assertThat(rowOf(result, thirdInB).observedBeta())
                     .isEqualTo(new ObservedBeta(new BigDecimal("0.060000"), 42));
-        }
-
-        @Test
-        @DisplayName("OBS-009 several rows of one supply in an agreement each start on their own observed date; rows never observed share the agreement's window")
-        void severalRowsOfOneSupply() {
-            ObservationFixture fixture = new ObservationFixture(FROM, TO);
-            ObservedSupply first = fixture.supply("S1");
-            ObservedSupply second = fixture.supply("S2");
-            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
-            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
-            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
-            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
-            ObservedCoefficient firstInBBefore = fixture.row(first, b, "0.04", CHANGE, day("2024-06-01"));
-            ObservedCoefficient firstInBAfter = fixture.row(first, b, "0.05", day("2024-06-01"), null);
-            ObservedCoefficient firstInBNever = fixture.row(first, b, "0.07", day("2024-06-01"), null);
-            fixture.row(second, b, "0.05", CHANGE, null);
-            fixture.beta(first, FROM, day("2024-05-09"), 0.03)
-                    .beta(first, CHANGE, day("2024-05-31"), 0.04)
-                    .beta(first, day("2024-06-01"), TO, 0.05);
-            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
-
-            PlantSharingObservation result = fixture.calculate();
-
-            // B's window holds 22 days at 4 % and then 30 at 5 %.
-            assertThat(rowOf(result, firstInBBefore).observedBeta())
-                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 52));
-            assertThat(rowOf(result, firstInBAfter).observedBeta())
-                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 30));
-            assertThat(rowOf(result, firstInBNever).observedDate()).isNull();
-            assertThat(rowOf(result, firstInBNever).observedBeta())
-                    .isEqualTo(new ObservedBeta(new BigDecimal("0.050000"), 52));
         }
 
         @Test
@@ -1442,42 +1386,11 @@ class ObservedSharingCalculatorTest {
         }
 
         @Test
-        @DisplayName("OBS-011 several rows of the plant supply in one agreement are each listed and counted")
-        void severalPlantSupplyRows() {
-            PlantSharingObservation result = switchingMidWindow();
-            AgreementObservation b = result.agreements().get(1);
-
-            assertThat(b.coefficients()).filteredOn(row -> row.supply().code().equals("PLANT"))
-                    .extracting(CoefficientObservation::coefficient, CoefficientObservation::status)
-                    .containsExactly(
-                            tuple(new BigDecimal("0.01"), ObservationStatus.NOT_OBSERVABLE),
-                            tuple(new BigDecimal("0.02"), ObservationStatus.NOT_OBSERVABLE));
-            assertThat(b.coefficientStatusCounts()).containsEntry(ObservationStatus.NOT_OBSERVABLE, 2);
-        }
-
-        @Test
-        @DisplayName("OBS-011 the share without data follows the plant supply's row whose stored period holds each day")
-        void shareWithoutDataFollowsTheRowOfTheDay() {
-            PlantSharingObservation result = switchingMidWindow();
-
-            // B is applied from 2024-05-01: 31 days at 100 kWh under 0.01, then 30 days at 200 kWh under 0.02.
-            UnallocatedShare share = result.agreements().get(1).unallocatedShare();
-            assertThat(share.days()).isEqualTo(61);
-            assertThat(share.registeredShareWithoutData())
-                    .isCloseTo((31 * 100 * 0.01 + 30 * 200 * 0.02) / (31 * 100 + 30 * 200), PRECISION);
-            // A holds no row of the plant supply: its days before the switch are unchanged.
-            assertThat(result.agreements().get(0).unallocatedShare().registeredShareWithoutData())
-                    .isCloseTo(0, PRECISION);
-        }
-
-        /**
-         * A, then B from 2024-05-01, in which the plant supply holds 0.01 until 2024-06-01 and 0.02 from then on,
-         * while the plant produces 200 kWh a day in June.
-         */
-        private PlantSharingObservation switchingMidWindow() {
-            ObservationFixture fixture = new ObservationFixture(FROM, TO)
-                    .production(day("2024-06-01"), 200);
-            for (LocalDate day = day("2024-06-02"); !day.isAfter(TO); day = day.plusDays(1)) {
+        @DisplayName("OBS-011 the plant supply's row counts in the share without data on every plant-valid day of the applied window, whatever its stored period")
+        void shareWithoutDataCountsTheRowOnEveryDay() {
+            // The plant produces twice as much in June, so a share counted only from the stored start would differ.
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            for (LocalDate day = day("2024-06-01"); !day.isAfter(TO); day = day.plusDays(1)) {
                 fixture.production(day, 200);
             }
             ObservedSupply first = fixture.supply("S1");
@@ -1489,11 +1402,20 @@ class ObservedSharingCalculatorTest {
             fixture.row(second, a, "0.5", day("2024-03-01"), day("2024-05-01"));
             fixture.row(first, b, "0.6", day("2024-05-01"), null);
             fixture.row(second, b, "0.38", day("2024-05-01"), null);
+            // Stored from 1 June, a month after B was observed applied.
             fixture.row(plant, b, "0.02", day("2024-06-01"), null);
-            fixture.row(plant, b, "0.01", day("2024-05-01"), day("2024-06-01"));
             fixture.beta(first, FROM, day("2024-04-30"), 0.5).beta(first, day("2024-05-01"), TO, 0.6);
             fixture.beta(second, FROM, day("2024-04-30"), 0.5).beta(second, day("2024-05-01"), TO, 0.38);
-            return fixture.calculate();
+
+            PlantSharingObservation result = fixture.calculate();
+
+            // B is applied from 2024-05-01: 31 days at 100 kWh and 30 at 200 kWh, all under 2 %.
+            UnallocatedShare share = agreementOf(result, b).unallocatedShare();
+            assertThat(share.days()).isEqualTo(61);
+            assertThat(share.registeredShareWithoutData()).isCloseTo(0.02, PRECISION);
+            // A holds no row of the plant supply.
+            assertThat(agreementOf(result, a).unallocatedShare().registeredShareWithoutData())
+                    .isCloseTo(0, PRECISION);
         }
 
         @Test
@@ -2050,6 +1972,16 @@ class ObservedSharingCalculatorTest {
         @DisplayName("OBS-013 reporting the window days changes no status, date, anomaly, recommendation, observed β or 1 − Σβ")
         void changesNothingElse() {
             assertNothingElseChanged(regressionFixture());
+        }
+    }
+
+    @Nested
+    class OneRowPerSupply {
+
+        @Test
+        @DisplayName("OBS-001 OBS-011 assuming one row per supply per agreement changes no status, date, anomaly, recommendation, observed β, window days or 1 − Σβ")
+        void oneRowPerSupplyChangesNothing() {
+            assertCompleteRegressionUnchanged(completeRegressionFixture());
         }
     }
 
