@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #611 |
+| **Last reviewed against code** | #618 |
 
 ## Purpose
 
@@ -28,16 +28,16 @@ observes: it never writes, and never proposes a coefficient.
 | Observed β (median) | The median of a supply's observed β over a set of its valid days: the middle value of an odd count, the mean of the two middle values of an even one. |
 | Valid day | A local day on which the consumer supply's published records and the plant hours both reach the daily form of ENM-001's publication threshold, and G ≥ max(0.5 kWh × the plant's peak power in kWp, 12 kWh). |
 | Agreements in scope | The plant's PUBLISHED and SUPERSEDED agreements. |
-| Candidate | A value a supply's observed β may match: one of its coefficient rows in an agreement in scope (an agreement may hold several rows for one supply), or the implicit 0 of an agreement it has no row in. |
+| Candidate | A value a supply's observed β may match: its coefficient row in an agreement in scope, or the implicit 0 of an agreement it has no row in. |
 | Match | A candidate within ±0.1 pp of the observed β. |
 | Run | N consecutive valid days matching one candidate and not the candidate observed applied immediately before. N is configured (`conluz.sharing-observation.consecutive-days`, default 3). |
 | Ambiguous day | A valid day that matches both the candidate observed applied and another candidate of a different value. For that other candidate it counts as a gap: it neither extends nor breaks its run. |
 | Observed date | The first day of a run: exact; a range when non-valid or ambiguous days precede it; or open ("on or before") when it is the supply's first valid day. Dates are local days of the application time zone. |
 | Registered order | The agreements ordered by their distributor file's sent date, else the earliest stored start of their rows as a local day; then by creation instant; then by id. |
 | Leaving row | A supply absent from an agreement, after the agreement observed applied before it gave the supply a non-zero value. |
-| Applied window | The days an agreement is taken as applied to the plant: from its most frequent observed application date to the day before the next agreement's in that order, or to the end of the analysed range. An agreement none of whose coefficient rows was observed has none, nor one whose window would end before it starts. 1 − Σβ is computed over it. |
+| Applied window | The days an agreement is taken as applied to the plant: from its most frequent observed application date to the day before the next agreement's in that order, or to the end of the analysed range. An agreement none of whose coefficient rows was observed has none, nor one whose window would end before it starts. 1 − Σβ is computed over it, and its first and last local day are reported with it (OBS-014). |
 | Share without data | The share an agreement registers for the supplies without a valid day on each plant-valid day of its applied window, the plant's own supply always among them (OBS-011), weighted by G (`registeredShareWithoutData`). Set next to 1 − Σβ, it tells how much of the production no supply with data received is explained. |
-| Row window | The days a coefficient or leaving row is taken as applied to its supply: from the row's observed application or leaving date (the end of a range, or the day of an open date) to the end of its agreement's applied window; the whole applied window when the row has no observed date. None when the agreement has no applied window or the row's start falls after its end. |
+| Row window | The days a coefficient or leaving row is taken as applied to its supply: from the row's observed application or leaving date (the end of a range, or the day of an open date) to the end of its agreement's applied window; the whole applied window when the row has no observed date. None when the agreement has no applied window or the row's start falls after its end. Its first and last local day are reported with the row (OBS-013). |
 
 ## Rules
 
@@ -53,10 +53,10 @@ observes: it never writes, and never proposes a coefficient.
   days, as E / G. A coefficient row's observed application date
   MUST be the first day of the first run of its candidate: a range spanning the non-valid and ambiguous days that
   precede the run, or open ("on or before") when the run starts on the supply's first valid day. Fewer than N
-  matching valid days MUST NOT date anything. An agreement holding several rows for one supply MUST be matched row
-  by row. Stored dates MUST be compared with observed ones as local days of the application time zone, so a start
-  stored at 00:00 UTC of the observed day is the same day. When several candidates complete a run on the same day,
-  the one not yet observed for the supply MUST be chosen first, then the earliest in registered order.
+  matching valid days MUST NOT date anything. Stored dates MUST be compared with observed ones as local days of the
+  application time zone, so a start stored at 00:00 UTC of the observed day is the same day. When several candidates
+  complete a run on the same day, the one not yet observed for the supply MUST be chosen first, then the earliest in
+  registered order.
 - **Rationale:** A plant supply's records are production only: it never carries self-consumption, and its earlier
   production was stored as surplus in the consumption measurement (#604). The sync zeroes that surplus once it writes
   production, so the two sources never carry the same energy, and the cutover keeps a day on one source. Runs make the date robust to a day's noise and to Datadis revisions; ranges and open dates say
@@ -64,8 +64,8 @@ observes: it never writes, and never proposes a coefficient.
   serves only two years). Ambiguous days arise when two values are closer than twice the tolerance: they are
   evidence for neither. The 12 kWh floor keeps the rounding of a day's 24 three-decimal Datadis values within the
   ±0.1 pp tolerance on any plant: an 8 kWp plant would otherwise accept 4 kWh days, with up to 0.3 pp of rounding
-  error.
-- **Source:** #579, #604, ENM-001
+  error. A supply holds at most one coefficient row per agreement (#601), so each agreement gives it one candidate.
+- **Source:** #579, #604, #618, ENM-001
 
 ### OBS-002 — A coefficient or leaving row is in one status
 
@@ -208,16 +208,17 @@ observes: it never writes, and never proposes a coefficient.
   agreement's coefficient rows as `NOT_OBSERVABLE`, with its stored period (OBS-010), no observed date, no proposed
   date, and an observed β of null over 0 days, and MUST be counted in the agreement's coefficient status counts. Its
   registered value MUST count in the agreement's share without data on every plant-valid day of the applied window,
-  as for a supply without data: its only row in the agreement, or the row whose stored period holds the day. Such a
-  row MUST NOT count as observed, MUST NOT trigger `SET_DATES` or any other recommendation, and MUST NOT change 1 − Σβ.
+  as for a supply without data: its row in the agreement, whatever its stored period. Such a row MUST NOT count as
+  observed, MUST NOT trigger `SET_DATES` or any other recommendation, and MUST NOT change 1 − Σβ.
   The plant's own supply is still never analysed as a consumer (OBS-006): it has no β, no run, no anomaly and no
   leaving row. A plant that is not computable lists no row, this one included (OBS-006).
 - **Rationale:** The plant's own supply can hold a coefficient, but its Datadis surplus is the plant's production
   and it has no self-consumption, so its share cannot be measured. Left out, its registered share appeared as
-  production no one received, unexplained. Its application date is set by hand, from the distributor file. The share
-  without data follows the same row choice as for every other supply without data, because most rows are published
-  without stored dates.
-- **Source:** #607, PLT-002
+  production no one received, unexplained. Its application date is set by hand, from the distributor file. Its value
+  counts on every plant-valid day of the applied window, whatever its stored period: stored dates are what observed
+  sharing checks, so they must not narrow the window it checks them against. A supply holds at most one row per
+  agreement (#601), so there is no other row to choose.
+- **Source:** #607, #618, PLT-002
 
 ### OBS-012 — Every anomaly reports the expected β it departs from
 
@@ -235,16 +236,27 @@ observes: it never writes, and never proposes a coefficient.
   force for it, so an unattributed anomaly has none, rather than a 0 that no agreement states.
 - **Source:** #611, OBS-004, OBS-009
 
-### OBS-013 — Every row reports the plant-valid days of its row window
+### OBS-013 — Every row reports the plant-valid days and the dates of its row window
 
 - **Status:** Active
-- **Rule:** Every coefficient row and every leaving row MUST report the number of plant-valid days in its row window,
-  0 when it has none. A row without an observed date, a `NOT_OBSERVABLE` row (OBS-011) included, counts them over the
-  whole applied window. It MUST NOT change anything else.
+- **Rule:** Every coefficient row and every leaving row MUST report the number of plant-valid days in its row window
+  and the window's first and last local day; 0 days and no dates when it has none. A row without an observed date, a
+  `NOT_OBSERVABLE` row (OBS-011) included, uses the whole applied window. It MUST NOT change anything else.
 - **Rationale:** A supply's valid days (OBS-009) only show a data gap next to the days it could have had. The row
   window differs per row, so the agreement's window days are the wrong denominator for any row observed on another
-  date than the agreement's, and only the analysis has the plant's valid days to count them.
-- **Source:** #611, OBS-009, OBS-011
+  date than the agreement's, and only the analysis has the plant's valid days to count them. The days only mean
+  something next to the period they were counted over: with its dates, a supply's data gap can be checked against its
+  Datadis data, and two rows of one agreement with different window days can be told apart.
+- **Source:** #611, #618, OBS-009, OBS-011
+
+### OBS-014 — An agreement's unattributed production share reports its applied window
+
+- **Status:** Active
+- **Rule:** An agreement's unattributed production share MUST report the first and last local day of its applied
+  window. It MUST NOT change anything else.
+- **Rationale:** Its measurable days only mean something next to the period they cover. A client cannot compute the
+  window: it would duplicate the window rules, and an agreement's page does not know the next agreement.
+- **Source:** #618, OBS-013
 
 ## Impossible states
 
@@ -264,6 +276,9 @@ observes: it never writes, and never proposes a coefficient.
 - An unattributed anomaly with a non-null expected β — prevented by OBS-012.
 - A row whose observed valid days exceed its window days — prevented by OBS-001 and OBS-013: a supply's valid days
   are plant-valid days, and both are counted over the same row window.
+- A row reporting window dates with 0 window days, or window days without dates — prevented by OBS-001 and OBS-013:
+  a row window starts on an observed day or on the agreement's most frequent one, both valid days of a supply and so
+  plant-valid, and its days and dates are read from the same window.
 
 ## Accepted exceptions
 
