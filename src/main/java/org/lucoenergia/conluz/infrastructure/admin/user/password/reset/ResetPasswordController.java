@@ -43,7 +43,7 @@ public class ResetPasswordController {
                 `<web client>/reset-password#<token>`. It requires no authentication, and any token presented with
                 it is ignored.
 
-                The new password must meet the same policy as a password change: between 15 and 64 characters,
+                The new password must meet the same policy as a password change: between 10 and 64 characters,
                 counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. It must
                 differ from the current password.
 
@@ -123,11 +123,11 @@ public class ResetPasswordController {
                                                     {
                                                        "timestamp": "2026-10-04T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The password must be at least 15 characters long.",
+                                                       "message": "The password must be at least 10 characters long.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The password must be at least 15 characters long.",
+                                                           "message": "The password must be at least 10 characters long.",
                                                            "code": "USER_PASSWORD_POLICY_VIOLATION",
                                                            "params": {
                                                              "rule": "TOO_SHORT"

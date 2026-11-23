@@ -19,8 +19,8 @@ class PasswordPolicyTest {
     private static final String E_ACUTE = "é";
 
     @Test
-    void fourteenCodePointsAreTooShort() {
-        assertRule(PasswordPolicyViolation.TOO_SHORT, "a".repeat(14));
+    void nineCodePointsAreTooShort() {
+        assertRule(PasswordPolicyViolation.TOO_SHORT, "a".repeat(9));
     }
 
     @Test
@@ -57,10 +57,10 @@ class PasswordPolicyTest {
 
     @Test
     void lengthIsCountedInCodePointsNotInJavaChars() {
-        // 14 code points but 28 Java chars: counting chars would wrongly accept it
-        assertRule(PasswordPolicyViolation.TOO_SHORT, EMOJI.repeat(14));
-        // 15 code points, 60 bytes
-        assertDoesNotThrow(() -> PasswordPolicy.check(EMOJI.repeat(15)));
+        // 9 code points but 18 Java chars: counting chars would wrongly accept it
+        assertRule(PasswordPolicyViolation.TOO_SHORT, EMOJI.repeat(9));
+        // 10 code points, 40 bytes
+        assertDoesNotThrow(() -> PasswordPolicy.check(EMOJI.repeat(10)));
     }
 
     @Test
@@ -76,9 +76,9 @@ class PasswordPolicyTest {
 
     @Test
     void surroundingSpacesAreNotTrimmed() {
-        // 13 visible characters: trimming would make it too short
-        assertDoesNotThrow(() -> PasswordPolicy.check(" " + "a".repeat(13) + " "));
-        assertRule(PasswordPolicyViolation.TOO_SHORT, " " + "a".repeat(12) + " ");
+        // 8 visible characters: trimming would make it too short
+        assertDoesNotThrow(() -> PasswordPolicy.check(" " + "a".repeat(8) + " "));
+        assertRule(PasswordPolicyViolation.TOO_SHORT, " " + "a".repeat(7) + " ");
     }
 
     @Test

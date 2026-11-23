@@ -16,8 +16,8 @@ public class AcceptInvitationBody {
     private String token;
 
     @NotNull
-    @Schema(minLength = 15, description = """
-            The account's first password. Between 15 and 64 characters, counting each Unicode code point as \
+    @Schema(minLength = 10, description = """
+            The account's first password. Between 10 and 64 characters, counting each Unicode code point as \
             one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and \
             non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed.""")
     private String newPassword;

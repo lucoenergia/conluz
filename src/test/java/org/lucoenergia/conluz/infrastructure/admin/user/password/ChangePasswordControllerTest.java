@@ -133,11 +133,11 @@ class ChangePasswordControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void newPasswordOf14CodePoints_isRefused() throws Exception {
+    void newPasswordOf9CodePoints_isRefused() throws Exception {
         User user = createFlaggedUser();
         String token = login(user.getPersonalId(), user.getPassword());
 
-        expectPolicyViolation(changePassword(token, user.getPassword(), "a".repeat(14)), "TOO_SHORT");
+        expectPolicyViolation(changePassword(token, user.getPassword(), "a".repeat(9)), "TOO_SHORT");
 
         getCurrentUser(token).andExpect(status().isOk());
         login(user.getPersonalId(), user.getPassword());

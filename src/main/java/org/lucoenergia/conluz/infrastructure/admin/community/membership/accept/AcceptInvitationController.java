@@ -44,7 +44,7 @@ public class AcceptInvitationController {
                 the emailed link `<web client>/accept-invitation#<token>` and the account's first password. It
                 requires no authentication, and any token presented with it is ignored.
 
-                The password must meet the same policy as a password change: between 15 and 64 characters,
+                The password must meet the same policy as a password change: between 10 and 64 characters,
                 counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.
 
                 On success the server answers 204 with no body: the token is used up, the password is set, the
@@ -159,11 +159,11 @@ public class AcceptInvitationController {
                                                     {
                                                        "timestamp": "2026-10-15T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The password must be at least 15 characters long.",
+                                                       "message": "The password must be at least 10 characters long.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The password must be at least 15 characters long.",
+                                                           "message": "The password must be at least 10 characters long.",
                                                            "code": "USER_PASSWORD_POLICY_VIOLATION",
                                                            "params": {
                                                              "rule": "TOO_SHORT"

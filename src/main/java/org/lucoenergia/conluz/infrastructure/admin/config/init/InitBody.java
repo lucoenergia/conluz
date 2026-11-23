@@ -48,8 +48,8 @@ public class InitBody {
         @Email
         private String email;
         @NotNull
-        @Schema(minLength = 15, description = """
-                The default admin's password. Between 15 and 64 characters, counting each Unicode code point as \
+        @Schema(minLength = 10, description = """
+                The default admin's password. Between 10 and 64 characters, counting each Unicode code point as \
                 one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces \
                 and non-ASCII letters; there are no composition rules, and the value is never trimmed or \
                 transformed. The default admin chooses it, so they are not flagged as having to change it.""")

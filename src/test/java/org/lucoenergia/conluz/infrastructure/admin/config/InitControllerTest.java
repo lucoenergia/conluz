@@ -59,10 +59,10 @@ class InitControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void passwordOf14CodePoints_isRefused() throws Exception {
+    void passwordOf9CodePoints_isRefused() throws Exception {
         allowInitialisationAgain();
 
-        postInit(objectMapper.writeValueAsString(bodyWith("33600001A", "a".repeat(14))))
+        postInit(objectMapper.writeValueAsString(bodyWith("33600001A", "a".repeat(9))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
                 .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
