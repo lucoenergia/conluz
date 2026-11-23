@@ -367,6 +367,24 @@
             "example" : 335,
             "format" : "int32",
             "type" : "integer"
+          },
+          "windowFrom" : {
+            "description" : "First local day of the row's window: its observed application date (the latest day of a range or of an open date), or the start of the agreement's applied window when it has none. Null when the row has no window (windowDays 0): the agreement has no applied window or the row's start falls after its end.",
+            "example" : "2024-02-01",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "windowTo" : {
+            "description" : "Last local day of the row's window: the end of the agreement's applied window. Null when the row has no window (windowDays 0).",
+            "example" : "2025-11-30",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
           }
         },
         "required" : [
@@ -380,7 +398,9 @@
           "storedValidFrom",
           "storedValidTo",
           "supply",
-          "windowDays"
+          "windowDays",
+          "windowFrom",
+          "windowTo"
         ],
         "type" : "object"
       },
@@ -2529,6 +2549,24 @@
             "example" : 335,
             "format" : "int32",
             "type" : "integer"
+          },
+          "windowFrom" : {
+            "description" : "First local day of the row's window: its observed leaving date (the latest day of a range or of an open date), or the start of the agreement's applied window when it has none. Null when the row has no window (windowDays 0): the agreement has no applied window or the row's start falls after its end.",
+            "example" : "2024-02-01",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "windowTo" : {
+            "description" : "Last local day of the row's window: the end of the agreement's applied window. Null when the row has no window (windowDays 0).",
+            "example" : "2025-11-30",
+            "format" : "date",
+            "type" : [
+              "string",
+              "null"
+            ]
           }
         },
         "required" : [
@@ -2542,7 +2580,9 @@
           "status",
           "storedValidTo",
           "supply",
-          "windowDays"
+          "windowDays",
+          "windowFrom",
+          "windowTo"
         ],
         "type" : "object"
       },
@@ -6690,11 +6730,23 @@
             "format" : "int32",
             "type" : "integer"
           },
+          "from" : {
+            "description" : "First local day of the agreement's applied window, which the figures are computed over: its most frequent observed application date (the latest day of a range or of an open date)",
+            "example" : "2024-02-01",
+            "format" : "date",
+            "type" : "string"
+          },
           "registeredShareWithoutData" : {
             "description" : "The share the agreement registers for the supplies without data and for the plant's own supply on each day, on a 0-1 scale, weighted by the plant's daily production",
             "example" : 0.0565,
             "format" : "double",
             "type" : "number"
+          },
+          "to" : {
+            "description" : "Last local day of the agreement's applied window: the day before the next agreement's most frequent observed application date, or the end of the analysed range",
+            "example" : "2025-11-30",
+            "format" : "date",
+            "type" : "string"
           },
           "unallocated" : {
             "description" : "1 − Σβ: the production no supply with data received, on a 0-1 scale, weighted by the plant's daily production",
@@ -6705,7 +6757,9 @@
         },
         "required" : [
           "days",
+          "from",
           "registeredShareWithoutData",
+          "to",
           "unallocated"
         ],
         "type" : "object"

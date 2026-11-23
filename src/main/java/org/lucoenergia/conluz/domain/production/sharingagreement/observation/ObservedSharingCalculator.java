@@ -117,7 +117,7 @@ public final class ObservedSharingCalculator {
 
         List<AgreementObservation> observations = new AgreementObservationSummarizer().summarize(
                 new AgreementObservationSummarizer.Context(agreements, listed, rows, anomalies, plantValid, energy,
-                        betas, coefficients, notCounted, input.analysedTo(), input.zone()));
+                        betas, coefficients, notCounted, input.analysedTo()));
         return new PlantSharingObservation(
                 new AnalysisStatus(true, null, input.analysedFrom(), input.analysedTo(), withData, withoutData,
                         notComputableSupplies),
@@ -126,26 +126,20 @@ public final class ObservedSharingCalculator {
     }
 
     /**
-     * The supply's candidates: one per row it holds in each agreement, or the agreement's implicit 0.
+     * The supply's candidates, one per agreement, at its rank: its row in the agreement, or the agreement's
+     * implicit 0. A supply holds at most one row in an agreement (#601).
      */
     private static List<Candidate> candidates(ObservedSupply supply, List<ObservedAgreement> agreements,
                                               List<ObservedCoefficient> coefficients) {
         List<Candidate> candidates = new ArrayList<>();
         for (int rank = 0; rank < agreements.size(); rank++) {
             UUID agreementId = agreements.get(rank).id();
-            List<ObservedCoefficient> rows = coefficients.stream()
+            int agreementRank = rank;
+            candidates.add(coefficients.stream()
                     .filter(row -> row.supplyId().equals(supply.id()) && row.sharingAgreementId().equals(agreementId))
-                    .sorted(Comparator.comparing(ObservedCoefficient::validFrom,
-                                    Comparator.nullsLast(Comparator.naturalOrder()))
-                            .thenComparing(ObservedCoefficient::id))
-                    .toList();
-            if (rows.isEmpty()) {
-                candidates.add(Candidate.implicitZero(agreementId, rank));
-            } else {
-                for (ObservedCoefficient row : rows) {
-                    candidates.add(Candidate.of(row, rank));
-                }
-            }
+                    .findFirst()
+                    .map(row -> Candidate.of(row, agreementRank))
+                    .orElseGet(() -> Candidate.implicitZero(agreementId, agreementRank)));
         }
         return candidates;
     }

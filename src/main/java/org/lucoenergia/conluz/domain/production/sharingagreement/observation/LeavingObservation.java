@@ -15,12 +15,15 @@ import java.util.UUID;
  * @param storedValidTo         the stored exclusive end of the previous row as a local day, or null when open
  * @param proposedDate          for {@link ObservationStatus#NOT_DISTINGUISHABLE}, the agreement's most frequent
  *                              observed date; otherwise null
- * @param observedBeta          what the supply received over the agreement's applied window
+ * @param observedBeta          what the supply received over its row window (OBS-009)
  * @param windowDays            the plant-valid days in the row window, 0 when it has none
+ * @param windowFrom            the first local day of the row window, or null when it has none
+ * @param windowTo              the last local day of the row window, or null when it has none
  */
 public record LeavingObservation(ObservedSupply supply, ObservedAgreement previousAgreement,
                                  UUID previousCoefficientId, BigDecimal previousCoefficient,
                                  ObservedDate observedLeavingDate, LocalDate storedValidTo,
                                  ObservationStatus status, ObservedDate proposedDate,
-                                 ObservedBeta observedBeta, int windowDays) {
+                                 ObservedBeta observedBeta, int windowDays, LocalDate windowFrom,
+                                 LocalDate windowTo) {
 }

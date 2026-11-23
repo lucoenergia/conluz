@@ -307,6 +307,46 @@ class SharingObservationControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("OBS-014 both operations report the first and last local day of each agreement's applied window")
+    void bothOperationsReportTheAppliedWindow() throws Exception {
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        // A is applied from the open date of the first valid day until the day before B, which runs to the end of
+        // the analysed range.
+        perform(plantUrl(plant.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sharingAgreements[0].unallocatedShare.from").value("2025-09-01"))
+                .andExpect(jsonPath("$.sharingAgreements[0].unallocatedShare.to").value("2025-10-31"))
+                .andExpect(jsonPath("$.sharingAgreements[1].unallocatedShare.from").value("2025-11-01"))
+                .andExpect(jsonPath("$.sharingAgreements[1].unallocatedShare.to").value("2025-12-31"));
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.unallocatedShare.from").value("2025-11-01"))
+                .andExpect(jsonPath("$.summary.unallocatedShare.to").value("2025-12-31"));
+    }
+
+    @Test
+    @DisplayName("OBS-013 the agreement's coefficient and leaving rows report the first and last local day of their row window")
+    void rowsReportTheirWindowDates() throws Exception {
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[0].windowFrom").value("2025-11-01"))
+                .andExpect(jsonPath("$.coefficients[0].windowTo").value("2025-12-31"))
+                .andExpect(jsonPath("$.leavingRows[0].windowFrom").value("2025-11-01"))
+                .andExpect(jsonPath("$.leavingRows[0].windowTo").value("2025-12-31"));
+        // The silent supply's row has no observed date: it spans A's whole window.
+        data.coefficient(silent, plant, a, "0.1", LocalDate.parse("2025-08-25"), CHANGE);
+        perform(agreementUrl(plant.getId(), a.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].windowFrom")
+                        .value(contains("2025-09-01")))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + silent.getId() + "')].windowTo")
+                        .value(contains("2025-10-31")));
+    }
+
+    @Test
     @DisplayName("OBS-010 a coefficient row reports its stored end as an exclusive local day, null when open")
     void rowsReportTheirStoredEnd() throws Exception {
         // Stored at 00:00 UTC of the change, 01:00 in Madrid: the same local day.

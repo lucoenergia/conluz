@@ -13,7 +13,8 @@ import java.util.UUID;
  * What was observed of one coefficient row of the agreement.
  */
 @Schema(requiredProperties = {"coefficientId", "supply", "coefficient", "storedValidFrom", "storedValidTo", "status",
-        "observedDate", "proposedDate", "observedBeta", "observedValidDays", "windowDays"})
+        "observedDate", "proposedDate", "observedBeta", "observedValidDays", "windowDays", "windowFrom",
+        "windowTo"})
 public class CoefficientObservationResponse {
 
     @Schema(description = "Identifier of the coefficient row", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -67,6 +68,16 @@ public class CoefficientObservationResponse {
             "after its end.", example = "335")
     private final int windowDays;
 
+    @Schema(description = "First local day of the row's window: its observed application date (the latest day of a " +
+            "range or of an open date), or the start of the agreement's applied window when it has none. Null when " +
+            "the row has no window (windowDays 0): the agreement has no applied window or the row's start falls " +
+            "after its end.", example = "2024-02-01", types = {"string", "null"})
+    private final LocalDate windowFrom;
+
+    @Schema(description = "Last local day of the row's window: the end of the agreement's applied window. Null when " +
+            "the row has no window (windowDays 0).", example = "2025-11-30", types = {"string", "null"})
+    private final LocalDate windowTo;
+
     public CoefficientObservationResponse(CoefficientObservation row) {
         this.coefficientId = row.coefficientId();
         this.supply = new SupplyReferenceResponse(row.supply().id(), row.supply().code(), row.supply().name());
@@ -79,6 +90,8 @@ public class CoefficientObservationResponse {
         this.observedBeta = row.observedBeta().value();
         this.observedValidDays = row.observedBeta().validDays();
         this.windowDays = row.windowDays();
+        this.windowFrom = row.windowFrom();
+        this.windowTo = row.windowTo();
     }
 
     public UUID getCoefficientId() {
@@ -123,5 +136,13 @@ public class CoefficientObservationResponse {
 
     public int getWindowDays() {
         return windowDays;
+    }
+
+    public LocalDate getWindowFrom() {
+        return windowFrom;
+    }
+
+    public LocalDate getWindowTo() {
+        return windowTo;
     }
 }

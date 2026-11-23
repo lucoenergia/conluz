@@ -5,7 +5,6 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.RegisteredOrder
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -29,27 +28,20 @@ final class ObservationStatusResolver {
 
     /**
      * @param agreements the agreements in scope, in registered order: an agreement's rank is its index
-     * @param candidates the supply's candidates, built from the same order
+     * @param candidates the supply's candidates, one per agreement, built from the same order: a candidate's rank is
+     *                   its index
      */
     SupplyRows resolve(ObservedSupply supply, SupplyTimeline timeline, List<ObservedAgreement> agreements,
                        List<Candidate> candidates) {
-        Map<UUID, List<CoefficientObservation>> coefficients = new LinkedHashMap<>();
+        Map<UUID, CoefficientObservation> coefficients = new LinkedHashMap<>();
         Map<UUID, LeavingObservation> leavings = new HashMap<>();
-        for (int rank = 0; rank < agreements.size(); rank++) {
-            ObservedAgreement agreement = agreements.get(rank);
-            List<Candidate> ofAgreement = new ArrayList<>();
-            for (Candidate candidate : candidates) {
-                if (candidate.rank() == rank) {
-                    ofAgreement.add(candidate);
-                }
-            }
-            if (ofAgreement.size() == 1 && ofAgreement.get(0).isImplicitZero()) {
-                leavingRow(supply, timeline, agreement, ofAgreement.get(0), agreements)
+        for (Candidate candidate : candidates) {
+            ObservedAgreement agreement = agreements.get(candidate.rank());
+            if (candidate.isImplicitZero()) {
+                leavingRow(supply, timeline, agreement, candidate, agreements)
                         .ifPresent(row -> leavings.put(agreement.id(), row));
             } else {
-                coefficients.put(agreement.id(), ofAgreement.stream()
-                        .map(candidate -> coefficientRow(supply, timeline, agreement, candidate))
-                        .toList());
+                coefficients.put(agreement.id(), coefficientRow(supply, timeline, agreement, candidate));
             }
         }
         return new SupplyRows(coefficients, leavings);
@@ -62,7 +54,7 @@ final class ObservationStatusResolver {
      * @param candidates the supply's candidates, built from the same order as {@code agreements}
      */
     SupplyRows notObservable(ObservedSupply supply, List<ObservedAgreement> agreements, List<Candidate> candidates) {
-        Map<UUID, List<CoefficientObservation>> coefficients = new LinkedHashMap<>();
+        Map<UUID, CoefficientObservation> coefficients = new LinkedHashMap<>();
         for (Candidate candidate : candidates) {
             if (candidate.isImplicitZero()) {
                 continue;
@@ -70,9 +62,9 @@ final class ObservationStatusResolver {
             ObservedCoefficient row = candidate.row();
             LocalDate storedValidFrom = RegisteredOrder.localDay(row.validFrom(), zone);
             LocalDate storedValidTo = RegisteredOrder.localDay(row.validTo(), zone);
-            coefficients.computeIfAbsent(agreements.get(candidate.rank()).id(), id -> new ArrayList<>())
-                    .add(new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom,
-                            storedValidTo, ObservationStatus.NOT_OBSERVABLE, null, null, ObservedBeta.NONE, 0));
+            coefficients.put(agreements.get(candidate.rank()).id(), new CoefficientObservation(row.id(), supply,
+                    row.coefficient(), storedValidFrom, storedValidTo, ObservationStatus.NOT_OBSERVABLE, null, null,
+                    ObservedBeta.NONE, 0, null, null));
         }
         return new SupplyRows(coefficients, Map.of());
     }
@@ -84,7 +76,7 @@ final class ObservationStatusResolver {
         LocalDate storedValidTo = RegisteredOrder.localDay(row.validTo(), zone);
         if (timeline.days().isEmpty()) {
             return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo,
-                    ObservationStatus.NO_DATA, null, null, null, 0);
+                    ObservationStatus.NO_DATA, null, null, null, 0, null, null);
         }
         Optional<SupplyTimeline.Observation> observation = timeline.firstObservation(candidate);
         if (observation.isPresent()) {
@@ -92,14 +84,14 @@ final class ObservationStatusResolver {
             ObservationStatus status = date.admits(storedValidFrom)
                     ? ObservationStatus.APPLIED_SAME_DATE : ObservationStatus.APPLIED_DIFFERENT_DATE;
             return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo,
-                    status, date, null, null, 0);
+                    status, date, null, null, 0, null, null);
         }
         ObservationStatus status = lastObservedBefore(timeline, candidate.rank())
                 .filter(previous -> Candidate.sameValue(previous.value(), candidate.value()))
                 .map(previous -> ObservationStatus.NOT_DISTINGUISHABLE)
                 .orElseGet(() -> notObserved(agreement));
         return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo, status,
-                null, null, null, 0);
+                null, null, null, 0, null, null);
     }
 
     /**
@@ -118,7 +110,7 @@ final class ObservationStatusResolver {
             ObservationStatus status = date.admits(storedValidTo)
                     ? ObservationStatus.APPLIED_SAME_DATE : ObservationStatus.APPLIED_DIFFERENT_DATE;
             return Optional.of(new LeavingObservation(supply, agreements.get(observation.get().previous().rank()),
-                    previous.id(), previous.coefficient(), date, storedValidTo, status, null, null, 0));
+                    previous.id(), previous.coefficient(), date, storedValidTo, status, null, null, 0, null, null));
         }
         return lastObservedBefore(timeline, implicitZero.rank())
                 .filter(previous -> !previous.isImplicitZero()
@@ -128,20 +120,19 @@ final class ObservationStatusResolver {
                             ? ObservationStatus.NOT_DISTINGUISHABLE : notObserved(agreement);
                     return new LeavingObservation(supply, agreements.get(previous.rank()), previous.row().id(),
                             previous.row().coefficient(), null,
-                            RegisteredOrder.localDay(previous.row().validTo(), zone), status, null, null, 0);
+                            RegisteredOrder.localDay(previous.row().validTo(), zone), status, null, null, 0, null,
+                            null);
                 });
     }
 
     /**
-     * The candidate observed for the supply in the latest agreement before the given rank in registered order:
-     * the latest observed one when that agreement has several rows.
+     * The candidate observed for the supply in the latest agreement before the given rank in registered order. A
+     * supply has one candidate per agreement, so one per rank.
      */
     private static Optional<Candidate> lastObservedBefore(SupplyTimeline timeline, int rank) {
-        return timeline.firstObservations().values().stream()
-                .filter(observation -> observation.candidate().rank() < rank)
-                .max(Comparator.<SupplyTimeline.Observation>comparingInt(observation -> observation.candidate().rank())
-                        .thenComparing(observation -> observation.date().to()))
-                .map(SupplyTimeline.Observation::candidate);
+        return timeline.firstObservations().keySet().stream()
+                .filter(candidate -> candidate.rank() < rank)
+                .max(Comparator.comparingInt(Candidate::rank));
     }
 
     private static ObservationStatus notObserved(ObservedAgreement agreement) {
