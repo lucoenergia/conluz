@@ -88,7 +88,7 @@ class InitControllerTest extends BaseControllerTest {
         allowInitialisationAgain();
         String personalId = UserMother.invalidPersonalIds().get(0);
 
-        postInit(objectMapper.writeValueAsString(bodyWith(personalId, "a".repeat(15))))
+        postInit(objectMapper.writeValueAsString(bodyWith(personalId, "Rv3kq9wzLmT2pxa")))
                 .andExpect(status().isOk());
 
         Assertions.assertTrue(getUserRepository.existsByPersonalId(UserPersonalId.of(personalId)));
@@ -99,7 +99,7 @@ class InitControllerTest extends BaseControllerTest {
     void passwordOf10CodePoints_isAccepted_andTheAdminIsNotFlagged() throws Exception {
         allowInitialisationAgain();
 
-        postInit(objectMapper.writeValueAsString(bodyWith("33600002B", "a".repeat(10))))
+        postInit(objectMapper.writeValueAsString(bodyWith("33600002B", "Rv3kq9wzLm")))
                 .andExpect(status().isOk());
 
         User admin = getUserRepository.findByPersonalId(UserPersonalId.of("33600002B")).orElseThrow();
@@ -107,7 +107,7 @@ class InitControllerTest extends BaseControllerTest {
         mockMvc.perform(post("/api/v1/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "33600002B", "password", "a".repeat(10)))))
+                                Map.of("username", "33600002B", "password", "Rv3kq9wzLm"))))
                 .andExpect(status().isOk());
     }
 

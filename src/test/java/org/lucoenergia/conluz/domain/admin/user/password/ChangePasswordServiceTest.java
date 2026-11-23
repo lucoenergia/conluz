@@ -82,7 +82,8 @@ class ChangePasswordServiceTest {
         when(getUserRepository.findById(argThat(id -> id.getId().equals(user.getId())))).thenReturn(Optional.of(user));
         lenient().when(authenticationThrottleService.startPasswordChange(user, CLIENT_IP)).thenReturn(attempt);
         service = new ChangePasswordServiceImpl(getUserRepository, changePasswordRepository,
-                new UserPasswordEncoder(bcrypt, new PasswordPolicy()), authService, authenticationThrottleService, CLOCK);
+                new UserPasswordEncoder(bcrypt, new PasswordPolicy(password -> false)), authService,
+                authenticationThrottleService, CLOCK);
     }
 
     @Test
@@ -194,7 +195,7 @@ class ChangePasswordServiceTest {
             }
         };
         ChangePasswordService throttled = new ChangePasswordServiceImpl(getUserRepository, changePasswordRepository,
-                new UserPasswordEncoder(blockingEncoder, new PasswordPolicy()), authService,
+                new UserPasswordEncoder(blockingEncoder, new PasswordPolicy(password -> false)), authService,
                 new AuthenticationThrottleServiceImpl(Clock.systemUTC()), CLOCK);
         UserId userId = UserId.of(user.getId());
         ExecutorService pool = Executors.newFixedThreadPool(requests);

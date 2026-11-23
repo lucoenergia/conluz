@@ -29,7 +29,8 @@ class PasswordlessAccountAuthenticationProviderTest {
 
     // The lowest cost BCrypt accepts, to keep the test fast
     private final PasswordEncoder passwordEncoder = spy(new BCryptPasswordEncoder(4));
-    private final UserPasswordEncoder userPasswordEncoder = new UserPasswordEncoder(passwordEncoder, new PasswordPolicy());
+    private final UserPasswordEncoder userPasswordEncoder = new UserPasswordEncoder(passwordEncoder,
+            new PasswordPolicy(password -> false));
 
     @Test
     @DisplayName("ACC-001 a passwordless account is refused with the bad credentials exception")

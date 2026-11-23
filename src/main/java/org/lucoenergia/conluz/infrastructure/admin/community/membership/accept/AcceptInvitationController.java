@@ -45,7 +45,9 @@ public class AcceptInvitationController {
                 requires no authentication, and any token presented with it is ignored.
 
                 The password must meet the same policy as a password change: between 10 and 64 characters,
-                counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.
+                counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; a
+                password that is common or has appeared in data breaches, compared case-insensitively against a
+                list bundled with the application, is refused.
 
                 On success the server answers 204 with no body: the token is used up, the password is set, the
                 membership is accepted, and, when the account had no email, the member record's contact email

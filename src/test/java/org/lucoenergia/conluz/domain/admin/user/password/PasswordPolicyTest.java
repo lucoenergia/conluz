@@ -19,7 +19,7 @@ class PasswordPolicyTest {
     /** U+00E9: one code point, one Java char, two UTF-8 bytes. */
     private static final String E_ACUTE = "é";
 
-    private final PasswordPolicy policy = new PasswordPolicy();
+    private final PasswordPolicy policy = new PasswordPolicy(password -> false);
 
     @Test
     @DisplayName("ACC-021 nine code points are too short")

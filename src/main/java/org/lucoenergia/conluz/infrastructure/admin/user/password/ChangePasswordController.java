@@ -64,7 +64,9 @@ public class ChangePasswordController {
                 The current password must be supplied and must match. The new password must be between 10 and
                 64 characters long, counting each Unicode code point as one, and no more than 72 bytes once
                 UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no
-                composition rules, and the value is never trimmed or transformed. The new password must differ
+                composition rules, and the value is never trimmed or transformed. A password that is common or
+                has appeared in data breaches, compared case-insensitively against a list bundled with the
+                application, is refused. The new password must differ
                 from the current one; the comparison is exact, so a value that differs only by case or by leading
                 or trailing spaces is a different password.
 
@@ -76,7 +78,8 @@ public class ChangePasswordController {
                 A wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never
                 401, and changes nothing. A new password that breaks the policy is answered 400 with the
                 `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:
-                `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. A correct current password with a new password
+                `TOO_SHORT`, `TOO_LONG`, `TOO_MANY_BYTES` or `COMPROMISED`, checked in that order. A correct
+                current password with a new password
                 exactly equal to it is answered 400 with the `USER_PASSWORD_UNCHANGED` code: nothing is changed,
                 the caller's token stays valid and the "must change password" flag stays as it was. A wrong
                 current password is reported as such, whatever the new password.

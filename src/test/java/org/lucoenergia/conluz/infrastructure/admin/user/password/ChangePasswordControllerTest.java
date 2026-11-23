@@ -151,9 +151,9 @@ class ChangePasswordControllerTest extends BaseControllerTest {
         User user = createFlaggedUser();
         String token = login(user.getPersonalId(), user.getPassword());
 
-        changePassword(token, user.getPassword(), "a".repeat(10)).andExpect(status().isNoContent());
+        changePassword(token, user.getPassword(), "Rv3kq9wzLm").andExpect(status().isNoContent());
 
-        login(user.getPersonalId(), "a".repeat(10));
+        login(user.getPersonalId(), "Rv3kq9wzLm");
     }
 
     @Test

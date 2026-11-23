@@ -44,8 +44,9 @@ public class ResetPasswordController {
                 it is ignored.
 
                 The new password must meet the same policy as a password change: between 10 and 64 characters,
-                counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. It must
-                differ from the current password.
+                counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; a
+                password that is common or has appeared in data breaches, compared case-insensitively against a
+                list bundled with the application, is refused. It must differ from the current password.
 
                 On success the server answers 204 with no body: the token is used up, the password is replaced,
                 the "must change password" flag is cleared, and every session opened before is ended. The user is
