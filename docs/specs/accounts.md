@@ -5,8 +5,8 @@
 | **Prefix** | `ACC` |
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tags `Authentication`, `Users`; operations `login`, `requestPasswordReset`, `resetPassword`, `acceptInvitation`, `getCurrentUser`, `updateProfile`, `init`, `registerMember`, `inviteCommunityAdmin`, `importMembers`, `enableUser`, `disableUser`, `deleteUser`, `getAllUsers`, `getUserById`, `getSuppliesByUserId`, `changePassword`, `getPlatformAdmins`, `revokePlatformAdmin`, `invitePlatformAdmin`, `resendPlatformAdminInvitation`, `revokePlatformAdminInvitation`, `inspectInvitation`, `acceptInvitationAsCurrentUser` |
-| **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`), ADR-0004 (`docs/architecture/adr/0004-grant-platform-admin-only-through-an-accepted-invitation-confirmed-out-of-band.md`) |
-| **Last reviewed against code** | #447 |
+| **Related ADRs** | ADR-0003 (`docs/architecture/adr/0003-separate-person-accounts-from-community-member-records.md`), ADR-0004 (`docs/architecture/adr/0004-grant-platform-admin-only-through-an-accepted-invitation-confirmed-out-of-band.md`), ADR-0006 (`docs/architecture/adr/0006-lower-the-minimum-password-length-to-10-code-points-to-ease-access-for-non-technical-members.md`) |
+| **Last reviewed against code** | #613 |
 
 ## Purpose
 
@@ -393,6 +393,17 @@ existing paths treat them; the rest of the capability is specified lazily, as is
 - **Source:** #446, ADR-0003 §3, #329. #447 removed creating, importing and editing users and granting the role by
   identifier, with the platform and community capability `canCreateUsers` and the user capabilities `canEdit` and
   `canGrantPlatformAdmin`.
+
+### ACC-021 — A password that is set has between 10 and 64 code points and at most 72 bytes
+
+- **Status:** Active
+- **Rule:** A password that is set MUST have between 10 and 64 Unicode code points and at most 72 UTF-8 bytes; any
+  character is accepted and the value is never transformed. A violation MUST be answered 400
+  `USER_PASSWORD_POLICY_VIOLATION` with `rule` `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`, checked in that order.
+- **Rationale:** The minimum was lowered from 15 to ease adoption by non-technical members, a deliberate departure
+  from NIST SP 800-63B-4 for single-factor passwords recorded with its risk and expiry conditions in ADR-0006. 72
+  bytes is BCrypt's input limit: anything longer would be silently truncated.
+- **Source:** #330, #613
 
 ## Impossible states
 
