@@ -1658,4 +1658,285 @@ class ObservedSharingCalculatorTest {
             });
         }
     }
+
+    @Nested
+    class ExpectedBeta {
+
+        private static final LocalDate CHANGE = day("2024-05-10");
+
+        @Test
+        @DisplayName("OBS-012 an unknown coefficient attributed to B reports the supply's value in B as expected, next to what it received")
+        void unknownCoefficientReportsTheValueInTheAttributedAgreement() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.0315", CHANGE, null);
+            fixture.row(second, b, "0.02", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.0315)
+                    .beta(first, day("2024-06-01"), day("2024-06-05"), 0.025);
+            fixture.beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.UNKNOWN_COEFFICIENT);
+                assertThat(anomaly.attributedAgreementId()).isEqualTo(b.id());
+                assertThat(anomaly.expectedBeta()).isEqualTo(new BigDecimal("0.031500"));
+                assertThat(anomaly.observedBeta().value()).isEqualTo(new BigDecimal("0.025000"));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 no energy in an agreement reports the supply's value in the agreement it is attributed to")
+        void noEnergyReportsTheValueInTheAttributedAgreement() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.row(second, b, "0.05", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04)
+                    .beta(first, day("2024-06-20"), TO, 0.0);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.NO_ENERGY_IN_AGREEMENT);
+                assertThat(anomaly.attributedAgreementId()).isEqualTo(b.id());
+                assertThat(anomaly.expectedBeta()).isEqualTo(new BigDecimal("0.040000"));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 a reverted application reports the value of the later agreement it is attributed to, not the value it reverts to")
+        void revertedReportsTheLaterAgreementsValue() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-04-25"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(second, a, "0.02", day("2024-03-01"), day("2024-05-01"));
+            fixture.row(first, b, "0.04", day("2024-05-01"), null);
+            fixture.row(second, b, "0.02", day("2024-05-01"), null);
+            fixture.beta(first, FROM, day("2024-04-30"), 0.03)
+                    .beta(first, day("2024-05-01"), day("2024-05-31"), 0.04)
+                    .beta(first, day("2024-06-01"), day("2024-06-10"), 0.03)
+                    .beta(first, day("2024-06-11"), TO, 0.04);
+            fixture.beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.REVERTED);
+                assertThat(anomaly.attributedAgreementId()).isEqualTo(b.id());
+                assertThat(anomaly.expectedBeta()).isEqualTo(new BigDecimal("0.040000"));
+                // What it reverted to is what it received, not what it should have received.
+                assertThat(anomaly.expectedBeta()).isNotEqualByComparingTo(new BigDecimal("0.03"));
+                assertThat(anomaly.observedBeta().value()).isEqualTo(new BigDecimal("0.030000"));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 an anomaly attributed to an agreement the supply holds no row in reports 0: an unknown coefficient after leaving")
+        void attributedToAnAgreementWithoutARowReportsZero() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply staying = fixture.supply("S1");
+            ObservedSupply leaving = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(staying, a, "0.97", day("2024-03-01"), CHANGE);
+            fixture.row(leaving, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(staying, b, "1", CHANGE, null);
+            fixture.beta(staying, FROM, day("2024-05-09"), 0.97).beta(staying, CHANGE, TO, 1.0);
+            // Leaves in B, then receives a share no agreement registers.
+            fixture.beta(leaving, FROM, day("2024-05-09"), 0.03).beta(leaving, CHANGE, TO, 0.0)
+                    .beta(leaving, day("2024-06-01"), day("2024-06-05"), 0.05);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, leaving)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.UNKNOWN_COEFFICIENT);
+                assertThat(anomaly.attributedAgreementId()).isEqualTo(b.id());
+                assertThat(anomaly.expectedBeta()).isEqualTo(new BigDecimal("0.000000"));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 energy outside the agreements of a supply registered at 0 reports 0, the value of the agreement it is attributed to")
+        void energyOutsideAgreementOfASupplyRegisteredAtZeroReportsZero() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply member = fixture.supply("S1");
+            ObservedSupply atZero = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", null);
+            fixture.row(member, a, "1", day("2024-03-01"), null);
+            fixture.row(atZero, a, "0", day("2024-03-01"), null);
+            fixture.row(member, b, "1", (LocalDate) null, null);
+            fixture.beta(member, FROM, TO, 1.0);
+            fixture.beta(atZero, FROM, TO, 0.0).beta(atZero, day("2024-05-01"), day("2024-05-10"), 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, atZero)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.ENERGY_OUTSIDE_AGREEMENT);
+                assertThat(anomaly.attributedAgreementId()).isEqualTo(a.id());
+                assertThat(anomaly.expectedBeta()).isEqualTo(new BigDecimal("0.000000"));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 an anomaly attributed to no agreement reports no expected β")
+        void unattributedReportsNull() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply member = fixture.supply("S1");
+            ObservedSupply outsider = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", null);
+            fixture.row(member, a, "1", day("2024-03-01"), null);
+            fixture.row(member, b, "1", (LocalDate) null, null);
+            fixture.beta(member, FROM, TO, 1.0).beta(outsider, FROM, TO, 0.0)
+                    .beta(outsider, day("2024-05-01"), day("2024-05-20"), 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(result.unattributedAnomalies()).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.ENERGY_OUTSIDE_AGREEMENT);
+                assertThat(anomaly.attributedAgreementId()).isNull();
+                assertThat(anomaly.expectedBeta()).isNull();
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 an application before the sent date reports the value of the late-sent agreement it is attributed to")
+        void appliedBeforeSentReportsTheLateSentAgreementsValue() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-15"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.row(second, b, "0.02", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04);
+            fixture.beta(second, FROM, TO, 0.02);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, first)).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.APPLIED_BEFORE_SENT);
+                assertThat(anomaly.attributedAgreementId()).isEqualTo(b.id());
+                // It matches what the supply received: the anomaly is about the date, not the value.
+                assertThat(anomaly.expectedBeta()).isEqualTo(new BigDecimal("0.040000"));
+                assertThat(anomaly.observedBeta().value()).isEqualTo(new BigDecimal("0.040000"));
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-012 an agreement's slice reports the same expected β as the plant's result for each of its anomalies")
+        void sliceReportsTheSameExpectedBeta() {
+            PlantSharingObservation result = regressionFixture().fixture().calculate();
+
+            assertThat(result.agreements()).allSatisfy(observation -> {
+                SharingAgreementObservation slice = result.sliceFor(observation.agreement().id()).orElseThrow();
+                assertThat(slice.agreement().anomalies())
+                        .extracting(SharingAnomaly::id, SharingAnomaly::expectedBeta)
+                        .containsExactlyElementsOf(observation.anomalies().stream()
+                                .map(anomaly -> tuple(anomaly.id(), anomaly.expectedBeta()))
+                                .toList());
+            });
+            assertThat(result.agreements()).flatExtracting(AgreementObservation::anomalies).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("OBS-012 reporting the expected β changes no status, date, anomaly, recommendation, observed β or 1 − Σβ")
+        void changesNothingElse() {
+            Regression regression = regressionFixture();
+            PlantSharingObservation result = regression.fixture().calculate();
+            AgreementObservation a = result.agreements().get(0);
+            AgreementObservation b = result.agreements().get(1);
+            ObservedSupply first = regression.first();
+            ObservedSupply outsider = regression.outsider();
+
+            assertThat(a.coefficients()).extracting(CoefficientObservation::status, CoefficientObservation::observedDate,
+                            CoefficientObservation::proposedDate, CoefficientObservation::observedBeta)
+                    .containsExactly(
+                            tuple(ObservationStatus.APPLIED_SAME_DATE, ObservedDate.onOrBefore(FROM), null,
+                                    new ObservedBeta(new BigDecimal("0.030000"), 39)),
+                            tuple(ObservationStatus.APPLIED_SAME_DATE, ObservedDate.onOrBefore(FROM), null,
+                                    new ObservedBeta(new BigDecimal("0.020000"), 39)));
+            assertThat(b.coefficients()).extracting(CoefficientObservation::status, CoefficientObservation::observedDate,
+                            CoefficientObservation::proposedDate, CoefficientObservation::observedBeta)
+                    .containsExactly(
+                            tuple(ObservationStatus.APPLIED_SAME_DATE, ObservedDate.exact(CHANGE), null,
+                                    new ObservedBeta(new BigDecimal("0.040000"), 52)),
+                            tuple(ObservationStatus.APPLIED_SAME_DATE, ObservedDate.exact(CHANGE), null,
+                                    new ObservedBeta(new BigDecimal("0.050000"), 52)));
+            assertThat(a.mostFrequentObservedDate()).isEqualTo(ObservedDate.onOrBefore(FROM));
+            assertThat(b.mostFrequentObservedDate()).isEqualTo(ObservedDate.exact(CHANGE));
+
+            assertThat(b.anomalies()).extracting(SharingAnomaly::id, SharingAnomaly::type, SharingAnomaly::start,
+                            SharingAnomaly::end, SharingAnomaly::attributedAgreementId, SharingAnomaly::observedBeta)
+                    .containsExactly(tuple(
+                            AnomalyCollector.idOf(first.id(), SharingAnomalyType.UNKNOWN_COEFFICIENT, day("2024-06-01")),
+                            SharingAnomalyType.UNKNOWN_COEFFICIENT, ObservedDate.exact(day("2024-06-01")),
+                            day("2024-06-05"), b.agreement().id(), new ObservedBeta(new BigDecimal("0.025000"), 5)));
+            assertThat(a.anomalies()).isEmpty();
+            assertThat(result.unattributedAnomalies()).extracting(SharingAnomaly::id, SharingAnomaly::type,
+                            SharingAnomaly::start, SharingAnomaly::end, SharingAnomaly::attributedAgreementId,
+                            SharingAnomaly::observedBeta)
+                    .containsExactly(tuple(
+                            AnomalyCollector.idOf(outsider.id(), SharingAnomalyType.ENERGY_OUTSIDE_AGREEMENT,
+                                    day("2024-05-01")),
+                            SharingAnomalyType.ENERGY_OUTSIDE_AGREEMENT, ObservedDate.exact(day("2024-05-01")),
+                            day("2024-05-20"), null, new ObservedBeta(new BigDecimal("0.020000"), 20)));
+
+            assertThat(a.recommendations()).containsExactly(SharingRecommendation.NONE);
+            assertThat(b.recommendations()).containsExactly(SharingRecommendation.REVIEW_ANOMALIES);
+
+            // A: 39 days of 3 % + 2 %, and 2 % to the outsider on 1-9 May. B: 52 days, 5 of them at 2.5 % for S1,
+            // and 2 % to the outsider on 10-20 May.
+            assertThat(a.unallocatedShare().unallocated()).isCloseTo(1 - (39 * 0.05 + 9 * 0.02) / 39, Offset.offset(1e-9));
+            assertThat(a.unallocatedShare().registeredShareWithoutData()).isCloseTo(0, Offset.offset(1e-9));
+            assertThat(a.unallocatedShare().days()).isEqualTo(39);
+            assertThat(b.unallocatedShare().unallocated())
+                    .isCloseTo(1 - (47 * 0.04 + 5 * 0.025 + 52 * 0.05 + 11 * 0.02) / 52, Offset.offset(1e-9));
+            assertThat(b.unallocatedShare().registeredShareWithoutData()).isCloseTo(0, Offset.offset(1e-9));
+            assertThat(b.unallocatedShare().days()).isEqualTo(52);
+        }
+
+        /**
+         * Two supplies moving from A to B on 10 May, the first with an unknown coefficient in B, and a third in no
+         * agreement receiving energy: one attributed and one unattributed anomaly.
+         */
+        private Regression regressionFixture() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply first = fixture.supply("S1");
+            ObservedSupply second = fixture.supply("S2");
+            ObservedSupply outsider = fixture.supply("S3");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(first, a, "0.03", day("2024-03-01"), CHANGE);
+            fixture.row(second, a, "0.02", day("2024-03-01"), CHANGE);
+            fixture.row(first, b, "0.04", CHANGE, null);
+            fixture.row(second, b, "0.05", CHANGE, null);
+            fixture.beta(first, FROM, day("2024-05-09"), 0.03).beta(first, CHANGE, TO, 0.04)
+                    .beta(first, day("2024-06-01"), day("2024-06-05"), 0.025);
+            fixture.beta(second, FROM, day("2024-05-09"), 0.02).beta(second, CHANGE, TO, 0.05);
+            fixture.beta(outsider, FROM, TO, 0.0).beta(outsider, day("2024-05-01"), day("2024-05-20"), 0.02);
+            return new Regression(fixture, first, outsider);
+        }
+
+        private record Regression(ObservationFixture fixture, ObservedSupply first, ObservedSupply outsider) {
+        }
+    }
 }
