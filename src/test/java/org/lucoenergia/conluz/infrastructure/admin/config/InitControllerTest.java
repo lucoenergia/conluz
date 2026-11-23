@@ -59,10 +59,11 @@ class InitControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void passwordOf14CodePoints_isRefused() throws Exception {
+    @DisplayName("ACC-021 init refuses a password of 9 code points as too short, and stores nothing")
+    void passwordOf9CodePoints_isRefused() throws Exception {
         allowInitialisationAgain();
 
-        postInit(objectMapper.writeValueAsString(bodyWith("33600001A", "a".repeat(14))))
+        postInit(objectMapper.writeValueAsString(bodyWith("33600001A", "a".repeat(9))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
                 .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
@@ -94,10 +95,11 @@ class InitControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void passwordOf15CodePoints_isAccepted_andTheAdminIsNotFlagged() throws Exception {
+    @DisplayName("ACC-021 init accepts a password of 10 code points, and the admin logs in with it")
+    void passwordOf10CodePoints_isAccepted_andTheAdminIsNotFlagged() throws Exception {
         allowInitialisationAgain();
 
-        postInit(objectMapper.writeValueAsString(bodyWith("33600002B", "a".repeat(15))))
+        postInit(objectMapper.writeValueAsString(bodyWith("33600002B", "a".repeat(10))))
                 .andExpect(status().isOk());
 
         User admin = getUserRepository.findByPersonalId(UserPersonalId.of("33600002B")).orElseThrow();
@@ -105,7 +107,7 @@ class InitControllerTest extends BaseControllerTest {
         mockMvc.perform(post("/api/v1/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "33600002B", "password", "a".repeat(15)))))
+                                Map.of("username", "33600002B", "password", "a".repeat(10)))))
                 .andExpect(status().isOk());
     }
 

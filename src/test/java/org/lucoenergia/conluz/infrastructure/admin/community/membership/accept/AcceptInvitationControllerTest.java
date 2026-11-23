@@ -110,6 +110,26 @@ class AcceptInvitationControllerTest extends BaseInvitationAcceptanceTest {
     }
 
     @Test
+    @DisplayName("ACC-021 acceptInvitation refuses a password of 9 code points as too short, and accepts one of 10")
+    void aPasswordOf9CodePoints_isTooShort_andOneOf10IsAccepted() throws Exception {
+        InvitedMember member = invitedMember();
+        Map<String, Object> accountBefore = accountRow(member.personalId());
+        String nine = UUID.randomUUID().toString().replace("-", "").substring(0, 9);
+        String ten = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        remember(nine);
+        remember(ten);
+
+        accept(member.token(), nine, "192.0.2.25")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].code").value("USER_PASSWORD_POLICY_VIOLATION"))
+                .andExpect(jsonPath("$.errors[0].params.rule").value("TOO_SHORT"));
+        assertThat(accountRow(member.personalId())).isEqualTo(accountBefore);
+
+        accept(member.token(), ten, "192.0.2.25").andExpect(status().isNoContent());
+        login(member.personalId(), ten).andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("ACC-007 a passwordless account without an email takes the accepted record's contact email")
     void anAccountWithoutAnEmail_takesTheContactEmailOfTheAcceptedRecord() throws Exception {
         Community first = newCommunity();

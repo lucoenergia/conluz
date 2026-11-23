@@ -1,6 +1,7 @@
 package org.lucoenergia.conluz.infrastructure.admin.user.password;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -133,24 +134,26 @@ class ChangePasswordControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void newPasswordOf14CodePoints_isRefused() throws Exception {
+    @DisplayName("ACC-021 changePassword refuses a new password of 9 code points as too short, and changes nothing")
+    void newPasswordOf9CodePoints_isRefused() throws Exception {
         User user = createFlaggedUser();
         String token = login(user.getPersonalId(), user.getPassword());
 
-        expectPolicyViolation(changePassword(token, user.getPassword(), "a".repeat(14)), "TOO_SHORT");
+        expectPolicyViolation(changePassword(token, user.getPassword(), "a".repeat(9)), "TOO_SHORT");
 
         getCurrentUser(token).andExpect(status().isOk());
         login(user.getPersonalId(), user.getPassword());
     }
 
     @Test
-    void newPasswordOf15CodePoints_isAccepted() throws Exception {
+    @DisplayName("ACC-021 changePassword accepts a new password of 10 code points, which then logs in")
+    void newPasswordOf10CodePoints_isAccepted() throws Exception {
         User user = createFlaggedUser();
         String token = login(user.getPersonalId(), user.getPassword());
 
-        changePassword(token, user.getPassword(), "a".repeat(15)).andExpect(status().isNoContent());
+        changePassword(token, user.getPassword(), "a".repeat(10)).andExpect(status().isNoContent());
 
-        login(user.getPersonalId(), "a".repeat(15));
+        login(user.getPersonalId(), "a".repeat(10));
     }
 
     @Test

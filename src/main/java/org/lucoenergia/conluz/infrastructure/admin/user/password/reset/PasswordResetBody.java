@@ -16,8 +16,8 @@ public class PasswordResetBody {
     private String token;
 
     @NotNull
-    @Schema(minLength = 15, description = """
-            The new password. Between 15 and 64 characters, counting each Unicode code point as one, and \
+    @Schema(minLength = 10, description = """
+            The new password. Between 10 and 64 characters, counting each Unicode code point as one, and \
             no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and \
             non-ASCII letters; there are no composition rules, and the value is never trimmed or \
             transformed. It must differ from the current password.""")

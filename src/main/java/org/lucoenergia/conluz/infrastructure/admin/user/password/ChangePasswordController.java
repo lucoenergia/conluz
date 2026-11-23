@@ -61,7 +61,7 @@ public class ChangePasswordController {
                 This endpoint lets the authenticated user replace their own password. It always acts on the
                 caller, so it cannot be used to change anybody else's password.
 
-                The current password must be supplied and must match. The new password must be between 15 and
+                The current password must be supplied and must match. The new password must be between 10 and
                 64 characters long, counting each Unicode code point as one, and no more than 72 bytes once
                 UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no
                 composition rules, and the value is never trimmed or transformed. The new password must differ
@@ -151,11 +151,11 @@ public class ChangePasswordController {
                                                     {
                                                        "timestamp": "2026-10-04T10:10:25.534035352+02:00",
                                                        "status": 400,
-                                                       "message": "The password must be at least 15 characters long.",
+                                                       "message": "The password must be at least 10 characters long.",
                                                        "traceId": "6e602860-80f7-4802-b20f-8b53fb011013",
                                                        "errors": [
                                                          {
-                                                           "message": "The password must be at least 15 characters long.",
+                                                           "message": "The password must be at least 10 characters long.",
                                                            "code": "USER_PASSWORD_POLICY_VIOLATION",
                                                            "params": {
                                                              "rule": "TOO_SHORT"

@@ -30,8 +30,8 @@
             ]
           },
           "newPassword" : {
-            "description" : "The account's first password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed.",
-            "minLength" : 15,
+            "description" : "The account's first password. Between 10 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed.",
+            "minLength" : 10,
             "type" : "string"
           },
           "token" : {
@@ -133,8 +133,8 @@
             "type" : "string"
           },
           "newPassword" : {
-            "description" : "The new password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It must differ from the current password; the comparison is exact, so a value that differs only by case or by leading or trailing spaces is a different password.",
-            "minLength" : 15,
+            "description" : "The new password. Between 10 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It must differ from the current password; the comparison is exact, so a value that differs only by case or by leading or trailing spaces is a different password.",
+            "minLength" : 10,
             "type" : "string"
           }
         },
@@ -1296,8 +1296,8 @@
             "type" : "string"
           },
           "password" : {
-            "description" : "The default admin's password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. The default admin chooses it, so they are not flagged as having to change it.",
-            "minLength" : 15,
+            "description" : "The default admin's password. Between 10 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. The default admin chooses it, so they are not flagged as having to change it.",
+            "minLength" : 10,
             "type" : "string"
           },
           "personalId" : {
@@ -3802,8 +3802,8 @@
       "PasswordResetBody" : {
         "properties" : {
           "newPassword" : {
-            "description" : "The new password. Between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It must differ from the current password.",
-            "minLength" : 15,
+            "description" : "The new password. Between 10 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no composition rules, and the value is never trimmed or transformed. It must differ from the current password.",
+            "minLength" : 10,
             "type" : "string"
           },
           "token" : {
@@ -16701,7 +16701,7 @@
     },
     "/api/v1/init" : {
       "post" : {
-        "description" : "This endpoint serves as a crucial initiation step for the application, allowing the configuration of foundational settings. This endpoint facilitates the establishment of the default admin user credentials, pivotal for initiating subsequent configurations. By executing this endpoint, users can set the groundwork for the app, enabling the seamless configuration of users, supplies, and other application settings. No authorization is required to execute this endpoint, and the response provides confirmation of successful initialization or relevant error messages.\n\nThe body is validated: `defaultAdminUser` and its `personalId`, `fullName`, `email` and `password` are required, and a missing or invalid field is answered 400. The `password` must satisfy the password policy: between 15 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A password that breaks the policy is answered 400 with the `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed: `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field` (`defaultAdminUser.address`), its `maxLength` and the length `n` sent.\n\nThe application can only be initialised once: any later call is answered 403.",
+        "description" : "This endpoint serves as a crucial initiation step for the application, allowing the configuration of foundational settings. This endpoint facilitates the establishment of the default admin user credentials, pivotal for initiating subsequent configurations. By executing this endpoint, users can set the groundwork for the app, enabling the seamless configuration of users, supplies, and other application settings. No authorization is required to execute this endpoint, and the response provides confirmation of successful initialization or relevant error messages.\n\nThe body is validated: `defaultAdminUser` and its `personalId`, `fullName`, `email` and `password` are required, and a missing or invalid field is answered 400. The `password` must satisfy the password policy: between 10 and 64 characters, counting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded; any character is accepted, including spaces and non-ASCII letters, and there are no composition rules. A password that breaks the policy is answered 400 with the `USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed: `TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`.\n\nAn `address` longer than 250 characters is answered 400 with the `FIELD_TOO_LONG` code, whose params give the `field` (`defaultAdminUser.address`), its `maxLength` and the length `n` sent.\n\nThe application can only be initialised once: any later call is answered 403.",
         "operationId" : "init",
         "requestBody" : {
           "content" : {
@@ -16768,7 +16768,7 @@
     },
     "/api/v1/invitations/accept" : {
       "post" : {
-        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:\nthe code whoever invited gives the person by another channel. A community invitation ignores it.\nOn success the platform-admin role is granted as well, and, when the account had no email, the\ninvitation's destination email becomes its email. A missing or wrong code is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the\nclient address and against the invitation, and the link can be used again. The fifth missing or\nwrong code on one invitation revokes its link and is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The\ncode is checked after the checks above, which neither count nor use it; for a platform-admin\ninvitation, an account that already has a password is answered 409 with the\n`PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED` code instead. A platform-admin\ninvitation whose account is disabled is accepted too: the role is granted, and the account still\ncannot log in.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
+        "description" : "This endpoint accepts the invitation of an account that has no password yet, with the token from\nthe emailed link `<web client>/accept-invitation#<token>` and the account's first password. It\nrequires no authentication, and any token presented with it is ignored.\n\nThe password must meet the same policy as a password change: between 10 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded.\n\nOn success the server answers 204 with no body: the token is used up, the password is set, the\nmembership is accepted, and, when the account had no email, the member record's contact email\nbecomes its email. The person is not logged in; the client must log in with the new password. A\nmembership that is disabled is accepted too, but grants no access until the community enables it.\n\nAn account that already has a password is answered 409 with the\n`MEMBERSHIP_INVITATION_LOGIN_REQUIRED` code: the person must log in and accept with\n`acceptInvitationAsCurrentUser`. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter. In both cases nothing changes and\nthe token can be used again.\n\nA token that is unknown, malformed, expired, already used, revoked or replaced by a newer one, whose membership\nhas already been accepted, or whose account has been disabled, is answered 400 with the\n`MEMBERSHIP_INVITATION_TOKEN_INVALID` code, the same in every case.\n\nA platform-admin invitation, `PLATFORM` in `inspectInvitation`, also requires `confirmationCode`:\nthe code whoever invited gives the person by another channel. A community invitation ignores it.\nOn success the platform-admin role is granted as well, and, when the account had no email, the\ninvitation's destination email becomes its email. A missing or wrong code is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_INVALID` code: nothing is granted, the attempt counts against the\nclient address and against the invitation, and the link can be used again. The fifth missing or\nwrong code on one invitation revokes its link and is answered 400 with the\n`PLATFORM_ADMIN_INVITATION_CODE_ATTEMPTS_EXHAUSTED` code: the invitation must be sent again. The\ncode is checked after the checks above, which neither count nor use it; for a platform-admin\ninvitation, an account that already has a password is answered 409 with the\n`PLATFORM_ADMIN_INVITATION_LOGIN_REQUIRED` code instead. A platform-admin\ninvitation whose account is disabled is accepted too: the role is granted, and the account still\ncannot log in.\n\nEvery unusable token counts against the client address, together with failed logins, password\nchanges and password resets: after 20 within 15 minutes, further requests are answered 429 with a\nRetry-After header until the 15 minutes that started with the first failure have passed.",
         "operationId" : "acceptInvitation",
         "requestBody" : {
           "content" : {
@@ -16810,13 +16810,13 @@
                       "errors" : [
                         {
                           "code" : "USER_PASSWORD_POLICY_VIOLATION",
-                          "message" : "The password must be at least 15 characters long.",
+                          "message" : "The password must be at least 10 characters long.",
                           "params" : {
                             "rule" : "TOO_SHORT"
                           }
                         }
                       ],
-                      "message" : "The password must be at least 15 characters long.",
+                      "message" : "The password must be at least 10 characters long.",
                       "status" : 400,
                       "timestamp" : "2026-10-15T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
@@ -26155,7 +26155,7 @@
     },
     "/api/v1/users/current/password" : {
       "put" : {
-        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 15 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password must differ\nfrom the current one; the comparison is exact, so a value that differs only by case or by leading\nor trailing spaces is a different password.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. A correct current password with a new password\nexactly equal to it is answered 400 with the `USER_PASSWORD_UNCHANGED` code: nothing is changed,\nthe caller's token stays valid and the \"must change password\" flag stays as it was. A wrong\ncurrent password is reported as such, whatever the new password.\n\nNeither an unchanged password nor a policy violation counts as a failed attempt. Wrong current\npasswords count together with failed logins on the same account. After 5 failures\non the account, or 20 from the same client address, within 15 minutes, further changes are\nanswered 429 with a Retry-After header, without checking the current password and without\naffecting the caller's token, until the 15 minutes that started with the first failure have\npassed.\n\n**Required: any authenticated user (changes their own password).**",
+        "description" : "This endpoint lets the authenticated user replace their own password. It always acts on the\ncaller, so it cannot be used to change anybody else's password.\n\nThe current password must be supplied and must match. The new password must be between 10 and\n64 characters long, counting each Unicode code point as one, and no more than 72 bytes once\nUTF-8 encoded. Any character is accepted, including spaces and non-ASCII letters; there are no\ncomposition rules, and the value is never trimmed or transformed. The new password must differ\nfrom the current one; the comparison is exact, so a value that differs only by case or by leading\nor trailing spaces is a different password.\n\nOn success the server answers 204, clears the \"must change password\" flag and ends every\nsession opened with the previous password: every token issued before the change, including the\none used for this request, is rejected with 401 from then on, and the access cookie is removed.\nThe client must log in again with the new password.\n\nA wrong current password is answered 400 with the `USER_CURRENT_PASSWORD_INCORRECT` code, never\n401, and changes nothing. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter naming the rule that failed:\n`TOO_SHORT`, `TOO_LONG` or `TOO_MANY_BYTES`. A correct current password with a new password\nexactly equal to it is answered 400 with the `USER_PASSWORD_UNCHANGED` code: nothing is changed,\nthe caller's token stays valid and the \"must change password\" flag stays as it was. A wrong\ncurrent password is reported as such, whatever the new password.\n\nNeither an unchanged password nor a policy violation counts as a failed attempt. Wrong current\npasswords count together with failed logins on the same account. After 5 failures\non the account, or 20 from the same client address, within 15 minutes, further changes are\nanswered 429 with a Retry-After header, without checking the current password and without\naffecting the caller's token, until the 15 minutes that started with the first failure have\npassed.\n\n**Required: any authenticated user (changes their own password).**",
         "operationId" : "changePassword",
         "requestBody" : {
           "content" : {
@@ -26197,13 +26197,13 @@
                       "errors" : [
                         {
                           "code" : "USER_PASSWORD_POLICY_VIOLATION",
-                          "message" : "The password must be at least 15 characters long.",
+                          "message" : "The password must be at least 10 characters long.",
                           "params" : {
                             "rule" : "TOO_SHORT"
                           }
                         }
                       ],
-                      "message" : "The password must be at least 15 characters long.",
+                      "message" : "The password must be at least 10 characters long.",
                       "status" : 400,
                       "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
@@ -26396,7 +26396,7 @@
     },
     "/api/v1/users/password/reset" : {
       "post" : {
-        "description" : "This endpoint completes the recovery of a forgotten password with the token from the emailed link\n`<web client>/reset-password#<token>`. It requires no authentication, and any token presented with\nit is ignored.\n\nThe new password must meet the same policy as a password change: between 15 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. It must\ndiffer from the current password.\n\nOn success the server answers 204 with no body: the token is used up, the password is replaced,\nthe \"must change password\" flag is cleared, and every session opened before is ended. The user is\nnot logged in; the client must log in with the new password. The account's failed login attempts\nare forgotten, so a user throttled for them can log in at once.\n\nA token that is unknown, malformed, expired, already used or replaced by a newer one, or whose user\nhas been disabled, is answered 400 with the `USER_PASSWORD_RESET_TOKEN_INVALID` code, the same in\nevery case. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter, and one equal to the current password\nwith the `USER_PASSWORD_UNCHANGED` code; in both cases nothing changes and the token can be used\nagain.\n\nEvery invalid token counts against the client address, together with failed logins and password\nchanges: after 20 within 15 minutes, further resets are answered 429 with a Retry-After header\nuntil the 15 minutes that started with the first failure have passed.",
+        "description" : "This endpoint completes the recovery of a forgotten password with the token from the emailed link\n`<web client>/reset-password#<token>`. It requires no authentication, and any token presented with\nit is ignored.\n\nThe new password must meet the same policy as a password change: between 10 and 64 characters,\ncounting each Unicode code point as one, and no more than 72 bytes once UTF-8 encoded. It must\ndiffer from the current password.\n\nOn success the server answers 204 with no body: the token is used up, the password is replaced,\nthe \"must change password\" flag is cleared, and every session opened before is ended. The user is\nnot logged in; the client must log in with the new password. The account's failed login attempts\nare forgotten, so a user throttled for them can log in at once.\n\nA token that is unknown, malformed, expired, already used or replaced by a newer one, or whose user\nhas been disabled, is answered 400 with the `USER_PASSWORD_RESET_TOKEN_INVALID` code, the same in\nevery case. A new password that breaks the policy is answered 400 with the\n`USER_PASSWORD_POLICY_VIOLATION` code and a `rule` parameter, and one equal to the current password\nwith the `USER_PASSWORD_UNCHANGED` code; in both cases nothing changes and the token can be used\nagain.\n\nEvery invalid token counts against the client address, together with failed logins and password\nchanges: after 20 within 15 minutes, further resets are answered 429 with a Retry-After header\nuntil the 15 minutes that started with the first failure have passed.",
         "operationId" : "resetPassword",
         "requestBody" : {
           "content" : {
@@ -26438,13 +26438,13 @@
                       "errors" : [
                         {
                           "code" : "USER_PASSWORD_POLICY_VIOLATION",
-                          "message" : "The password must be at least 15 characters long.",
+                          "message" : "The password must be at least 10 characters long.",
                           "params" : {
                             "rule" : "TOO_SHORT"
                           }
                         }
                       ],
-                      "message" : "The password must be at least 15 characters long.",
+                      "message" : "The password must be at least 10 characters long.",
                       "status" : 400,
                       "timestamp" : "2026-10-04T10:10:25.534035352+02:00",
                       "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"

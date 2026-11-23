@@ -3,11 +3,14 @@ package org.lucoenergia.conluz.domain.admin.user.password;
 import java.nio.charset.StandardCharsets;
 
 /**
- * The single password policy, applied to every password that is set: on user creation, on each row of a user
- * import, on the initial admin created by {@code /init}, and on a password change.
+ * The single password policy, applied to every password that is set: on the default admin created by
+ * {@code /init}, on a password change, on a password reset and on accepting an invitation.
  * <p>
- * It follows NIST SP 800-63B-4 for passwords used as the single authentication factor: a length rule and
- * nothing else. Every character is accepted, spaces and non-ASCII letters included, and there are no
+ * It is a length rule and nothing else. Its minimum deliberately departs from NIST SP 800-63B-4, which asks for
+ * 15 characters when the password is the single authentication factor; the reasons, the accepted risk and when to
+ * revisit it are in
+ * {@code docs/architecture/adr/0006-lower-the-minimum-password-length-to-10-code-points-to-ease-access-for-non-technical-members.md}.
+ * Every character is accepted, spaces and non-ASCII letters included, and there are no
  * composition rules. The value is checked exactly as received: it is never trimmed, normalised or otherwise
  * transformed, so the password that is hashed is the password the user typed.
  * <p>
@@ -17,7 +20,7 @@ import java.nio.charset.StandardCharsets;
  */
 public final class PasswordPolicy {
 
-    public static final int MIN_CODE_POINTS = 15;
+    public static final int MIN_CODE_POINTS = 10;
     public static final int MAX_CODE_POINTS = 64;
     public static final int MAX_UTF8_BYTES = 72;
 
