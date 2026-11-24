@@ -70,7 +70,7 @@ final class AgreementObservationSummarizer {
                         coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(),
                                 row.coefficient(), row.storedValidFrom(), row.storedValidTo(), row.status(), null,
                                 null, row.observedBeta(), windowDays(context.plantValid(), rowWindow),
-                                firstDay(rowWindow), lastDay(rowWindow)));
+                                firstDay(rowWindow), lastDay(rowWindow), row.leavesDistribution()));
                     } else {
                         coefficients.add(new CoefficientObservation(row.coefficientId(), row.supply(),
                                 row.coefficient(), row.storedValidFrom(), row.storedValidTo(), row.status(),
@@ -78,7 +78,7 @@ final class AgreementObservationSummarizer {
                                 row.status() == ObservationStatus.NOT_DISTINGUISHABLE
                                         ? mostFrequent : row.proposedDate(),
                                 observedBeta(betas, rowWindow), windowDays(context.plantValid(), rowWindow),
-                                firstDay(rowWindow), lastDay(rowWindow)));
+                                firstDay(rowWindow), lastDay(rowWindow), row.leavesDistribution()));
                     }
                 }
                 LeavingObservation leaving = rows.leavings().get(agreement.id());

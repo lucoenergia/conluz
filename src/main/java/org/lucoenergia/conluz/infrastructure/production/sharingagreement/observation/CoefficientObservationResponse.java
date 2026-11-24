@@ -14,7 +14,7 @@ import java.util.UUID;
  */
 @Schema(requiredProperties = {"coefficientId", "supply", "coefficient", "storedValidFrom", "storedValidTo", "status",
         "observedDate", "proposedDate", "observedBeta", "observedValidDays", "windowDays", "windowFrom",
-        "windowTo"})
+        "windowTo", "leavesDistribution"})
 public class CoefficientObservationResponse {
 
     @Schema(description = "Identifier of the coefficient row", example = "b3d1a2f0-1234-5678-abcd-000000000001")
@@ -78,6 +78,12 @@ public class CoefficientObservationResponse {
             "the row has no window (windowDays 0).", example = "2025-11-30", types = {"string", "null"})
     private final LocalDate windowTo;
 
+    @Schema(description = "Whether the coefficient takes its supply out of the distribution: its value is 0 and, in " +
+            "the PUBLISHED or SUPERSEDED agreement immediately before its own in registered order, the supply holds " +
+            "a coefficient greater than 0. The row stays here, with its own status and dates, and is never listed " +
+            "among the leaving rows, which are the supplies absent from the agreement.", example = "false")
+    private final boolean leavesDistribution;
+
     public CoefficientObservationResponse(CoefficientObservation row) {
         this.coefficientId = row.coefficientId();
         this.supply = new SupplyReferenceResponse(row.supply().id(), row.supply().code(), row.supply().name());
@@ -92,6 +98,7 @@ public class CoefficientObservationResponse {
         this.windowDays = row.windowDays();
         this.windowFrom = row.windowFrom();
         this.windowTo = row.windowTo();
+        this.leavesDistribution = row.leavesDistribution();
     }
 
     public UUID getCoefficientId() {
@@ -144,5 +151,9 @@ public class CoefficientObservationResponse {
 
     public LocalDate getWindowTo() {
         return windowTo;
+    }
+
+    public boolean isLeavesDistribution() {
+        return leavesDistribution;
     }
 }
