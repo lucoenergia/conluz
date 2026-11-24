@@ -96,7 +96,7 @@ public class CoefficientDatesEffectsResponse {
     }
 
     @Schema(requiredProperties = {"coefficient", "supply", "validFromBefore", "validToBefore", "validFromAfter",
-            "validToAfter"})
+            "validToAfter", "leavesDistribution"})
     public static class CoefficientPeriodChangeResponse {
 
         @Schema(description = "The requested coefficient")
@@ -120,6 +120,12 @@ public class CoefficientDatesEffectsResponse {
                 types = {"string", "null"})
         private final Instant validToAfter;
 
+        @Schema(description = "Whether the coefficient takes its supply out of the distribution: its value is 0 and, " +
+                "in the PUBLISHED or SUPERSEDED agreement immediately before its own in registered order, the supply " +
+                "holds a coefficient greater than 0. Reported for the coefficients this request places; a supply " +
+                "absent from the previous agreement had already left it there.", example = "false")
+        private final boolean leavesDistribution;
+
         CoefficientPeriodChangeResponse(CoefficientDatesEffects.CoefficientPeriodChange change, References references) {
             this.coefficient = new PartitionCoefficientReferenceResponse(change.coefficientId());
             this.supply = references.supply(change.supplyId());
@@ -127,6 +133,7 @@ public class CoefficientDatesEffectsResponse {
             this.validToBefore = change.validToBefore();
             this.validFromAfter = change.validFromAfter();
             this.validToAfter = change.validToAfter();
+            this.leavesDistribution = change.leavesDistribution();
         }
 
         public PartitionCoefficientReferenceResponse getCoefficient() {
@@ -151,6 +158,10 @@ public class CoefficientDatesEffectsResponse {
 
         public Instant getValidToAfter() {
             return validToAfter;
+        }
+
+        public boolean isLeavesDistribution() {
+            return leavesDistribution;
         }
     }
 

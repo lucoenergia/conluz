@@ -140,8 +140,8 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(statusOf(c)).isEqualTo(SharingAgreementStatus.PUBLISHED);
 
         assertThat(effects.coefficients()).containsExactly(
-                new CoefficientPeriodChange(b.of(x), x.getId(), null, null, at("2025-03-01"), null),
-                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-03-05"), null));
+                new CoefficientPeriodChange(b.of(x), x.getId(), null, null, at("2025-03-01"), null, false),
+                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-03-05"), null, false));
         assertThat(effects.neighbours()).containsExactly(
                 new NeighbourChange(a.of(x), x.getId(), a.id(), null, at("2025-03-01")),
                 new NeighbourChange(a.of(y), y.getId(), a.id(), null, at("2025-03-05")));
@@ -168,8 +168,8 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(timeline(y)).containsExactly(period(a.of(y), "2025-01-01", "2025-04-01"),
                 period(b.of(y), "2025-04-01", null));
         assertThat(effects.coefficients()).containsExactly(
-                new CoefficientPeriodChange(b.of(x), x.getId(), at("2025-03-01"), null, at("2025-02-01"), null),
-                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-04-01"), null));
+                new CoefficientPeriodChange(b.of(x), x.getId(), at("2025-03-01"), null, at("2025-02-01"), null, false),
+                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-04-01"), null, false));
     }
 
     // ---- SHA-013 / AC2, AC3 ----
@@ -367,6 +367,60 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
                 .isInstanceOf(org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementNotPublishedException.class);
     }
 
+    // ---- SHA-020 ----
+
+    @Test
+    @DisplayName("SHA-020 the preview and the write report a coefficient that drops to 0 as leaving the distribution")
+    void dropToZeroLeaves() {
+        Map<Supply, String> inA = new LinkedHashMap<>();
+        inA.put(x, "0.04");
+        inA.put(y, "0.96");
+        Agreement a = pendingAgreement(inA);
+        activate(a, "2025-01-01", x, y);
+        Map<Supply, String> inB = new LinkedHashMap<>();
+        inB.put(x, "0");
+        inB.put(y, "1");
+        Agreement b = pendingAgreement(inB);
+
+        CoefficientDatesEffects effects = previewThenWrite(b,
+                List.of(date(b, x, "2025-03-01"), date(b, y, "2025-03-01")), List.of());
+
+        assertThat(effects.coefficients()).containsExactlyInAnyOrder(
+                new CoefficientPeriodChange(b.of(x), x.getId(), null, null, at("2025-03-01"), null, true),
+                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-03-01"), null, false));
+        assertThat(effects.neighbours()).containsExactlyInAnyOrder(
+                new NeighbourChange(a.of(x), x.getId(), a.id(), null, at("2025-03-01")),
+                new NeighbourChange(a.of(y), y.getId(), a.id(), null, at("2025-03-01")));
+        assertThat(effects.leavingClosures()).isEmpty();
+        assertThat(timeline(x)).containsExactly(period(a.of(x), "2025-01-01", "2025-03-01"),
+                period(b.of(x), "2025-03-01", null));
+    }
+
+    @Test
+    @DisplayName("SHA-020 a supply absent from B is closed as leaving there, and its 0 in C is not a second leaving")
+    void zeroAfterAnAbsenceDoesNotLeave() {
+        Map<Supply, String> inA = new LinkedHashMap<>();
+        inA.put(x, "0.04");
+        inA.put(y, "0.96");
+        Agreement a = pendingAgreement(inA);
+        activate(a, "2025-01-01", x, y);
+        Agreement b = pendingAgreement(Map.of(y, "1"));
+        Map<Supply, String> inC = new LinkedHashMap<>();
+        inC.put(x, "0");
+        inC.put(y, "1");
+        Agreement c = pendingAgreement(inC);
+
+        CoefficientDatesEffects datingB = previewThenWrite(b, List.of(date(b, y, "2025-02-01")), List.of());
+        CoefficientDatesEffects datingC = previewThenWrite(c,
+                List.of(date(c, x, "2025-03-01"), date(c, y, "2025-03-01")), List.of());
+
+        assertThat(datingB.leavingClosures()).containsExactly(new LeavingClosureChange(x.getId(), a.of(x), a.id(),
+                null, at("2025-02-01"), LeavingClosureSource.DEFAULT));
+        assertThat(datingC.coefficients()).containsExactlyInAnyOrder(
+                new CoefficientPeriodChange(c.of(x), x.getId(), null, null, at("2025-03-01"), null, false),
+                new CoefficientPeriodChange(c.of(y), y.getId(), null, null, at("2025-03-01"), null, false));
+    }
+
     // ---- helpers ----
 
     /**
@@ -479,6 +533,15 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
         return agreement;
     }
 
+    /**
+     * A new published agreement with a pending coefficient of the given value for each supply.
+     */
+    private Agreement pendingAgreement(Map<Supply, String> values) {
+        Map<Supply, BigDecimal> coefficients = new LinkedHashMap<>();
+        values.forEach((supply, value) -> coefficients.put(supply, new BigDecimal(value)));
+        return pendingAgreement(plant, coefficients);
+    }
+
     private Agreement pendingAgreement(Supply... supplies) {
         return pendingAgreement(plant, supplies);
     }
@@ -487,16 +550,23 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
      * A new published agreement with a pending coefficient for each supply, exactly as materialisation writes them.
      */
     private Agreement pendingAgreement(Plant owner, Supply... supplies) {
+        Map<Supply, BigDecimal> coefficients = new LinkedHashMap<>();
+        Arrays.stream(supplies).forEach(supply -> coefficients.put(supply, BigDecimal.ONE));
+        return pendingAgreement(owner, coefficients);
+    }
+
+    private Agreement pendingAgreement(Plant owner, Map<Supply, BigDecimal> coefficients) {
         SharingAgreement draft = createSharingAgreementRepository.create(newAgreement(owner));
         SharingAgreement published = publishSharingAgreementRepository.publish(owner.getId(), draft.getId());
         Map<UUID, UUID> coefficientIdBySupplyId = new LinkedHashMap<>();
-        for (Supply supply : supplies) {
+        for (Map.Entry<Supply, BigDecimal> entry : coefficients.entrySet()) {
+            Supply supply = entry.getKey();
             SupplyPartitionCoefficient saved = saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
                     .withId(UUID.randomUUID())
                     .withSupplyId(supply.getId())
                     .withPlantId(owner.getId())
                     .withSharingAgreementId(published.getId())
-                    .withCoefficient(BigDecimal.ONE)
+                    .withCoefficient(entry.getValue())
                     .withValidFrom(null)
                     .withValidTo(null)
                     .withCreatedAt(Instant.now())

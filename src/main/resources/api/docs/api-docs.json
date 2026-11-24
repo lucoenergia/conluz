@@ -296,6 +296,11 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "leavesDistribution" : {
+            "description" : "Whether the coefficient takes its supply out of the distribution: its value is 0 and, in the PUBLISHED or SUPERSEDED agreement immediately before its own in registered order, the supply holds a coefficient greater than 0. The row stays here, with its own status and dates, and is never listed among the leaving rows, which are the supplies absent from the agreement.",
+            "example" : false,
+            "type" : "boolean"
+          },
           "observedBeta" : {
             "description" : "Median of the supply's daily observed β (E / G) over its valid days from the row's observed application date (the latest day of a range or of an open date) to the end of the agreement's applied window, or over the whole applied window when the row has no observed date. The applied window runs from the agreement's most frequent observed application date to the day before the next agreement's, or to the end of the analysed range. On a 0-1 scale, rounded half-up to 6 decimals; for an even number of days, the mean of the two middle values. Null when the agreement has no applied window, the row's start falls after its end, or the supply has no valid day in between.",
             "example" : 0.030012,
@@ -390,6 +395,7 @@
         "required" : [
           "coefficient",
           "coefficientId",
+          "leavesDistribution",
           "observedBeta",
           "observedDate",
           "observedValidDays",
@@ -409,6 +415,11 @@
           "coefficient" : {
             "$ref" : "#/components/schemas/PartitionCoefficientReferenceResponse",
             "description" : "The requested coefficient"
+          },
+          "leavesDistribution" : {
+            "description" : "Whether the coefficient takes its supply out of the distribution: its value is 0 and, in the PUBLISHED or SUPERSEDED agreement immediately before its own in registered order, the supply holds a coefficient greater than 0. Reported for the coefficients this request places; a supply absent from the previous agreement had already left it there.",
+            "example" : false,
+            "type" : "boolean"
           },
           "supply" : {
             "$ref" : "#/components/schemas/SupplyReferenceResponse",
@@ -450,6 +461,7 @@
         },
         "required" : [
           "coefficient",
+          "leavesDistribution",
           "supply",
           "validFromAfter",
           "validFromBefore",

@@ -4,6 +4,9 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientPlacement;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.LeavingSupplyClosure;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.sharingagreement.LeavingByZero;
+import org.lucoenergia.conluz.domain.production.sharingagreement.RegisteredOrder;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationErrorCode;
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesEffects.AgreementStatusChange;
@@ -12,6 +15,7 @@ import org.lucoenergia.conluz.domain.production.sharingagreement.dates.Coefficie
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesEffects.LeavingClosureChange;
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesEffects.NeighbourChange;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -42,6 +46,8 @@ import java.util.stream.Stream;
  *     placements. The close may shorten or extend that row, up to the next start of the supply (SHA-013).</li>
  *     <li>On the agreement's first activation, every leaving supply that is not listed is closed as SHA-009 does, at
  *     the earliest validFrom of the request (SHA-013).</li>
+ *     <li>Each placed coefficient is reported as leaving the distribution when it drops to 0 (SHA-020). That changes
+ *     no write.</li>
  * </ol>
  *
  * <p>Any invalid row refuses the whole request, with every error found (SHA-015).
@@ -60,13 +66,13 @@ public final class CoefficientDatesPlan {
     /**
      * @param sharingAgreementId  the agreement whose dates are set
      * @param plantTimeline       every row of the plant, any agreement, pending or not, as it stands before the request
-     * @param statuses            the status of every agreement of the plant
+     * @param agreements          every agreement of the plant, DRAFT ones included
      * @param today               today, in the application time zone
      * @param zoneId              the application time zone
      * @param earliestOutsidePlant the earliest validFrom of the community's other plants; null when there is none
      */
     public record Input(UUID sharingAgreementId, Collection<SupplyPartitionCoefficient> plantTimeline,
-                        Map<UUID, SharingAgreementStatus> statuses, LocalDate today, ZoneId zoneId,
+                        Collection<SharingAgreement> agreements, LocalDate today, ZoneId zoneId,
                         CoefficientDatesRequest request, Instant earliestOutsidePlant) {
     }
 
@@ -104,9 +110,11 @@ public final class CoefficientDatesPlan {
         private final Set<UUID> placedIds = new LinkedHashSet<>();
         private final Set<UUID> stagedIds = new LinkedHashSet<>();
         private final Map<UUID, LeavingClosureSource> closureSources = new LinkedHashMap<>();
+        private final Map<UUID, SharingAgreementStatus> statuses = new LinkedHashMap<>();
 
         private Computation(Input input) {
             this.input = input;
+            input.agreements().forEach(agreement -> statuses.put(agreement.getId(), agreement.getStatus()));
             input.plantTimeline().forEach(row -> before.put(row.getId(), row));
             this.projected = new LinkedHashMap<>(before);
         }
@@ -258,13 +266,16 @@ public final class CoefficientDatesPlan {
             List<NeighbourChange> neighbours = new ArrayList<>();
             List<LeavingClosureChange> closures = new ArrayList<>();
             Set<UUID> agreementIds = new LinkedHashSet<>();
+            List<UUID> registeredOrder = registeredOrder();
             for (UUID id : stagedIds) {
                 SupplyPartitionCoefficient old = before.get(id);
                 SupplyPartitionCoefficient now = projected.get(id);
                 agreementIds.add(now.getSharingAgreementId());
                 if (placedIds.contains(id)) {
                     coefficients.add(new CoefficientPeriodChange(id, now.getSupplyId(), old.getValidFrom(),
-                            old.getValidTo(), now.getValidFrom(), now.getValidTo()));
+                            old.getValidTo(), now.getValidFrom(), now.getValidTo(),
+                            LeavingByZero.leaves(now.getSharingAgreementId(), now.getCoefficient(), registeredOrder,
+                                    supplyCoefficients(now.getSupplyId()))));
                 } else if (closureSources.containsKey(id)) {
                     closures.add(new LeavingClosureChange(now.getSupplyId(), id, now.getSharingAgreementId(),
                             old.getValidTo(), now.getValidTo(), closureSources.get(id)));
@@ -274,12 +285,41 @@ public final class CoefficientDatesPlan {
                 }
             }
             List<AgreementStatusChange> agreements = agreementIds.stream()
-                    .map(id -> new AgreementStatusChange(id, input.statuses().get(id),
-                            projectedStatus(id, input.statuses().get(id))))
+                    .map(id -> new AgreementStatusChange(id, statuses.get(id), projectedStatus(id, statuses.get(id))))
                     .toList();
             CommunityStartChange communityStart = new CommunityStartChange(
                     earliest(before.values()), earliest(projected.values()));
             return new CoefficientDatesEffects(coefficients, neighbours, closures, agreements, communityStart);
+        }
+
+        /**
+         * The ids of the plant's PUBLISHED and SUPERSEDED agreements in registered order, on the timeline as the request
+         * leaves it, so the order is the one observed sharing reads once the request is written.
+         */
+        private List<UUID> registeredOrder() {
+            return RegisteredOrder.sort(
+                            input.agreements().stream()
+                                    .filter(agreement -> agreement.getStatus() != SharingAgreementStatus.DRAFT)
+                                    .toList(),
+                            SharingAgreement::getId, SharingAgreement::getDistributorFileSentOn,
+                            SharingAgreement::getCreatedAt,
+                            RegisteredOrder.earliestValidFrom(projected.values(),
+                                    SupplyPartitionCoefficient::getSharingAgreementId,
+                                    SupplyPartitionCoefficient::getValidFrom, input.zoneId()))
+                    .stream()
+                    .map(SharingAgreement::getId)
+                    .toList();
+        }
+
+        /**
+         * The supply's value in each agreement it holds a row in, by agreement id. A supply holds at most one row per
+         * agreement (SHA-018).
+         */
+        private Map<UUID, BigDecimal> supplyCoefficients(UUID supplyId) {
+            return projected.values().stream()
+                    .filter(row -> row.getSupplyId().equals(supplyId))
+                    .collect(Collectors.toMap(SupplyPartitionCoefficient::getSharingAgreementId,
+                            SupplyPartitionCoefficient::getCoefficient));
         }
 
         /**

@@ -16,9 +16,12 @@ import java.util.UUID;
  * @param windowDays      the plant-valid days in the row window, 0 when it has none
  * @param windowFrom      the first local day of the row window, or null when it has none
  * @param windowTo        the last local day of the row window, or null when it has none
+ * @param leavesDistribution whether the row drops its supply to 0 after a non-zero value in the previous agreement
+ *                        in registered order (OBS-015); it stays a coefficient row, never a leaving row
  */
 public record CoefficientObservation(UUID coefficientId, ObservedSupply supply, BigDecimal coefficient,
                                      LocalDate storedValidFrom, LocalDate storedValidTo, ObservationStatus status,
                                      ObservedDate observedDate, ObservedDate proposedDate, ObservedBeta observedBeta,
-                                     int windowDays, LocalDate windowFrom, LocalDate windowTo) {
+                                     int windowDays, LocalDate windowFrom, LocalDate windowTo,
+                                     boolean leavesDistribution) {
 }

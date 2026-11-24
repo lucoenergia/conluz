@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.production.sharingagreement.observation;
 
+import org.lucoenergia.conluz.domain.production.sharingagreement.LeavingByZero;
 import org.lucoenergia.conluz.domain.production.sharingagreement.RegisteredOrder;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Resolves the status of each of a supply's coefficient rows, and of its leaving rows (OBS-002, OBS-003,
@@ -41,7 +43,8 @@ final class ObservationStatusResolver {
                 leavingRow(supply, timeline, agreement, candidate, agreements)
                         .ifPresent(row -> leavings.put(agreement.id(), row));
             } else {
-                coefficients.put(agreement.id(), coefficientRow(supply, timeline, agreement, candidate));
+                coefficients.put(agreement.id(), coefficientRow(supply, timeline, agreement, candidate,
+                        leavesDistribution(candidate, agreements, candidates)));
             }
         }
         return new SupplyRows(coefficients, leavings);
@@ -64,19 +67,20 @@ final class ObservationStatusResolver {
             LocalDate storedValidTo = RegisteredOrder.localDay(row.validTo(), zone);
             coefficients.put(agreements.get(candidate.rank()).id(), new CoefficientObservation(row.id(), supply,
                     row.coefficient(), storedValidFrom, storedValidTo, ObservationStatus.NOT_OBSERVABLE, null, null,
-                    ObservedBeta.NONE, 0, null, null));
+                    ObservedBeta.NONE, 0, null, null, leavesDistribution(candidate, agreements, candidates)));
         }
         return new SupplyRows(coefficients, Map.of());
     }
 
     private CoefficientObservation coefficientRow(ObservedSupply supply, SupplyTimeline timeline,
-                                                  ObservedAgreement agreement, Candidate candidate) {
+                                                  ObservedAgreement agreement, Candidate candidate,
+                                                  boolean leavesDistribution) {
         ObservedCoefficient row = candidate.row();
         LocalDate storedValidFrom = RegisteredOrder.localDay(row.validFrom(), zone);
         LocalDate storedValidTo = RegisteredOrder.localDay(row.validTo(), zone);
         if (timeline.days().isEmpty()) {
             return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo,
-                    ObservationStatus.NO_DATA, null, null, null, 0, null, null);
+                    ObservationStatus.NO_DATA, null, null, null, 0, null, null, leavesDistribution);
         }
         Optional<SupplyTimeline.Observation> observation = timeline.firstObservation(candidate);
         if (observation.isPresent()) {
@@ -84,14 +88,27 @@ final class ObservationStatusResolver {
             ObservationStatus status = date.admits(storedValidFrom)
                     ? ObservationStatus.APPLIED_SAME_DATE : ObservationStatus.APPLIED_DIFFERENT_DATE;
             return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo,
-                    status, date, null, null, 0, null, null);
+                    status, date, null, null, 0, null, null, leavesDistribution);
         }
         ObservationStatus status = lastObservedBefore(timeline, candidate.rank())
                 .filter(previous -> Candidate.sameValue(previous.value(), candidate.value()))
                 .map(previous -> ObservationStatus.NOT_DISTINGUISHABLE)
                 .orElseGet(() -> notObserved(agreement));
         return new CoefficientObservation(row.id(), supply, row.coefficient(), storedValidFrom, storedValidTo, status,
-                null, null, null, 0, null, null);
+                null, null, null, 0, null, null, leavesDistribution);
+    }
+
+    /**
+     * Whether the row leaves the distribution by dropping to 0 (OBS-015, SHA-020): the supply's row in the agreement
+     * immediately before it in registered order, or its absence, is the candidate one rank lower.
+     */
+    private static boolean leavesDistribution(Candidate candidate, List<ObservedAgreement> agreements,
+                                              List<Candidate> candidates) {
+        return LeavingByZero.leaves(candidate.sharingAgreementId(), candidate.row().coefficient(),
+                agreements.stream().map(ObservedAgreement::id).toList(),
+                candidates.stream()
+                        .filter(other -> !other.isImplicitZero())
+                        .collect(Collectors.toMap(Candidate::sharingAgreementId, other -> other.row().coefficient())));
     }
 
     /**

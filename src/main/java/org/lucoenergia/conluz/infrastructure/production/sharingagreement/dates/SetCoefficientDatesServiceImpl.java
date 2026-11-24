@@ -98,7 +98,7 @@ public class SetCoefficientDatesServiceImpl implements SetCoefficientDatesServic
                 .map(change -> new CoefficientPeriodChange(change.coefficientId(), change.supplyId(),
                         change.validFromBefore(), change.validToBefore(),
                         written.get(change.coefficientId()).getValidFrom(),
-                        written.get(change.coefficientId()).getValidTo()))
+                        written.get(change.coefficientId()).getValidTo(), change.leavesDistribution()))
                 .toList();
         List<NeighbourChange> neighbours = planned.neighbours().stream()
                 .map(change -> new NeighbourChange(change.coefficientId(), change.supplyId(),

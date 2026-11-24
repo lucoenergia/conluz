@@ -33,10 +33,14 @@ public record CoefficientDatesEffects(List<CoefficientPeriodChange> coefficients
 
     /**
      * A requested coefficient's period, before and after. A pending coefficient has no validFrom before.
+     *
+     * @param leavesDistribution whether the coefficient drops its supply to 0 after a non-zero value in the previous
+     *                           agreement in registered order (SHA-020)
      */
     public record CoefficientPeriodChange(UUID coefficientId, UUID supplyId,
                                           Instant validFromBefore, Instant validToBefore,
-                                          Instant validFromAfter, Instant validToAfter) {
+                                          Instant validFromAfter, Instant validToAfter,
+                                          boolean leavesDistribution) {
     }
 
     /**

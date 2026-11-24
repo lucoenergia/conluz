@@ -186,6 +186,29 @@ class SharingObservationControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("OBS-015 the agreement's observed sharing flags a row that drops to 0, and lists it as no leaving row")
+    void agreementObservationFlagsARowThatDropsToZero() throws Exception {
+        Supply dropping = data.supply(community);
+        data.coefficient(dropping, plant, a, "0.2", LocalDate.parse("2025-08-25"), CHANGE);
+        data.coefficient(dropping, plant, b, "0", CHANGE, null);
+        data.supplyReceives(dropping, FIRST_DAY, CHANGE.minusDays(1), 0.2f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(dropping, CHANGE, LAST_DAY, 0f);
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients").value(hasSize(2)))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + dropping.getId() + "')].leavesDistribution")
+                        .value(org.hamcrest.Matchers.contains(true)))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + dropping.getId() + "')].status")
+                        .value(org.hamcrest.Matchers.contains("APPLIED_SAME_DATE")))
+                .andExpect(jsonPath("$.coefficients[?(@.supply.id == '" + staying.getId() + "')].leavesDistribution")
+                        .value(org.hamcrest.Matchers.contains(false)))
+                .andExpect(jsonPath("$.leavingRows").value(hasSize(1)))
+                .andExpect(jsonPath("$.leavingRows[0].supply.id").value(leaving.getId().toString()));
+    }
+
+    @Test
     @DisplayName("OBS-007 the agreement's observed sharing is exactly its slice of the plant's")
     void agreementIsTheSliceOfThePlant() throws Exception {
         // An anomaly attributed to B, so the slice carries its observed β too.

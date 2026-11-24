@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #618 |
+| **Last reviewed against code** | #621 |
 
 ## Purpose
 
@@ -35,6 +35,8 @@ observes: it never writes, and never proposes a coefficient.
 | Observed date | The first day of a run: exact; a range when non-valid or ambiguous days precede it; or open ("on or before") when it is the supply's first valid day. Dates are local days of the application time zone. |
 | Registered order | The agreements ordered by their distributor file's sent date, else the earliest stored start of their rows as a local day; then by creation instant; then by id. |
 | Leaving row | A supply absent from an agreement, after the agreement observed applied before it gave the supply a non-zero value. |
+| Leaving by zero | A coefficient row whose value is 0, when the supply holds a row greater than 0 in the agreement immediately before the row's own in registered order, among the agreements in scope (SHA-020). |
+| Leaves the distribution | A supply leaves the distribution in an agreement when it has a leaving row in it (absent from it) or its coefficient row there is a leaving by zero. |
 | Applied window | The days an agreement is taken as applied to the plant: from its most frequent observed application date to the day before the next agreement's in that order, or to the end of the analysed range. An agreement none of whose coefficient rows was observed has none, nor one whose window would end before it starts. 1 − Σβ is computed over it, and its first and last local day are reported with it (OBS-014). |
 | Share without data | The share an agreement registers for the supplies without a valid day on each plant-valid day of its applied window, the plant's own supply always among them (OBS-011), weighted by G (`registeredShareWithoutData`). Set next to 1 − Σβ, it tells how much of the production no supply with data received is explained. |
 | Row window | The days a coefficient or leaving row is taken as applied to its supply: from the row's observed application or leaving date (the end of a range, or the day of an open date) to the end of its agreement's applied window; the whole applied window when the row has no observed date. None when the agreement has no applied window or the row's start falls after its end. Its first and last local day are reported with the row (OBS-013). |
@@ -162,7 +164,7 @@ observes: it never writes, and never proposes a coefficient.
   and stored dates without a persistence layer.
 - **Source:** #579
 
-### OBS-008 — A supply leaving the distribution is a leaving row
+### OBS-008 — A supply absent from an agreement, after a non-zero value, is a leaving row
 
 - **Status:** Active
 - **Rule:** A supply absent from an agreement MUST have a leaving row in it when the agreement observed applied
@@ -257,6 +259,18 @@ observes: it never writes, and never proposes a coefficient.
 - **Rationale:** Its measurable days only mean something next to the period they cover. A client cannot compute the
   window: it would duplicate the window rules, and an agreement's page does not know the next agreement.
 - **Source:** #618, OBS-013
+
+### OBS-015 — A leaving by zero is reported in its coefficient row only
+
+- **Status:** Active
+- **Rule:** Every coefficient row MUST report whether it is a leaving by zero (SHA-020, `leavesDistribution`), the
+  plant's own supply's rows (OBS-011) included. Such a row MUST stay among the agreement's coefficient rows, with
+  its own status and dates, and MUST NOT be listed as a leaving row. It MUST NOT change any status, date, leaving
+  row, anomaly, recommendation, observed β, window or 1 − Σβ.
+- **Rationale:** Observed sharing must show the same leavings as the dates flow, without listing a supply twice:
+  listed once, the status counts still add up to the agreement's rows. The rule is the registered data's, so it
+  reads the registered order, not what was observed.
+- **Source:** #621, SHA-020
 
 ## Impossible states
 
