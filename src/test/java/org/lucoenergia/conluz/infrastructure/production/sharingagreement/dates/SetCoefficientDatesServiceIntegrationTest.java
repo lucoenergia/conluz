@@ -140,8 +140,8 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(statusOf(c)).isEqualTo(SharingAgreementStatus.PUBLISHED);
 
         assertThat(effects.coefficients()).containsExactly(
-                new CoefficientPeriodChange(b.of(x), x.getId(), null, null, at("2025-03-01"), null),
-                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-03-05"), null));
+                new CoefficientPeriodChange(b.of(x), x.getId(), null, null, at("2025-03-01"), null, false),
+                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-03-05"), null, false));
         assertThat(effects.neighbours()).containsExactly(
                 new NeighbourChange(a.of(x), x.getId(), a.id(), null, at("2025-03-01")),
                 new NeighbourChange(a.of(y), y.getId(), a.id(), null, at("2025-03-05")));
@@ -168,8 +168,8 @@ class SetCoefficientDatesServiceIntegrationTest extends BaseIntegrationTest {
         assertThat(timeline(y)).containsExactly(period(a.of(y), "2025-01-01", "2025-04-01"),
                 period(b.of(y), "2025-04-01", null));
         assertThat(effects.coefficients()).containsExactly(
-                new CoefficientPeriodChange(b.of(x), x.getId(), at("2025-03-01"), null, at("2025-02-01"), null),
-                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-04-01"), null));
+                new CoefficientPeriodChange(b.of(x), x.getId(), at("2025-03-01"), null, at("2025-02-01"), null, false),
+                new CoefficientPeriodChange(b.of(y), y.getId(), null, null, at("2025-04-01"), null, false));
     }
 
     // ---- SHA-013 / AC2, AC3 ----

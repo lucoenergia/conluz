@@ -127,8 +127,8 @@ class CoefficientDatesPlanTest {
                 List.of(closure(SUPPLY_Z, "2025-03-03"))));
 
         assertThat(effects.coefficients()).containsExactly(
-                new CoefficientPeriodChange(s.xInB.getId(), SUPPLY_X, null, null, day("2025-03-01"), null),
-                new CoefficientPeriodChange(s.yInB.getId(), SUPPLY_Y, null, null, day("2025-03-05"), null));
+                new CoefficientPeriodChange(s.xInB.getId(), SUPPLY_X, null, null, day("2025-03-01"), null, false),
+                new CoefficientPeriodChange(s.yInB.getId(), SUPPLY_Y, null, null, day("2025-03-05"), null, false));
         assertThat(effects.neighbours()).containsExactly(
                 new NeighbourChange(s.xInA.getId(), SUPPLY_X, AGREEMENT_A, null, day("2025-03-01")),
                 new NeighbourChange(s.yInA.getId(), SUPPLY_Y, AGREEMENT_A, null, day("2025-03-05")));

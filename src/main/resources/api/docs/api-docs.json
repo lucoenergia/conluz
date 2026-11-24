@@ -410,6 +410,11 @@
             "$ref" : "#/components/schemas/PartitionCoefficientReferenceResponse",
             "description" : "The requested coefficient"
           },
+          "leavesDistribution" : {
+            "description" : "Whether the coefficient takes its supply out of the distribution: its value is 0 and, in the PUBLISHED or SUPERSEDED agreement immediately before its own in registered order, the supply holds a coefficient greater than 0. Reported for the coefficients this request places; a supply absent from the previous agreement had already left it there.",
+            "example" : false,
+            "type" : "boolean"
+          },
           "supply" : {
             "$ref" : "#/components/schemas/SupplyReferenceResponse",
             "description" : "The coefficient's supply"
@@ -450,6 +455,7 @@
         },
         "required" : [
           "coefficient",
+          "leavesDistribution",
           "supply",
           "validFromAfter",
           "validFromBefore",
