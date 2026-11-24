@@ -6,18 +6,18 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `updateSharingAgreement`, `activatePartitionCoefficients`, `deactivatePartitionCoefficients`, `closePartitionCoefficients`, `reopenPartitionCoefficients`, `getSharingAgreementPartitionCoefficients`, `setPartitionCoefficientDates`, `previewPartitionCoefficientDates`, `replacePartitionCoefficients`, `uploadSharingAgreementFile` |
 | **Related ADRs** | ADR-0001 (`docs/architecture/adr/0001-deferred-exclusion-constraint-for-coefficient-periods.md`), ADR-0003 §11 (lock order) |
-| **Last reviewed against code** | #601 |
+| **Last reviewed against code** | #621 |
 
 ## Purpose
 
 A sharing agreement is the community's record of how a plant's production is shared among supplies: the partition
 coefficients authored together, the evidence they came from, and the distributor file sent to the distribution
-company. This spec covers only the rules #580, #581, #582, #593, #583, #591 and #601 touched: the day the distributor
-file was sent, the periods during which a coefficient applies, how setting a coefficient's start places it in its
-supply's timeline, how an agreement's first activation closes the coefficients of the supplies that leave the
-distribution, how an agreement's dates are set per supply in one request, with a preview of every effect, how each
-coefficient of an agreement is reported to end, that a supply holds one coefficient per agreement, and how two
-replacements of an agreement's coefficients are ordered.
+company. This spec covers only the rules #580, #581, #582, #593, #583, #591, #601 and #621 touched: the day the
+distributor file was sent, the periods during which a coefficient applies, how setting a coefficient's start places it
+in its supply's timeline, how an agreement's first activation closes the coefficients of the supplies absent from it,
+how an agreement's dates are set per supply in one request, with a preview of every effect, how each coefficient of an
+agreement is reported to end, that a supply holds one coefficient per agreement, how two replacements of an
+agreement's coefficients are ordered, and when a coefficient that drops to 0 is reported as leaving the distribution.
 
 ## Glossary
 
@@ -36,6 +36,8 @@ replacements of an agreement's coefficients are ordered.
 | Effects | Everything a date write changes: each period, each agreement's status and the community start date. |
 | Community start date | The earliest validFrom among the coefficients of all the plants of a community (payback's start). |
 | Registered order | The agreements of a plant ordered by their distributor file's sent date, else the earliest stored start of their coefficients as a local day in the application time zone; then by creation instant; then by id. Agreements with neither date come last. The same order as observed sharing (OBS-003). |
+| Leaving by zero | A coefficient row whose value is 0, when the supply holds a row greater than 0 in the agreement immediately before the row's own in registered order; DRAFT agreements are not in that order (SHA-020). |
+| Leaves the distribution | A supply leaves the distribution in an agreement when it is absent from it (a leaving supply) or its row there is a leaving by zero. |
 | End state | How a coefficient's coverage ends, as `getSharingAgreementPartitionCoefficients` reports it: `OPEN`, `OPEN_ORPHAN`, `PENDING_SUCCESSION`, `DERIVED` or `CLOSED`. |
 
 ## Rules
@@ -293,6 +295,23 @@ replacements of an agreement's coefficients are ordered.
   request would fail. The status is checked again once the agreement is locked, because a publish may commit while the
   replacement waits. Lock order: ADR-0003 §11.
 - **Source:** #601
+
+### SHA-020 — A coefficient that drops to 0 is reported as leaving the distribution
+
+- **Status:** Active
+- **Rule:** A coefficient row MUST be reported as leaving the distribution when its value is 0 and, in the agreement
+  immediately before its own in registered order among the plant's PUBLISHED and SUPERSEDED agreements, the supply
+  holds a row greater than 0 (a leaving by zero). DRAFT agreements are ignored. `setPartitionCoefficientDates` and
+  `previewPartitionCoefficientDates` MUST report it on each coefficient whose period they change
+  (`leavesDistribution`), with the registered order of the timeline as the request leaves it. A coefficient whose
+  validFrom is already the requested one is not placed, so it is not reported. It MUST NOT change any placement,
+  closure, status or the community start date.
+- **Rationale:** A supply leaves the distribution by dropping to 0 as much as by being absent; the admin must see
+  both before confirming dates. Comparing with the immediately previous agreement avoids counting a supply that
+  already left by absence twice. The order is read on the timeline the request leaves, so the preview, the write and
+  a later observed sharing read report the same rows. Nothing is closed for it: the 0 row's placement already ends
+  the previous coefficient (SHA-003).
+- **Source:** #621
 
 ## Impossible states
 
