@@ -34,12 +34,14 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -247,6 +249,34 @@ abstract class AbstractCoefficientDatesControllerTest extends BaseControllerTest
                 .andExpect(jsonPath("$.communityStart.after").value("2024-12-31T23:00:00Z"));
     }
 
+    /**
+     * C, created after B, holds X at 0 and Y. Dated on 2025-03-01 it comes right after A, where X holds 1, while B has
+     * no start yet.
+     */
+    @Test
+    @DisplayName("SHA-020 a coefficient that drops to 0 is reported as leaving the distribution")
+    void reportsACoefficientThatDropsToZeroAsLeaving() throws Exception {
+        Map<Supply, BigDecimal> inC = new LinkedHashMap<>();
+        inC.put(x, BigDecimal.ZERO);
+        inC.put(y, BigDecimal.ONE);
+        Agreement c = pendingAgreement(SharingAgreementStatus.PUBLISHED, inC);
+        String body = """
+                {"coefficients": [{"coefficientId": "%s", "validFrom": "2025-03-01"},
+                                  {"coefficientId": "%s", "validFrom": "2025-03-01"}],
+                 "leavingClosures": []}
+                """.formatted(c.of(x), c.of(y));
+
+        perform(loginAsCommunityAdmin(community.getId()), plant.getId(), c.id(), body)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.coefficients", hasSize(2)))
+                .andExpect(jsonPath("$.coefficients[?(@.coefficient.id == '%s')].leavesDistribution"
+                        .formatted(c.of(x))).value(contains(true)))
+                .andExpect(jsonPath("$.coefficients[?(@.coefficient.id == '%s')].leavesDistribution"
+                        .formatted(c.of(y))).value(contains(false)))
+                .andExpect(jsonPath("$.leavingClosures", hasSize(1)))
+                .andExpect(jsonPath("$.leavingClosures[0].supply.id").value(z.getId().toString()));
+    }
+
     protected record Agreement(UUID id, Map<UUID, UUID> coefficientIdBySupplyId) {
         UUID of(Supply supply) {
             return coefficientIdBySupplyId.get(supply.getId());
@@ -265,6 +295,12 @@ abstract class AbstractCoefficientDatesControllerTest extends BaseControllerTest
     }
 
     private Agreement pendingAgreement(SharingAgreementStatus status, Supply... supplies) {
+        Map<Supply, BigDecimal> coefficients = new LinkedHashMap<>();
+        Arrays.stream(supplies).forEach(supply -> coefficients.put(supply, BigDecimal.ONE));
+        return pendingAgreement(status, coefficients);
+    }
+
+    private Agreement pendingAgreement(SharingAgreementStatus status, Map<Supply, BigDecimal> coefficients) {
         SharingAgreement agreement = createSharingAgreementRepository.create(new SharingAgreement.Builder()
                 .withId(UUID.randomUUID())
                 .withPlantId(plant.getId())
@@ -277,13 +313,14 @@ abstract class AbstractCoefficientDatesControllerTest extends BaseControllerTest
             agreement = publishSharingAgreementRepository.publish(plant.getId(), agreement.getId());
         }
         Map<UUID, UUID> coefficientIdBySupplyId = new LinkedHashMap<>();
-        for (Supply supply : supplies) {
+        for (Map.Entry<Supply, BigDecimal> entry : coefficients.entrySet()) {
+            Supply supply = entry.getKey();
             SupplyPartitionCoefficient saved = saveCoefficientRepository.save(new SupplyPartitionCoefficient.Builder()
                     .withId(UUID.randomUUID())
                     .withSupplyId(supply.getId())
                     .withPlantId(plant.getId())
                     .withSharingAgreementId(agreement.getId())
-                    .withCoefficient(BigDecimal.ONE)
+                    .withCoefficient(entry.getValue())
                     .withValidFrom(null)
                     .withValidTo(null)
                     .withCreatedAt(Instant.now())
