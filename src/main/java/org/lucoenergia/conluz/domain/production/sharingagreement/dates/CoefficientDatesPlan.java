@@ -4,6 +4,7 @@ import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.Coefficie
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.CoefficientPlacement;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.LeavingSupplyClosure;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationErrorCode;
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesEffects.AgreementStatusChange;
@@ -60,13 +61,13 @@ public final class CoefficientDatesPlan {
     /**
      * @param sharingAgreementId  the agreement whose dates are set
      * @param plantTimeline       every row of the plant, any agreement, pending or not, as it stands before the request
-     * @param statuses            the status of every agreement of the plant
+     * @param agreements          every agreement of the plant, DRAFT ones included
      * @param today               today, in the application time zone
      * @param zoneId              the application time zone
      * @param earliestOutsidePlant the earliest validFrom of the community's other plants; null when there is none
      */
     public record Input(UUID sharingAgreementId, Collection<SupplyPartitionCoefficient> plantTimeline,
-                        Map<UUID, SharingAgreementStatus> statuses, LocalDate today, ZoneId zoneId,
+                        Collection<SharingAgreement> agreements, LocalDate today, ZoneId zoneId,
                         CoefficientDatesRequest request, Instant earliestOutsidePlant) {
     }
 
@@ -104,9 +105,11 @@ public final class CoefficientDatesPlan {
         private final Set<UUID> placedIds = new LinkedHashSet<>();
         private final Set<UUID> stagedIds = new LinkedHashSet<>();
         private final Map<UUID, LeavingClosureSource> closureSources = new LinkedHashMap<>();
+        private final Map<UUID, SharingAgreementStatus> statuses = new LinkedHashMap<>();
 
         private Computation(Input input) {
             this.input = input;
+            input.agreements().forEach(agreement -> statuses.put(agreement.getId(), agreement.getStatus()));
             input.plantTimeline().forEach(row -> before.put(row.getId(), row));
             this.projected = new LinkedHashMap<>(before);
         }
@@ -274,8 +277,7 @@ public final class CoefficientDatesPlan {
                 }
             }
             List<AgreementStatusChange> agreements = agreementIds.stream()
-                    .map(id -> new AgreementStatusChange(id, input.statuses().get(id),
-                            projectedStatus(id, input.statuses().get(id))))
+                    .map(id -> new AgreementStatusChange(id, statuses.get(id), projectedStatus(id, statuses.get(id))))
                     .toList();
             CommunityStartChange communityStart = new CommunityStartChange(
                     earliest(before.values()), earliest(projected.values()));

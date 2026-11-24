@@ -7,7 +7,6 @@ import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.get.GetPlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
-import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationException;
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesEffects;
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesOutcome;
@@ -94,13 +93,11 @@ public class CoefficientDatesPlanner {
 
         Map<UUID, SharingAgreement> agreements = getSharingAgreementRepository.findByPlantId(plantId, null).stream()
                 .collect(Collectors.toMap(SharingAgreement::getId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
-        Map<UUID, SharingAgreementStatus> statuses = new LinkedHashMap<>();
-        agreements.values().forEach(each -> statuses.put(each.getId(), each.getStatus()));
 
         CoefficientDatesPlan.Result result = CoefficientDatesPlan.plan(new CoefficientDatesPlan.Input(
                 sharingAgreementId,
                 getCoefficientRepository.findAllByPlantId(plantId),
-                statuses,
+                agreements.values(),
                 LocalDate.now(clock.withZone(zoneId)),
                 zoneId,
                 request,

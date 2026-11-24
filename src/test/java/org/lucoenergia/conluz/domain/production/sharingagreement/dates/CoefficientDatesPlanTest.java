@@ -3,6 +3,7 @@ package org.lucoenergia.conluz.domain.production.sharingagreement.dates;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.activation.CoefficientActivationErrorCode;
 import org.lucoenergia.conluz.domain.production.sharingagreement.dates.CoefficientDatesEffects.AgreementStatusChange;
@@ -19,7 +20,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,10 +35,17 @@ class CoefficientDatesPlanTest {
     private static final UUID SUPPLY_Z = UUID.randomUUID();
     private static final UUID SUPPLY_W = UUID.randomUUID();
     private static final LocalDate TODAY = LocalDate.parse("2026-01-01");
-    private static final Map<UUID, SharingAgreementStatus> STATUSES = Map.of(
-            AGREEMENT_A, SharingAgreementStatus.PUBLISHED,
-            AGREEMENT_B, SharingAgreementStatus.PUBLISHED,
-            AGREEMENT_C, SharingAgreementStatus.PUBLISHED);
+    private static final List<SharingAgreement> AGREEMENTS = List.of(
+            agreement(AGREEMENT_A), agreement(AGREEMENT_B), agreement(AGREEMENT_C));
+
+    private static SharingAgreement agreement(UUID id) {
+        return new SharingAgreement.Builder()
+                .withId(id)
+                .withPlantId(PLANT_ID)
+                .withStatus(SharingAgreementStatus.PUBLISHED)
+                .withCreatedAt(Instant.EPOCH)
+                .build();
+    }
 
     private static Instant day(String date) {
         return date == null ? null : Instant.parse(date + "T00:00:00Z");
@@ -79,7 +86,7 @@ class CoefficientDatesPlanTest {
     private static CoefficientDatesPlan.Result plan(List<SupplyPartitionCoefficient> timeline,
                                                     List<CoefficientDate> coefficients,
                                                     List<LeavingClosureDate> closures, Instant earliestOutsidePlant) {
-        return CoefficientDatesPlan.plan(new CoefficientDatesPlan.Input(AGREEMENT_B, timeline, STATUSES, TODAY,
+        return CoefficientDatesPlan.plan(new CoefficientDatesPlan.Input(AGREEMENT_B, timeline, AGREEMENTS, TODAY,
                 ZoneOffset.UTC, new CoefficientDatesRequest(coefficients, closures), earliestOutsidePlant));
     }
 
