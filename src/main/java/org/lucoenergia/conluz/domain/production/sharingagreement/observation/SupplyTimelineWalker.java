@@ -34,6 +34,7 @@ final class SupplyTimelineWalker {
 
         SharingAnomalyType[] anomalousTypes = new SharingAnomalyType[days.size()];
         Candidate[] currentBefore = new Candidate[days.size()];
+        Candidate[] matchedCandidates = new Candidate[days.size()];
         List<SupplyTimeline.Observation> observations = new ArrayList<>();
         Map<Candidate, SupplyTimeline.Observation> firstObservations = new LinkedHashMap<>();
 
@@ -51,6 +52,7 @@ final class SupplyTimelineWalker {
             Set<Candidate> matching = candidates.stream()
                     .filter(candidate -> candidate.matches(day.beta()))
                     .collect(Collectors.toSet());
+            matchedCandidates[i] = matchedCandidate(matching, current);
 
             if (current != null && matching.contains(current)) {
                 for (Candidate candidate : candidates) {
@@ -96,7 +98,19 @@ final class SupplyTimelineWalker {
                 runLength.clear();
             }
         }
-        return new SupplyTimeline(days, observations, firstObservations, anomalousTypes, currentBefore);
+        return new SupplyTimeline(days, observations, firstObservations, anomalousTypes, currentBefore,
+                matchedCandidates);
+    }
+
+    /**
+     * The candidate a day is read as: {@code current} when the day matches it, as the walk itself reads such a day,
+     * ambiguous or not; otherwise the matching candidate earliest in registered order; null when none matches.
+     */
+    private static Candidate matchedCandidate(Set<Candidate> matching, Candidate current) {
+        if (current != null && matching.contains(current)) {
+            return current;
+        }
+        return matching.stream().min(Comparator.comparingInt(Candidate::rank)).orElse(null);
     }
 
     /**

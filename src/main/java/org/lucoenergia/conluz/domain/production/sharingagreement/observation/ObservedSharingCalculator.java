@@ -86,6 +86,7 @@ public final class ObservedSharingCalculator {
 
         Map<UUID, SupplyRows> rows = new HashMap<>();
         Map<UUID, SupplyTimeline> timelines = new HashMap<>();
+        Map<UUID, List<Candidate>> candidatesBySupply = new HashMap<>();
         Map<UUID, Map<LocalDate, Double>> energy = new LinkedHashMap<>();
         Map<UUID, NavigableMap<LocalDate, Double>> betas = new HashMap<>();
         List<ObservedSupply> withData = new ArrayList<>();
@@ -96,6 +97,7 @@ public final class ObservedSharingCalculator {
                     input.supplyDays().getOrDefault(supply.id(), List.of()));
             SupplyTimeline timeline = walker.walk(days, candidates);
             timelines.put(supply.id(), timeline);
+            candidatesBySupply.put(supply.id(), candidates);
             rows.put(supply.id(), resolver.resolve(supply, timeline, agreements, candidates));
             energy.put(supply.id(), days.stream()
                     .collect(Collectors.toMap(ValidDay::day, ValidDay::energyKWh, Double::sum, LinkedHashMap::new)));
@@ -119,7 +121,8 @@ public final class ObservedSharingCalculator {
                 AgreementObservationSummarizer.appliedWindows(agreements, listed, rows, input.analysedTo());
         List<SharingAnomaly> anomalies = new ArrayList<>();
         for (ObservedSupply supply : supplies) {
-            anomalies.addAll(collector.collect(supply, timelines.get(supply.id()), agreementsById));
+            anomalies.addAll(collector.collect(supply, timelines.get(supply.id()), candidatesBySupply.get(supply.id()),
+                    agreementsById, applied.windows(), rows.get(supply.id())));
         }
         anomalies.sort(ANOMALY_ORDER);
 

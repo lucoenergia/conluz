@@ -14,5 +14,10 @@ public enum SharingAnomalyType {
     /** A coefficient is applied again after a later one had replaced it. */
     REVERTED,
     /** A coefficient, or a leaving, was applied before the agreement's distributor file was sent. */
-    APPLIED_BEFORE_SENT
+    APPLIED_BEFORE_SENT,
+    /**
+     * Inside an agreement's applied window, the supply does not receive its value in it, although it holds a row
+     * there never observed applied (OBS-017).
+     */
+    NOT_APPLIED
 }

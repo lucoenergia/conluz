@@ -23,7 +23,9 @@ public class SharingAnomalyResponse {
     @Schema(description = "Supply the anomaly was observed on")
     private final SupplyReferenceResponse supply;
 
-    @Schema(description = "Kind of anomaly", example = "UNKNOWN_COEFFICIENT")
+    @Schema(description = "Kind of anomaly. NOT_APPLIED: inside the applied window of the agreement it is " +
+            "attributed to, the supply does not receive its value there, although it holds a row in it never " +
+            "observed applied.", example = "UNKNOWN_COEFFICIENT")
     private final SharingAnomalyType type;
 
     @Schema(description = "When it started")
@@ -43,7 +45,8 @@ public class SharingAnomalyResponse {
     private final int observedValidDays;
 
     @Schema(description = "The supply's registered coefficient in the agreement the anomaly is attributed to, or 0 " +
-            "when the supply holds no row in it; for APPLIED_BEFORE_SENT, its value in the agreement sent late. " +
+            "when the supply holds no row in it; for APPLIED_BEFORE_SENT, its value in the agreement sent late; for " +
+            "NOT_APPLIED, its value in the agreement applied to the plant. " +
             "The value the supply should have received, to read next to observedBeta. On a 0-1 scale, rounded " +
             "half-up to 6 decimals. Null when the anomaly is attributed to no agreement.",
             example = "0.031500",
