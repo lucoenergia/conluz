@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #623 |
+| **Last reviewed against code** | #625 |
 
 ## Purpose
 
@@ -112,15 +112,19 @@ observes: it never writes, and never proposes a coefficient.
   day, or open when it lasts until the end of the data). A run of an agreement after a later run of a different
   agreement whose first run started after this one's first run MUST be `REVERTED`. An application or leaving whose
   observed date (the end of its range) is before the agreement's sent date MUST be `APPLIED_BEFORE_SENT`.
-  `APPLIED_BEFORE_SENT` MUST be attributed to that agreement; every other anomaly to the agreement observed applied
-  for the supply when it starts, or to none. A change to an agreement not yet observed for the supply MUST be an
-  application or a leaving, never an anomaly. An anomaly's id MUST be derived from its supply, type and first day,
+  `APPLIED_BEFORE_SENT` MUST be attributed to that agreement; `NOT_APPLIED` to the agreement of OBS-017; every other
+  anomaly to the agreement observed applied for the supply when it starts, or to none. Days reported as
+  `NOT_APPLIED` (OBS-017) MUST NOT also be `UNKNOWN_COEFFICIENT` or `NO_ENERGY_IN_AGREEMENT`: a streak of either
+  crossing the start of that agreement's applied window MUST be cut there, keeping its first day, and its part before
+  the window is an anomaly only when it lasts N days. A change to an agreement not yet observed for the supply MUST be
+  an application or a leaving, never an anomaly. An anomaly's id MUST be derived from its supply, type and first day,
   so it is the same on every read of unchanged data.
 - **Rationale:** The registered agreement is the source of truth: what departs from it is an anomaly, but a new
   agreement being applied is not. Merging prevents a flood of one-day anomalies, and stable ids let a client refer
   to one across reads. A supply is not yet in the distribution before it is first observed, so receiving nothing
-  then is expected.
-- **Source:** #579
+  then is expected. Inside an agreement's applied window, a day the supply does not receive its value there is one
+  period with one anomaly, expecting the value in force, not the previous agreement's.
+- **Source:** #579, #625
 
 ### OBS-005 — Recommendations never propose coefficients
 
@@ -228,7 +232,7 @@ observes: it never writes, and never proposes a coefficient.
 - **Rule:** Every anomaly MUST report its expected β: the supply's registered value in the agreement the anomaly is
   attributed to (OBS-004), or 0 when the supply holds no row in it. It MUST be null when the anomaly has no
   attributed agreement. For `APPLIED_BEFORE_SENT` it MUST be the supply's value in the late-sent agreement it is
-  attributed to. It MUST be on the 0-1 scale, rounded half-up to 6 decimals, and MUST NOT change any status, date,
+  attributed to; for `NOT_APPLIED`, its value in the agreement applied to the plant (OBS-017). It MUST be on the 0-1 scale, rounded half-up to 6 decimals, and MUST NOT change any status, date,
   anomaly, recommendation, observed β or 1 − Σβ.
 - **Rationale:** An admin must compare what the supply received with what it should have received before acting on
   an anomaly or claiming to the distributor; the expected β is read next to the observed β of OBS-009. It is the
@@ -236,7 +240,7 @@ observes: it never writes, and never proposes a coefficient.
   value it reverts to is what the supply received. An `APPLIED_BEFORE_SENT` anomaly is about a date: its expected β
   matching its observed β shows that the value was right. Nothing is expected of a supply when no agreement was in
   force for it, so an unattributed anomaly has none, rather than a 0 that no agreement states.
-- **Source:** #611, OBS-004, OBS-009
+- **Source:** #611, #625, OBS-004, OBS-009
 
 ### OBS-013 — Every row reports the plant-valid days and the dates of its row window
 
@@ -282,6 +286,39 @@ observes: it never writes, and never proposes a coefficient.
   the leaving rule on the client.
 - **Source:** #623, OBS-015
 
+### OBS-017 — A coefficient applied to the plant but not to its supply is not applied
+
+- **Status:** Active
+- **Rule:** A valid day of a supply MUST be `NOT_APPLIED` when it lies inside an agreement's applied window, the
+  supply holds a coefficient row in that agreement, that row was never observed applied for the supply and is not
+  `NOT_DISTINGUISHABLE` (OBS-003), and the supply's observed β does not match the row's value; except a day with β
+  within ±0.1 pp of 0 before the supply's first observation (OBS-004). Days are split by the candidate they match, or
+  none: the candidate observed applied for the supply when the day matches it, otherwise the matching candidate
+  earliest in registered order. Consecutive `NOT_APPLIED` valid days of one supply, agreement and matched candidate
+  (or none) MUST be one anomaly when they last N days, with a start, an end, an id and an observed β as every other
+  anomaly (OBS-004, OBS-009); a shorter part is no anomaly and does not join the parts on either side of it. The
+  anomaly MUST be attributed to that agreement, expecting the supply's value in it (OBS-012). A row observed applied
+  later than the window starts, or observed and then reverted, MUST NOT give `NOT_APPLIED`. The row's status MUST NOT
+  change, and the agreement MUST count these anomalies (`notApplied`).
+- **Rationale:** An agreement applied to the plant but not to one of its supplies is a claim to the distributor, not
+  a pending state. Split by what the supply receives, each anomaly states one fact: still its previous value, or a
+  value it has no row for. A row applied late already reports its delay through its date (OBS-002), and a newcomer
+  receiving nothing is not yet in the distribution. Within the ±0.1 pp tolerance two values are one candidate, so a
+  value that close to the previous one is not split from it.
+- **Source:** #625, OBS-003, OBS-004, OBS-012
+
+### OBS-018 — Two supplies swapped in an agreement name each other
+
+- **Status:** Active
+- **Rule:** A `NOT_APPLIED` anomaly MUST report the supply it is swapped with when exactly one other supply has a
+  `NOT_APPLIED` anomaly attributed to the same agreement that overlaps it on at least one valid day of both supplies,
+  such that each anomaly's observed β matches, within ±0.1 pp, the other supply's value in that agreement. It MUST
+  report none otherwise, when several supplies would qualify included, and every other anomaly type reports none.
+- **Rationale:** A reciprocal match makes a swap of two coefficients explicit, the case a claim rests on. A match on
+  one side only, or with several supplies, is a hint that would name a supply the data does not single out; swaps
+  among more than two supplies are not detected.
+- **Source:** #625, OBS-017
+
 ## Impossible states
 
 - An open leaving date — prevented by OBS-008: a leaving is observed only after a previous observation, so a valid
@@ -298,6 +335,9 @@ observes: it never writes, and never proposes a coefficient.
 - An anomaly with a null observed β — prevented by OBS-004: every anomaly starts on a valid day of its supply, which
   is one of its own valid days.
 - An unattributed anomaly with a non-null expected β — prevented by OBS-012.
+- An unattributed `NOT_APPLIED` anomaly — prevented by OBS-017: it is always attributed to the agreement whose
+  applied window holds its days.
+- A `swappedWith` on an anomaly other than `NOT_APPLIED`, or naming the anomaly's own supply — prevented by OBS-018.
 - A row whose observed valid days exceed its window days — prevented by OBS-001 and OBS-013: a supply's valid days
   are plant-valid days, and both are counted over the same row window.
 - A row reporting window dates with 0 window days, or window days without dates — prevented by OBS-001 and OBS-013:
