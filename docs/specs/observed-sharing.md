@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → tag `Sharing agreements`; operations `getPlantSharingObservation`, `getSharingAgreementObservation` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #621 |
+| **Last reviewed against code** | #623 |
 
 ## Purpose
 
@@ -271,6 +271,16 @@ observes: it never writes, and never proposes a coefficient.
   listed once, the status counts still add up to the agreement's rows. The rule is the registered data's, so it
   reads the registered order, not what was observed.
 - **Source:** #621, SHA-020
+
+### OBS-016 — Each agreement's summary counts its leavings by zero
+
+- **Status:** Active
+- **Rule:** Each agreement's summary MUST count its coefficient rows that leave the distribution by zero (OBS-015),
+  each under its own status (`leavesDistributionStatusCounts`). They remain counted among the coefficient rows and
+  MUST NOT be counted among the leaving rows. It MUST NOT change anything else.
+- **Rationale:** The plant's view must count every supply that leaves, without one request per agreement and without
+  the leaving rule on the client.
+- **Source:** #623, OBS-015
 
 ## Impossible states
 
