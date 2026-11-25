@@ -2870,6 +2870,333 @@ class ObservedSharingCalculatorTest {
     }
 
     /**
+     * A coefficient applied to the plant but not to its supply (OBS-017), and two supplies swapped (OBS-018), on the
+     * shape of a real case: agreement 2 applied to the plant from 1 December 2025.
+     */
+    @Nested
+    class NotApplied {
+
+        private static final LocalDate REAL_FROM = day("2025-09-01");
+        private static final LocalDate REAL_TO = day("2026-10-31");
+        private static final LocalDate WINDOW_START = day("2025-12-01");
+
+        @Test
+        @DisplayName("OBS-017 OBS-018 a supply still receiving its previous value inside the agreement's window is not applied, attributed to it, swapped with the supply receiving its value, its row still pending")
+        void previousValueInsideTheWindowIsNotApplied() {
+            RealCase real = realCase();
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, real.b())).extracting(SharingAnomaly::id, SharingAnomaly::type,
+                            SharingAnomaly::attributedAgreementId, SharingAnomaly::start, SharingAnomaly::end,
+                            SharingAnomaly::expectedBeta, SharingAnomaly::observedBeta, SharingAnomaly::swappedWith)
+                    .containsExactly(tuple(
+                            AnomalyCollector.idOf(real.b().id(), SharingAnomalyType.NOT_APPLIED, WINDOW_START),
+                            SharingAnomalyType.NOT_APPLIED, real.second().id(), ObservedDate.exact(WINDOW_START), null,
+                            new BigDecimal("0.033333"), beta("0.041667", 335), real.a()));
+            assertThat(rowOf(result, real.bInSecond()).status()).isEqualTo(ObservationStatus.PENDING_APPLICATION);
+            assertThat(rowOf(result, real.aInSecond()).status()).isEqualTo(ObservationStatus.PENDING_APPLICATION);
+        }
+
+        @Test
+        @DisplayName("OBS-017 OBS-004 OBS-018 a supply receiving another value is an unknown coefficient up to the window's start, then not applied, split by what it receives, each part swapped only where it is reciprocal")
+        void unknownCoefficientIsCutAtTheWindowStartAndSplitByMatchedValue() {
+            RealCase real = realCase();
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, real.a())).extracting(SharingAnomaly::id, SharingAnomaly::type,
+                            SharingAnomaly::attributedAgreementId, SharingAnomaly::start, SharingAnomaly::end,
+                            SharingAnomaly::expectedBeta, SharingAnomaly::observedBeta, SharingAnomaly::swappedWith)
+                    .containsExactlyInAnyOrder(
+                            tuple(AnomalyCollector.idOf(real.a().id(), SharingAnomalyType.UNKNOWN_COEFFICIENT,
+                                            day("2025-10-01")), SharingAnomalyType.UNKNOWN_COEFFICIENT,
+                                    real.first().id(), ObservedDate.exact(day("2025-10-01")), day("2025-11-30"),
+                                    new BigDecimal("0.020509"), beta("0.033333", 61), null),
+                            tuple(AnomalyCollector.idOf(real.a().id(), SharingAnomalyType.NOT_APPLIED, WINDOW_START),
+                                    SharingAnomalyType.NOT_APPLIED, real.second().id(),
+                                    ObservedDate.exact(WINDOW_START), day("2025-12-31"), new BigDecimal("0.041667"),
+                                    beta("0.033333", 31), real.b()),
+                            tuple(AnomalyCollector.idOf(real.a().id(), SharingAnomalyType.NOT_APPLIED,
+                                            day("2026-01-01")), SharingAnomalyType.NOT_APPLIED, real.second().id(),
+                                    ObservedDate.exact(day("2026-01-01")), day("2026-02-28"),
+                                    new BigDecimal("0.041667"), beta("0.020509", 59), null),
+                            tuple(AnomalyCollector.idOf(real.a().id(), SharingAnomalyType.NOT_APPLIED,
+                                            day("2026-03-01")), SharingAnomalyType.NOT_APPLIED, real.second().id(),
+                                    ObservedDate.exact(day("2026-03-01")), null, new BigDecimal("0.041667"),
+                                    beta("0.033333", 245), real.b()));
+            assertThat(anomaliesOf(result, real.a()))
+                    .filteredOn(anomaly -> anomaly.type() == SharingAnomalyType.UNKNOWN_COEFFICIENT)
+                    .allSatisfy(anomaly -> assertThat(anomaly.end()).isBefore(WINDOW_START));
+        }
+
+        @Test
+        @DisplayName("OBS-017 days receiving the previous value and days receiving no registered value are two anomalies, each with its own id")
+        void previousValueAndUnknownValueAreSplit() {
+            RealCase real = realCase();
+            ObservedSupply split = real.fixture().supply("S5");
+            real.fixture().row(split, real.first(), "0.06", day("2025-08-01"), null);
+            real.fixture().row(split, real.second(), "0.07", (LocalDate) null, null);
+            real.fixture().beta(split, REAL_FROM, day("2026-01-10"), 0.06).beta(split, day("2026-01-11"), REAL_TO, 0.09);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, split)).extracting(SharingAnomaly::id, SharingAnomaly::type,
+                            SharingAnomaly::start, SharingAnomaly::end, SharingAnomaly::observedBeta)
+                    .containsExactlyInAnyOrder(
+                            tuple(AnomalyCollector.idOf(split.id(), SharingAnomalyType.NOT_APPLIED, WINDOW_START),
+                                    SharingAnomalyType.NOT_APPLIED, ObservedDate.exact(WINDOW_START),
+                                    day("2026-01-10"), beta("0.060000", 41)),
+                            tuple(AnomalyCollector.idOf(split.id(), SharingAnomalyType.NOT_APPLIED, day("2026-01-11")),
+                                    SharingAnomalyType.NOT_APPLIED, ObservedDate.exact(day("2026-01-11")), null,
+                                    beta("0.090000", 294)));
+        }
+
+        @Test
+        @DisplayName("OBS-017 a part shorter than N days between two longer ones is no anomaly, and does not join them")
+        void shortPartBreaksItsNeighbours() {
+            RealCase real = realCase();
+            ObservedSupply interrupted = real.fixture().supply("S5");
+            real.fixture().row(interrupted, real.first(), "0.06", day("2025-08-01"), null);
+            real.fixture().row(interrupted, real.second(), "0.07", (LocalDate) null, null);
+            real.fixture().beta(interrupted, REAL_FROM, REAL_TO, 0.06)
+                    .beta(interrupted, day("2025-12-11"), day("2025-12-12"), 0.09);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, interrupted)).extracting(SharingAnomaly::id, SharingAnomaly::type,
+                            SharingAnomaly::start, SharingAnomaly::end, SharingAnomaly::observedBeta)
+                    .containsExactlyInAnyOrder(
+                            tuple(AnomalyCollector.idOf(interrupted.id(), SharingAnomalyType.NOT_APPLIED,
+                                            WINDOW_START), SharingAnomalyType.NOT_APPLIED,
+                                    ObservedDate.exact(WINDOW_START), day("2025-12-10"), beta("0.060000", 10)),
+                            tuple(AnomalyCollector.idOf(interrupted.id(), SharingAnomalyType.NOT_APPLIED,
+                                            day("2025-12-13")), SharingAnomalyType.NOT_APPLIED,
+                                    ObservedDate.exact(day("2025-12-13")), null, beta("0.060000", 323)));
+        }
+
+        @Test
+        @DisplayName("OBS-017 a row equal to the previous value within ±0.1 pp is not distinguishable and never not applied")
+        void notDistinguishableRowIsNeverNotApplied() {
+            RealCase real = realCase();
+            ObservedSupply same = real.fixture().supply("S5");
+            real.fixture().row(same, real.first(), "0.02", day("2025-08-01"), null);
+            ObservedCoefficient sameInSecond = real.fixture().row(same, real.second(), "0.0205", (LocalDate) null, null);
+            real.fixture().beta(same, REAL_FROM, REAL_TO, 0.02).beta(same, day("2026-02-01"), day("2026-02-10"), 0.09);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(rowOf(result, sameInSecond).status()).isEqualTo(ObservationStatus.NOT_DISTINGUISHABLE);
+            assertThat(anomaliesOf(result, same)).extracting(SharingAnomaly::type, SharingAnomaly::attributedAgreementId,
+                            SharingAnomaly::start, SharingAnomaly::end)
+                    .containsExactly(tuple(SharingAnomalyType.UNKNOWN_COEFFICIENT, real.first().id(),
+                            ObservedDate.exact(day("2026-02-01")), day("2026-02-10")));
+        }
+
+        @Test
+        @DisplayName("OBS-017 a supply observed applied to the agreement and then back to its previous value is reverted, not not applied")
+        void revertedIsNotNotApplied() {
+            RealCase real = realCase();
+            ObservedSupply back = real.fixture().supply("S5");
+            real.fixture().row(back, real.first(), "0.06", day("2025-08-01"), null);
+            real.fixture().row(back, real.second(), "0.07", WINDOW_START, null);
+            real.fixture().beta(back, REAL_FROM, REAL_TO, 0.07).beta(back, REAL_FROM, day("2025-11-30"), 0.06)
+                    .beta(back, day("2026-02-01"), day("2026-02-28"), 0.06);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, back)).extracting(SharingAnomaly::type, SharingAnomaly::attributedAgreementId,
+                            SharingAnomaly::start, SharingAnomaly::end)
+                    .containsExactly(tuple(SharingAnomalyType.REVERTED, real.second().id(),
+                            ObservedDate.exact(day("2026-02-01")), day("2026-02-28")));
+        }
+
+        @Test
+        @DisplayName("OBS-017 fewer than N days, an agreement without a window, a newcomer receiving nothing and a row applied late give no not applied")
+        void noNotAppliedWithoutItsConditions() {
+            RealCase real = realCase();
+            ObservationFixture fixture = real.fixture();
+            ObservedAgreement third = fixture.agreement("3", day("2026-06-01"));
+            ObservedSupply brief = fixture.supply("S5");
+            fixture.row(brief, real.first(), "0.06", day("2025-08-01"), null);
+            fixture.row(brief, real.second(), "0.07", (LocalDate) null, null);
+            fixture.beta(brief, REAL_FROM, day("2025-12-02"), 0.06);
+            ObservedSupply newcomer = fixture.supply("S6");
+            ObservedCoefficient newcomerInSecond = fixture.row(newcomer, real.second(), "0.05", (LocalDate) null, null);
+            fixture.beta(newcomer, REAL_FROM, REAL_TO, 0.0);
+            ObservedSupply late = fixture.supply("S7");
+            fixture.row(late, real.first(), "0.08", day("2025-08-01"), null);
+            ObservedCoefficient lateInSecond = fixture.row(late, real.second(), "0.09", WINDOW_START, null);
+            fixture.beta(late, REAL_FROM, day("2026-01-14"), 0.08).beta(late, day("2026-01-15"), REAL_TO, 0.09);
+            // Never applied to anyone: the third agreement has no window.
+            fixture.row(real.c(), third, "0.04", (LocalDate) null, null);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(anomaliesOf(result, brief)).isEmpty();
+            assertThat(anomaliesOf(result, newcomer)).isEmpty();
+            assertThat(rowOf(result, newcomerInSecond).status()).isEqualTo(ObservationStatus.PENDING_APPLICATION);
+            assertThat(anomaliesOf(result, late)).isEmpty();
+            assertThat(rowOf(result, lateInSecond).observedDate()).isEqualTo(ObservedDate.exact(day("2026-01-15")));
+            assertThat(agreementOf(result, third).unallocatedShare()).isNull();
+            assertThat(agreementOf(result, third).anomalies()).isEmpty();
+            assertThat(anomaliesOf(result, real.c())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("OBS-017 OBS-004 no energy after a first observation is no energy in an agreement up to the window's start, then not applied")
+        void noEnergyIsCutAtTheWindowStart() {
+            RealCase real = realCase();
+            ObservedSupply silent = real.fixture().supply("S5");
+            real.fixture().row(silent, real.first(), "0.08", day("2025-08-01"), null);
+            real.fixture().row(silent, real.second(), "0.09", (LocalDate) null, null);
+            real.fixture().beta(silent, REAL_FROM, day("2025-11-19"), 0.08)
+                    .beta(silent, day("2025-11-20"), REAL_TO, 0.0);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, silent)).extracting(SharingAnomaly::type,
+                            SharingAnomaly::attributedAgreementId, SharingAnomaly::start, SharingAnomaly::end,
+                            SharingAnomaly::expectedBeta, SharingAnomaly::observedBeta)
+                    .containsExactlyInAnyOrder(
+                            tuple(SharingAnomalyType.NO_ENERGY_IN_AGREEMENT, real.first().id(),
+                                    ObservedDate.exact(day("2025-11-20")), day("2025-11-30"),
+                                    new BigDecimal("0.080000"), beta("0.000000", 11)),
+                            tuple(SharingAnomalyType.NOT_APPLIED, real.second().id(),
+                                    ObservedDate.exact(WINDOW_START), null, new BigDecimal("0.090000"),
+                                    beta("0.000000", 335)));
+        }
+
+        @Test
+        @DisplayName("OBS-018 a supply registered at the swapped value that receives it is never named")
+        void supplyReceivingItsOwnValueIsNeverNamed() {
+            RealCase real = realCase(0.041667);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, real.c())).isEmpty();
+            assertThat(result.agreements()).flatExtracting(AgreementObservation::anomalies)
+                    .extracting(SharingAnomaly::swappedWith)
+                    .doesNotContain(real.c())
+                    .contains(real.a(), real.b());
+        }
+
+        @Test
+        @DisplayName("OBS-018 a match that is not reciprocal names no supply on either side")
+        void notReciprocalNamesNone() {
+            // B receives 5 %, not A's 4.1667 %: A receives B's value, but not the other way round.
+            RealCase real = realCase(0.05);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, real.a()))
+                    .filteredOn(anomaly -> anomaly.type() == SharingAnomalyType.NOT_APPLIED)
+                    .hasSize(3)
+                    .allSatisfy(anomaly -> assertThat(anomaly.swappedWith()).isNull());
+            assertThat(anomaliesOf(result, real.b())).singleElement().satisfies(anomaly -> {
+                assertThat(anomaly.type()).isEqualTo(SharingAnomalyType.NOT_APPLIED);
+                assertThat(anomaly.swappedWith()).isNull();
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-018 a supply reciprocal with two others names none of them; each of the two names the one it is reciprocal with")
+        void severalReciprocalSuppliesNameNone() {
+            RealCase real = realCase(0.041667);
+            ObservedSupply twin = real.fixture().supply("S5");
+            real.fixture().row(twin, real.first(), "0.041017", day("2024-02-01"), null);
+            real.fixture().row(twin, real.second(), "0.033333", (LocalDate) null, null);
+            real.fixture().beta(twin, REAL_FROM, day("2025-11-30"), 0.041017).beta(twin, WINDOW_START, REAL_TO, 0.041667);
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            assertThat(anomaliesOf(result, real.a()))
+                    .filteredOn(anomaly -> anomaly.type() == SharingAnomalyType.NOT_APPLIED)
+                    .hasSize(3)
+                    .allSatisfy(anomaly -> assertThat(anomaly.swappedWith()).isNull());
+            assertThat(anomaliesOf(result, real.b())).extracting(SharingAnomaly::swappedWith)
+                    .containsExactly(real.a());
+            assertThat(anomaliesOf(result, twin)).extracting(SharingAnomaly::swappedWith)
+                    .containsExactly(real.a());
+        }
+
+        @Test
+        @DisplayName("OBS-017 OBS-005 the agreement counts its not applied anomalies and is to review; its slice agrees with the plant")
+        void countedAndToReview() {
+            RealCase real = realCase();
+
+            PlantSharingObservation result = real.fixture().calculate();
+
+            AgreementObservation second = agreementOf(result, real.second());
+            assertThat(second.anomalyCounts()).containsEntry(SharingAnomalyType.NOT_APPLIED, 4)
+                    .containsEntry(SharingAnomalyType.UNKNOWN_COEFFICIENT, 0);
+            assertThat(second.recommendations()).containsExactly(SharingRecommendation.REVIEW_ANOMALIES);
+            assertThat(agreementOf(result, real.first()).anomalyCounts())
+                    .containsEntry(SharingAnomalyType.UNKNOWN_COEFFICIENT, 1)
+                    .containsEntry(SharingAnomalyType.NOT_APPLIED, 0);
+            assertThat(result.unattributedAnomalies()).isEmpty();
+            assertThat(result.sliceFor(real.second().id())).hasValueSatisfying(slice -> {
+                assertThat(slice.agreement()).isEqualTo(second);
+                assertThat(slice.agreement().anomalies()).extracting(SharingAnomaly::swappedWith)
+                        .containsOnly(real.a(), real.b(), null);
+            });
+        }
+
+        @Test
+        @DisplayName("OBS-017 OBS-018 without a row left unapplied, every status, date, anomaly, recommendation, observed β, window and 1 − Σβ is unchanged")
+        void changesNothingElse() {
+            assertCompleteRegressionUnchanged(completeRegressionFixture());
+            assertNothingElseChanged(regressionFixture());
+            assertThat(completeRegressionFixture().fixture().calculate().agreements())
+                    .allSatisfy(agreement -> assertThat(agreement.anomalyCounts())
+                            .containsEntry(SharingAnomalyType.NOT_APPLIED, 0));
+        }
+
+        /**
+         * Agreement 1, applied before the data starts, and agreement 2, sent on 12 November 2024 and applied to the
+         * plant on 1 December 2025 by C and D. A (2.0509 % → 4.1667 %) receives 3.3333 % from October, back to its
+         * agreement 1 value in January and February 2026; B (4.1017 % → 3.3333 %) receives 4.1667 % from December.
+         */
+        private RealCase realCase() {
+            return realCase(0.041667);
+        }
+
+        /**
+         * @param bReceives what B receives from 1 December 2025
+         */
+        private RealCase realCase(double bReceives) {
+            ObservationFixture fixture = new ObservationFixture(REAL_FROM, REAL_TO);
+            ObservedSupply a = fixture.supply("S1");
+            ObservedSupply b = fixture.supply("S2");
+            ObservedSupply c = fixture.supply("S3");
+            ObservedSupply d = fixture.supply("S4");
+            ObservedAgreement first = fixture.agreement("1", day("2024-01-15"));
+            ObservedAgreement second = fixture.agreement("2", day("2024-11-12"));
+            fixture.row(a, first, "0.020509", day("2024-02-01"), null);
+            fixture.row(b, first, "0.041017", day("2024-02-01"), null);
+            fixture.row(c, first, "0.05", day("2024-02-01"), WINDOW_START);
+            fixture.row(d, first, "0.10", day("2024-02-01"), WINDOW_START);
+            ObservedCoefficient aInSecond = fixture.row(a, second, "0.041667", (LocalDate) null, null);
+            ObservedCoefficient bInSecond = fixture.row(b, second, "0.033333", (LocalDate) null, null);
+            fixture.row(c, second, "0.033333", WINDOW_START, null);
+            fixture.row(d, second, "0.12", WINDOW_START, null);
+            fixture.beta(a, REAL_FROM, day("2025-09-30"), 0.020509)
+                    .beta(a, day("2025-10-01"), day("2025-12-31"), 0.033333)
+                    .beta(a, day("2026-01-01"), day("2026-02-28"), 0.020509)
+                    .beta(a, day("2026-03-01"), REAL_TO, 0.033333);
+            fixture.beta(b, REAL_FROM, day("2025-11-30"), 0.041017).beta(b, WINDOW_START, REAL_TO, bReceives);
+            fixture.beta(c, REAL_FROM, day("2025-11-30"), 0.05).beta(c, WINDOW_START, REAL_TO, 0.033333);
+            fixture.beta(d, REAL_FROM, day("2025-11-30"), 0.10).beta(d, WINDOW_START, REAL_TO, 0.12);
+            return new RealCase(fixture, a, b, c, first, second, aInSecond, bInSecond);
+        }
+    }
+
+    private record RealCase(ObservationFixture fixture, ObservedSupply a, ObservedSupply b, ObservedSupply c,
+                            ObservedAgreement first, ObservedAgreement second, ObservedCoefficient aInSecond,
+                            ObservedCoefficient bInSecond) {
+    }
+
+    /**
      * A count for every status: the given ones, and 0 for the others.
      */
     private static Map<ObservationStatus, Integer> counts(Map<ObservationStatus, Integer> nonZero) {
