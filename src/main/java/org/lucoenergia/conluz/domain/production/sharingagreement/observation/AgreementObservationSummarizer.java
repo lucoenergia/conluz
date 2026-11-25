@@ -31,26 +31,50 @@ final class AgreementObservationSummarizer {
      * @param betas         each analysed supply's observed β on its valid days, keyed by supply id
      * @param coefficients  the rows of the agreements in scope, not-computable supplies included
      * @param notCounted    the supplies whose energy is not counted: the not-computable ones and the plant's own
+     * @param applied       the agreements' observed dates and applied windows, from {@link #appliedWindows}
      */
     record Context(List<ObservedAgreement> agreements, List<ObservedSupply> supplies, Map<UUID, SupplyRows> rows,
                    List<SharingAnomaly> anomalies, NavigableMap<LocalDate, Double> plantValid,
                    Map<UUID, Map<LocalDate, Double>> energy, Map<UUID, NavigableMap<LocalDate, Double>> betas,
                    List<ObservedCoefficient> coefficients,
-                   Set<UUID> notCounted, LocalDate analysedTo) {
+                   Set<UUID> notCounted, AppliedWindows applied) {
     }
 
-    List<AgreementObservation> summarize(Context context) {
+    /**
+     * Each agreement's observed dates and applied window, keyed by agreement id.
+     *
+     * @param datesByAgreement the earliest and the most frequent observed date of its rows, each null when none
+     * @param windows          its first and last applied day; absent when it was never observed
+     */
+    record AppliedWindows(Map<UUID, ObservedDate[]> datesByAgreement, Map<UUID, LocalDate[]> windows) {
+    }
+
+    /**
+     * The agreements' observed dates and applied windows, from the rows already resolved: they only rest on the
+     * rows' observed dates, so they are known before any anomaly is collected.
+     *
+     * @param agreements the agreements in scope, in registered order
+     * @param supplies   the supplies whose rows are listed
+     * @param rows       each listed supply's rows, keyed by supply id
+     */
+    static AppliedWindows appliedWindows(List<ObservedAgreement> agreements, List<ObservedSupply> supplies,
+                                         Map<UUID, SupplyRows> rows, LocalDate analysedTo) {
         Map<UUID, ObservedDate[]> datesByAgreement = new HashMap<>();
-        for (ObservedAgreement agreement : context.agreements()) {
-            List<ObservedDate> observed = context.supplies().stream()
-                    .map(supply -> context.rows().get(supply.id()).coefficients().get(agreement.id()))
+        for (ObservedAgreement agreement : agreements) {
+            List<ObservedDate> observed = supplies.stream()
+                    .map(supply -> rows.get(supply.id()).coefficients().get(agreement.id()))
                     .filter(Objects::nonNull)
                     .map(CoefficientObservation::observedDate)
                     .filter(Objects::nonNull)
                     .toList();
             datesByAgreement.put(agreement.id(), new ObservedDate[]{earliest(observed), mostFrequent(observed)});
         }
-        Map<UUID, LocalDate[]> windows = windows(context, datesByAgreement);
+        return new AppliedWindows(datesByAgreement, windows(agreements, datesByAgreement, analysedTo));
+    }
+
+    List<AgreementObservation> summarize(Context context) {
+        Map<UUID, ObservedDate[]> datesByAgreement = context.applied().datesByAgreement();
+        Map<UUID, LocalDate[]> windows = context.applied().windows();
 
         List<AgreementObservation> observations = new ArrayList<>();
         for (ObservedAgreement agreement : context.agreements()) {
@@ -113,8 +137,9 @@ final class AgreementObservationSummarizer {
      * The days each agreement is taken as applied to the plant: from its most frequent observed date to the day
      * before the next agreement's, or to the end of the analysed range. None when it was never observed.
      */
-    private static Map<UUID, LocalDate[]> windows(Context context, Map<UUID, ObservedDate[]> datesByAgreement) {
-        List<ObservedAgreement> observed = context.agreements().stream()
+    private static Map<UUID, LocalDate[]> windows(List<ObservedAgreement> agreements,
+                                                  Map<UUID, ObservedDate[]> datesByAgreement, LocalDate analysedTo) {
+        List<ObservedAgreement> observed = agreements.stream()
                 .filter(agreement -> datesByAgreement.get(agreement.id())[1] != null)
                 .sorted(Comparator.comparing(agreement -> datesByAgreement.get(agreement.id())[1].to()))
                 .toList();
@@ -123,7 +148,7 @@ final class AgreementObservationSummarizer {
             LocalDate from = datesByAgreement.get(observed.get(i).id())[1].to();
             LocalDate to = i + 1 < observed.size()
                     ? datesByAgreement.get(observed.get(i + 1).id())[1].to().minusDays(1)
-                    : context.analysedTo();
+                    : analysedTo;
             windows.put(observed.get(i).id(), new LocalDate[]{from, to});
         }
         return windows;

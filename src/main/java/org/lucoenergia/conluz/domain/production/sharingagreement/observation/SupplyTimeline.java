@@ -12,10 +12,11 @@ import java.util.Optional;
  * @param firstObservations each candidate's first observation
  * @param anomalousTypes    per day, the anomaly type the day shows, or null
  * @param currentBefore     per day, the candidate observed applied before the day, or null
+ * @param matchedCandidates per day, the candidate the day is read as, or null when it matches none
  */
 record SupplyTimeline(List<ValidDay> days, List<Observation> observations,
                       Map<Candidate, Observation> firstObservations, SharingAnomalyType[] anomalousTypes,
-                      Candidate[] currentBefore) {
+                      Candidate[] currentBefore, Candidate[] matchedCandidates) {
 
     Optional<Observation> firstObservation(Candidate candidate) {
         return Optional.ofNullable(firstObservations.get(candidate));

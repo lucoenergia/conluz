@@ -13,7 +13,7 @@ import java.util.UUID;
  * A sustained disagreement between what the distributor applies to a supply and the registered agreements.
  */
 @Schema(requiredProperties = {"id", "supply", "type", "start", "end", "observedBeta", "observedValidDays",
-        "expectedBeta"})
+        "expectedBeta", "swappedWith"})
 public class SharingAnomalyResponse {
 
     @Schema(description = "Identifier derived from the supply, the type and the first anomalous day: the same " +
@@ -23,7 +23,9 @@ public class SharingAnomalyResponse {
     @Schema(description = "Supply the anomaly was observed on")
     private final SupplyReferenceResponse supply;
 
-    @Schema(description = "Kind of anomaly", example = "UNKNOWN_COEFFICIENT")
+    @Schema(description = "Kind of anomaly. NOT_APPLIED: inside the applied window of the agreement it is " +
+            "attributed to, the supply does not receive its value there, although it holds a row in it never " +
+            "observed applied.", example = "UNKNOWN_COEFFICIENT")
     private final SharingAnomalyType type;
 
     @Schema(description = "When it started")
@@ -43,12 +45,19 @@ public class SharingAnomalyResponse {
     private final int observedValidDays;
 
     @Schema(description = "The supply's registered coefficient in the agreement the anomaly is attributed to, or 0 " +
-            "when the supply holds no row in it; for APPLIED_BEFORE_SENT, its value in the agreement sent late. " +
+            "when the supply holds no row in it; for APPLIED_BEFORE_SENT, its value in the agreement sent late; for " +
+            "NOT_APPLIED, its value in the agreement applied to the plant. " +
             "The value the supply should have received, to read next to observedBeta. On a 0-1 scale, rounded " +
             "half-up to 6 decimals. Null when the anomaly is attributed to no agreement.",
             example = "0.031500",
             types = {"number", "null"})
     private final BigDecimal expectedBeta;
+
+    @Schema(description = "For NOT_APPLIED, the supply it is swapped with: in the same agreement, its coefficient " +
+            "is not applied either, over a common valid day, and each supply receives the other's value in it. " +
+            "Null for any other type, when no supply is reciprocal, or when several supplies would be.",
+            types = {"object", "null"})
+    private final SupplyReferenceResponse swappedWith;
 
     public SharingAnomalyResponse(SharingAnomaly anomaly) {
         this.id = anomaly.id();
@@ -60,6 +69,8 @@ public class SharingAnomalyResponse {
         this.observedBeta = anomaly.observedBeta().value();
         this.observedValidDays = anomaly.observedBeta().validDays();
         this.expectedBeta = anomaly.expectedBeta();
+        this.swappedWith = anomaly.swappedWith() == null ? null : new SupplyReferenceResponse(
+                anomaly.swappedWith().id(), anomaly.swappedWith().code(), anomaly.swappedWith().name());
     }
 
     public UUID getId() {
@@ -92,5 +103,9 @@ public class SharingAnomalyResponse {
 
     public BigDecimal getExpectedBeta() {
         return expectedBeta;
+    }
+
+    public SupplyReferenceResponse getSwappedWith() {
+        return swappedWith;
     }
 }

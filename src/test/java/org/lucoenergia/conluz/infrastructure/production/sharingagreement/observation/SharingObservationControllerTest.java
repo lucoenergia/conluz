@@ -319,6 +319,60 @@ class SharingObservationControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("OBS-017 OBS-018 the agreement's observed sharing reports two supplies swapped in it as not applied, each naming the other")
+    void agreementReportsCoefficientsSwappedInIt() throws Exception {
+        Supply[] swapped = suppliesSwappedInB();
+        String first = swapped[0].getId().toString();
+        String second = swapped[1].getId().toString();
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        perform(agreementUrl(plant.getId(), b.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.anomalies").value(hasSize(2)))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + first + "')].type")
+                        .value(contains("NOT_APPLIED")))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + first + "')].start.to")
+                        .value(contains("2025-11-01")))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + first + "')].expectedBeta")
+                        .value(contains(0.07)))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + first + "')].observedBeta")
+                        .value(contains(0.03)))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + first + "')].swappedWith.id")
+                        .value(contains(second)))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + second + "')].expectedBeta")
+                        .value(contains(0.03)))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + second + "')].observedBeta")
+                        .value(contains(0.07)))
+                .andExpect(jsonPath("$.summary.anomalies[?(@.supply.id == '" + second + "')].swappedWith.id")
+                        .value(contains(first)))
+                .andExpect(jsonPath("$.summary.anomalyCounts.notApplied").value(2))
+                .andExpect(jsonPath("$.summary.recommendations").value(contains("REVIEW_ANOMALIES")));
+    }
+
+    @Test
+    @DisplayName("OBS-017 OBS-018 the plant's observed sharing reports the same not applied anomalies and counts them in the agreement")
+    void plantReportsCoefficientsSwappedInAnAgreement() throws Exception {
+        Supply[] swapped = suppliesSwappedInB();
+        String first = swapped[0].getId().toString();
+        String second = swapped[1].getId().toString();
+        String inB = "$.sharingAgreements[?(@.sharingAgreement.id == '" + b.getId() + "')]";
+        String inA = "$.sharingAgreements[?(@.sharingAgreement.id == '" + a.getId() + "')]";
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        perform(plantUrl(plant.getId()), admin)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(inB + ".anomalyCounts.notApplied").value(contains(2)))
+                .andExpect(jsonPath(inA + ".anomalyCounts.notApplied").value(contains(0)))
+                .andExpect(jsonPath(inB + ".anomalies[?(@.supply.id == '" + first + "')].type")
+                        .value(contains("NOT_APPLIED")))
+                .andExpect(jsonPath(inB + ".anomalies[?(@.supply.id == '" + first + "')].swappedWith.id")
+                        .value(contains(second)))
+                .andExpect(jsonPath(inB + ".anomalies[?(@.supply.id == '" + second + "')].swappedWith.id")
+                        .value(contains(first)))
+                .andExpect(jsonPath("$.unattributedAnomalies").value(hasSize(0)));
+    }
+
+    @Test
     @DisplayName("OBS-012 the plant's observed sharing reports a null expected β on an anomaly attributed to no agreement")
     void plantReportsNoExpectedBetaOnUnattributedAnomalies() throws Exception {
         // In no agreement, the silent supply receives energy for five days.
@@ -576,6 +630,24 @@ class SharingObservationControllerTest extends BaseControllerTest {
         data.supplyReceives(deviating, LocalDate.parse("2025-12-01"), LocalDate.parse("2025-12-05"),
                 0.0412f * HOURLY_PRODUCTION_KWH);
         return deviating;
+    }
+
+    /**
+     * Two supplies observed at their values in A that, from 1 November, each receive the other's value in B: 7 % and
+     * 3 % are registered, 3 % and 7 % received.
+     */
+    private Supply[] suppliesSwappedInB() {
+        Supply first = data.supply(community);
+        Supply second = data.supply(community);
+        data.coefficient(first, plant, a, "0.05", LocalDate.parse("2025-08-25"), CHANGE);
+        data.coefficient(second, plant, a, "0.09", LocalDate.parse("2025-08-25"), CHANGE);
+        data.coefficient(first, plant, b, "0.07", CHANGE, null);
+        data.coefficient(second, plant, b, "0.03", CHANGE, null);
+        data.supplyReceives(first, FIRST_DAY, CHANGE.minusDays(1), 0.05f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(first, CHANGE, LAST_DAY, 0.03f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(second, FIRST_DAY, CHANGE.minusDays(1), 0.09f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(second, CHANGE, LAST_DAY, 0.07f * HOURLY_PRODUCTION_KWH);
+        return new Supply[]{first, second};
     }
 
     private List<String> bothUrls() {

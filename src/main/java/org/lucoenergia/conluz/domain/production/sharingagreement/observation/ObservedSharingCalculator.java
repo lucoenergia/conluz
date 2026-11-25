@@ -85,9 +85,10 @@ public final class ObservedSharingCalculator {
         ObservationStatusResolver resolver = new ObservationStatusResolver(input.zone());
 
         Map<UUID, SupplyRows> rows = new HashMap<>();
+        Map<UUID, SupplyTimeline> timelines = new HashMap<>();
+        Map<UUID, List<Candidate>> candidatesBySupply = new HashMap<>();
         Map<UUID, Map<LocalDate, Double>> energy = new LinkedHashMap<>();
         Map<UUID, NavigableMap<LocalDate, Double>> betas = new HashMap<>();
-        List<SharingAnomaly> anomalies = new ArrayList<>();
         List<ObservedSupply> withData = new ArrayList<>();
         List<ObservedSupply> withoutData = new ArrayList<>();
         for (ObservedSupply supply : supplies) {
@@ -95,7 +96,8 @@ public final class ObservedSharingCalculator {
             List<ValidDay> days = filter.supplyValidDays(plantValid,
                     input.supplyDays().getOrDefault(supply.id(), List.of()));
             SupplyTimeline timeline = walker.walk(days, candidates);
-            anomalies.addAll(collector.collect(supply, timeline, agreementsById));
+            timelines.put(supply.id(), timeline);
+            candidatesBySupply.put(supply.id(), candidates);
             rows.put(supply.id(), resolver.resolve(supply, timeline, agreements, candidates));
             energy.put(supply.id(), days.stream()
                     .collect(Collectors.toMap(ValidDay::day, ValidDay::energyKWh, Double::sum, LinkedHashMap::new)));
@@ -103,7 +105,6 @@ public final class ObservedSharingCalculator {
                     .collect(Collectors.toMap(ValidDay::day, ValidDay::beta, (a, b) -> b, TreeMap::new)));
             (days.isEmpty() ? withoutData : withData).add(supply);
         }
-        anomalies.sort(ANOMALY_ORDER);
 
         // The plant's own supply is never analysed, but its rows are listed, not observable (OBS-011).
         ObservedSupply plantSupply = input.plantSupply();
@@ -115,9 +116,21 @@ public final class ObservedSharingCalculator {
         Set<UUID> notCounted = new HashSet<>(notComputable);
         notCounted.add(plantSupply.id());
 
+        // The applied windows only rest on the rows' observed dates, so they are known before the anomalies.
+        AgreementObservationSummarizer.AppliedWindows applied =
+                AgreementObservationSummarizer.appliedWindows(agreements, listed, rows, input.analysedTo());
+        List<SharingAnomaly> collected = new ArrayList<>();
+        for (ObservedSupply supply : supplies) {
+            collected.addAll(collector.collect(supply, timelines.get(supply.id()), candidatesBySupply.get(supply.id()),
+                    agreementsById, applied.windows(), rows.get(supply.id())));
+        }
+        List<SharingAnomaly> anomalies = new SwapFinder().withSwaps(collected,
+                candidatesByAgreement(candidatesBySupply), betas);
+        anomalies.sort(ANOMALY_ORDER);
+
         List<AgreementObservation> observations = new AgreementObservationSummarizer().summarize(
                 new AgreementObservationSummarizer.Context(agreements, listed, rows, anomalies, plantValid, energy,
-                        betas, coefficients, notCounted, input.analysedTo()));
+                        betas, coefficients, notCounted, applied));
         return new PlantSharingObservation(
                 new AnalysisStatus(true, null, input.analysedFrom(), input.analysedTo(), withData, withoutData,
                         notComputableSupplies),
@@ -142,6 +155,16 @@ public final class ObservedSharingCalculator {
                     .orElseGet(() -> Candidate.implicitZero(agreementId, agreementRank)));
         }
         return candidates;
+    }
+
+    /**
+     * Each supply's candidates keyed by agreement id: a supply has one candidate per agreement.
+     */
+    private static Map<UUID, Map<UUID, Candidate>> candidatesByAgreement(Map<UUID, List<Candidate>> candidatesBySupply) {
+        Map<UUID, Map<UUID, Candidate>> byAgreement = new HashMap<>();
+        candidatesBySupply.forEach((supplyId, candidates) -> byAgreement.put(supplyId, candidates.stream()
+                .collect(Collectors.toMap(Candidate::sharingAgreementId, Function.identity()))));
+        return byAgreement;
     }
 
     /**
