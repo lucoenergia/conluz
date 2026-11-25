@@ -135,7 +135,7 @@ final class AnomalyCollector {
                                           ObservedDate start, LocalDate end, Candidate attributed) {
         return new SharingAnomaly(idOf(supply.id(), type, start.to()), supply, type, start, end,
                 attributed == null ? null : attributed.sharingAgreementId(), observedBeta(timeline, start.to(), end),
-                attributed == null ? null : attributed.registeredValue());
+                attributed == null ? null : attributed.registeredValue(), null);
     }
 
     /**

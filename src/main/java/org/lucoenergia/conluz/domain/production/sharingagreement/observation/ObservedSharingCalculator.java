@@ -119,11 +119,13 @@ public final class ObservedSharingCalculator {
         // The applied windows only rest on the rows' observed dates, so they are known before the anomalies.
         AgreementObservationSummarizer.AppliedWindows applied =
                 AgreementObservationSummarizer.appliedWindows(agreements, listed, rows, input.analysedTo());
-        List<SharingAnomaly> anomalies = new ArrayList<>();
+        List<SharingAnomaly> collected = new ArrayList<>();
         for (ObservedSupply supply : supplies) {
-            anomalies.addAll(collector.collect(supply, timelines.get(supply.id()), candidatesBySupply.get(supply.id()),
+            collected.addAll(collector.collect(supply, timelines.get(supply.id()), candidatesBySupply.get(supply.id()),
                     agreementsById, applied.windows(), rows.get(supply.id())));
         }
+        List<SharingAnomaly> anomalies = new SwapFinder().withSwaps(collected,
+                candidatesByAgreement(candidatesBySupply), betas);
         anomalies.sort(ANOMALY_ORDER);
 
         List<AgreementObservation> observations = new AgreementObservationSummarizer().summarize(
@@ -153,6 +155,16 @@ public final class ObservedSharingCalculator {
                     .orElseGet(() -> Candidate.implicitZero(agreementId, agreementRank)));
         }
         return candidates;
+    }
+
+    /**
+     * Each supply's candidates keyed by agreement id: a supply has one candidate per agreement.
+     */
+    private static Map<UUID, Map<UUID, Candidate>> candidatesByAgreement(Map<UUID, List<Candidate>> candidatesBySupply) {
+        Map<UUID, Map<UUID, Candidate>> byAgreement = new HashMap<>();
+        candidatesBySupply.forEach((supplyId, candidates) -> byAgreement.put(supplyId, candidates.stream()
+                .collect(Collectors.toMap(Candidate::sharingAgreementId, Function.identity()))));
+        return byAgreement;
     }
 
     /**

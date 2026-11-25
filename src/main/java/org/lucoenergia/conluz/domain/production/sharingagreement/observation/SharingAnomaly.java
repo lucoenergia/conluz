@@ -14,8 +14,15 @@ import java.util.UUID;
  * @param observedBeta         what the supply received over the anomaly's valid days
  * @param expectedBeta         the supply's registered value in the attributed agreement, 0 when it holds no row
  *                             there, null when unattributed
+ * @param swappedWith          for {@link SharingAnomalyType#NOT_APPLIED}, the one supply it is swapped with in the
+ *                             attributed agreement (OBS-018); otherwise null
  */
 public record SharingAnomaly(UUID id, ObservedSupply supply, SharingAnomalyType type, ObservedDate start,
                              LocalDate end, UUID attributedAgreementId, ObservedBeta observedBeta,
-                             BigDecimal expectedBeta) {
+                             BigDecimal expectedBeta, ObservedSupply swappedWith) {
+
+    SharingAnomaly swappedWith(ObservedSupply other) {
+        return new SharingAnomaly(id, supply, type, start, end, attributedAgreementId, observedBeta, expectedBeta,
+                other);
+    }
 }
