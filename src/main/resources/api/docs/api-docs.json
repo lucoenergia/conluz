@@ -5316,6 +5316,10 @@
               "null"
             ]
           },
+          "leavesDistributionStatusCounts" : {
+            "$ref" : "#/components/schemas/ObservationStatusCountsResponse",
+            "description" : "Number of its coefficient rows that leave the distribution by dropping to 0 (leavesDistribution), in each status. They are also counted in coefficientStatusCounts, and never in leavingStatusCounts."
+          },
           "leavingStatusCounts" : {
             "$ref" : "#/components/schemas/ObservationStatusCountsResponse",
             "description" : "Number of its leaving rows in each status"
@@ -5360,6 +5364,7 @@
           "coefficientStatusCounts",
           "distributorFileSentOn",
           "earliestObservedDate",
+          "leavesDistributionStatusCounts",
           "leavingStatusCounts",
           "mostFrequentObservedDate",
           "recommendations",

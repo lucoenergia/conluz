@@ -11,7 +11,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -2623,5 +2625,258 @@ class ObservedSharingCalculatorTest {
                             ObservedSupply drops, ObservedSupply absent, ObservedCoefficient dropsInA,
                             ObservedCoefficient absentInA, ObservedCoefficient staysInA,
                             ObservedCoefficient zeroInB, ObservedCoefficient staysInB) {
+    }
+
+    @Nested
+    class LeavesDistributionCounts {
+
+        @Test
+        @DisplayName("OBS-016 two rows leaving by zero, one on its stored date and one on another, are counted 1 and 1 under their statuses")
+        void leavingsByZeroAreCountedUnderTheirStatuses() {
+            LeavingCounts f = leavingCountsFixture();
+
+            PlantSharingObservation result = f.fixture().calculate();
+
+            assertThat(agreementOf(result, f.b()).leavesDistributionStatusCounts())
+                    .isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 1,
+                            ObservationStatus.APPLIED_DIFFERENT_DATE, 1)));
+        }
+
+        @Test
+        @DisplayName("OBS-016 a row at 0 after 0, or with no row in the previous agreement, is not counted as leaving by zero")
+        void zeroThatIsNoLeavingIsNotCounted() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply zeroBefore = fixture.supply("S1");
+            ObservedSupply noRowBefore = fixture.supply("S2");
+            ObservedSupply drops = fixture.supply("S3");
+            ObservedSupply stays = fixture.supply("S4");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(zeroBefore, a, "0", day("2024-03-01"), REGRESSION_CHANGE);
+            fixture.row(drops, a, "0.04", day("2024-03-01"), REGRESSION_CHANGE);
+            fixture.row(stays, a, "0.96", day("2024-03-01"), REGRESSION_CHANGE);
+            ObservedCoefficient zeroBeforeInB = fixture.row(zeroBefore, b, "0", REGRESSION_CHANGE, null);
+            ObservedCoefficient noRowBeforeInB = fixture.row(noRowBefore, b, "0", REGRESSION_CHANGE, null);
+            ObservedCoefficient dropsInB = fixture.row(drops, b, "0", REGRESSION_CHANGE, null);
+            fixture.row(stays, b, "1", REGRESSION_CHANGE, null);
+            fixture.beta(zeroBefore, FROM, TO, 0.0);
+            fixture.beta(noRowBefore, FROM, TO, 0.0);
+            fixture.beta(drops, FROM, day("2024-05-09"), 0.04).beta(drops, REGRESSION_CHANGE, TO, 0.0);
+            fixture.beta(stays, FROM, day("2024-05-09"), 0.96).beta(stays, REGRESSION_CHANGE, TO, 1.0);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            assertThat(rowOf(result, zeroBeforeInB).leavesDistribution()).isFalse();
+            assertThat(rowOf(result, noRowBeforeInB).leavesDistribution()).isFalse();
+            assertThat(rowOf(result, dropsInB).status()).isEqualTo(ObservationStatus.APPLIED_SAME_DATE);
+            assertThat(agreementOf(result, b).leavesDistributionStatusCounts())
+                    .isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 1)));
+        }
+
+        @Test
+        @DisplayName("OBS-016 the rows leaving by zero stay counted among the coefficient rows and never among the leaving rows")
+        void leavingsByZeroStayAmongTheCoefficientCounts() {
+            LeavingCounts f = leavingCountsFixture();
+
+            PlantSharingObservation result = f.fixture().calculate();
+
+            AgreementObservation b = agreementOf(result, f.b());
+            assertThat(b.coefficientStatusCounts()).isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 2,
+                    ObservationStatus.APPLIED_DIFFERENT_DATE, 1)));
+            assertThat(b.leavingStatusCounts()).isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 1)));
+            assertThat(b.leavingRows()).extracting(row -> row.supply().id()).containsExactly(f.absent().id());
+        }
+
+        @Test
+        @DisplayName("OBS-016 an agreement with no row leaving by zero reports all zeros")
+        void agreementWithoutLeavingsByZeroReportsZeros() {
+            LeavingCounts f = leavingCountsFixture();
+
+            PlantSharingObservation result = f.fixture().calculate();
+
+            assertThat(agreementOf(result, f.a()).leavesDistributionStatusCounts()).isEqualTo(counts(Map.of()));
+        }
+
+        @Test
+        @DisplayName("OBS-016 a plant that is not computable reports all zeros, even for an agreement with a row at 0 after 4 %")
+        void notComputablePlantReportsZeros() {
+            LeavingCounts f = leavingCountsFixture();
+
+            PlantSharingObservation result = f.fixture().plantWithoutData().calculate();
+
+            assertThat(agreementOf(result, f.a()).leavesDistributionStatusCounts()).isEqualTo(counts(Map.of()));
+            assertThat(agreementOf(result, f.b()).leavesDistributionStatusCounts()).isEqualTo(counts(Map.of()));
+        }
+
+        @Test
+        @DisplayName("OBS-016 the plant's own supply's row leaving by zero is counted under not observable")
+        void plantSupplyLeavingByZeroIsCountedNotObservable() {
+            ObservationFixture fixture = new ObservationFixture(FROM, TO);
+            ObservedSupply plantSupply = fixture.plantSupply();
+            ObservedSupply stays = fixture.supply("S1");
+            ObservedSupply absent = fixture.supply("S2");
+            ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+            ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+            fixture.row(plantSupply, a, "0.04", day("2024-03-01"), REGRESSION_CHANGE);
+            fixture.row(stays, a, "0.5", day("2024-03-01"), REGRESSION_CHANGE);
+            fixture.row(absent, a, "0.46", day("2024-03-01"), REGRESSION_CHANGE);
+            fixture.row(plantSupply, b, "0", REGRESSION_CHANGE, null);
+            fixture.row(stays, b, "1", REGRESSION_CHANGE, null);
+            fixture.beta(stays, FROM, day("2024-05-09"), 0.5).beta(stays, REGRESSION_CHANGE, TO, 1.0);
+            fixture.beta(absent, FROM, day("2024-05-09"), 0.46).beta(absent, REGRESSION_CHANGE, TO, 0.0);
+
+            PlantSharingObservation result = fixture.calculate();
+
+            AgreementObservation observation = agreementOf(result, b);
+            assertThat(observation.leavesDistributionStatusCounts())
+                    .isEqualTo(counts(Map.of(ObservationStatus.NOT_OBSERVABLE, 1)));
+            assertThat(observation.leavingStatusCounts())
+                    .isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 1)));
+            assertThat(agreementOf(result, a).leavesDistributionStatusCounts()).isEqualTo(counts(Map.of()));
+        }
+
+        @Test
+        @DisplayName("OBS-016 the agreement's slice reports the same counts of leavings by zero as the plant's observation")
+        void sliceReportsTheSameCounts() {
+            LeavingCounts f = leavingCountsFixture();
+
+            PlantSharingObservation result = f.fixture().calculate();
+
+            for (ObservedAgreement agreement : List.of(f.a(), f.b())) {
+                assertThat(result.sliceFor(agreement.id()).orElseThrow().agreement().leavesDistributionStatusCounts())
+                        .isEqualTo(agreementOf(result, agreement).leavesDistributionStatusCounts());
+            }
+            assertThat(result.sliceFor(f.b().id()).orElseThrow().agreement().leavesDistributionStatusCounts())
+                    .isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 1,
+                            ObservationStatus.APPLIED_DIFFERENT_DATE, 1)));
+        }
+
+        @Test
+        @DisplayName("OBS-016 counting the leavings by zero changes no other count, date, row, anomaly, recommendation or 1 − Σβ")
+        void countingLeavingsByZeroChangesNothingElse() {
+            LeavingCounts f = leavingCountsFixture();
+
+            PlantSharingObservation result = f.fixture().calculate();
+
+            AgreementObservation a = agreementOf(result, f.a());
+            AgreementObservation b = agreementOf(result, f.b());
+            assertThat(a.coefficientStatusCounts()).isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 4)));
+            assertThat(a.leavingStatusCounts()).isEqualTo(counts(Map.of()));
+            assertThat(b.coefficientStatusCounts()).isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 2,
+                    ObservationStatus.APPLIED_DIFFERENT_DATE, 1)));
+            assertThat(b.leavingStatusCounts()).isEqualTo(counts(Map.of(ObservationStatus.APPLIED_SAME_DATE, 1)));
+            assertThat(a.coefficients()).extracting(CoefficientObservation::coefficientId,
+                            CoefficientObservation::status, CoefficientObservation::observedDate,
+                            CoefficientObservation::proposedDate, CoefficientObservation::observedBeta,
+                            CoefficientObservation::windowDays, CoefficientObservation::windowFrom,
+                            CoefficientObservation::windowTo, CoefficientObservation::leavesDistribution)
+                    .containsExactly(
+                            tuple(f.onTimeInA().id(), ObservationStatus.APPLIED_SAME_DATE,
+                                    ObservedDate.onOrBefore(FROM), null,
+                                    new ObservedBeta(new BigDecimal("0.040000"), 39), 39, FROM, day("2024-05-09"),
+                                    false),
+                            tuple(f.lateInA().id(), ObservationStatus.APPLIED_SAME_DATE,
+                                    ObservedDate.onOrBefore(FROM), null,
+                                    new ObservedBeta(new BigDecimal("0.030000"), 39), 39, FROM, day("2024-05-09"),
+                                    false),
+                            tuple(f.absentInA().id(), ObservationStatus.APPLIED_SAME_DATE,
+                                    ObservedDate.onOrBefore(FROM), null,
+                                    new ObservedBeta(new BigDecimal("0.020000"), 39), 39, FROM, day("2024-05-09"),
+                                    false),
+                            tuple(f.staysInA().id(), ObservationStatus.APPLIED_SAME_DATE,
+                                    ObservedDate.onOrBefore(FROM), null,
+                                    new ObservedBeta(new BigDecimal("0.010000"), 39), 39, FROM, day("2024-05-09"),
+                                    false));
+            assertThat(b.coefficients()).extracting(CoefficientObservation::coefficientId,
+                            CoefficientObservation::status, CoefficientObservation::observedDate,
+                            CoefficientObservation::proposedDate, CoefficientObservation::observedBeta,
+                            CoefficientObservation::windowDays, CoefficientObservation::windowFrom,
+                            CoefficientObservation::windowTo, CoefficientObservation::leavesDistribution)
+                    .containsExactly(
+                            tuple(f.onTimeInB().id(), ObservationStatus.APPLIED_SAME_DATE,
+                                    ObservedDate.exact(REGRESSION_CHANGE), null,
+                                    new ObservedBeta(new BigDecimal("0.000000"), 52), 52, REGRESSION_CHANGE, TO, true),
+                            tuple(f.lateInB().id(), ObservationStatus.APPLIED_DIFFERENT_DATE,
+                                    ObservedDate.exact(REGRESSION_CHANGE), null,
+                                    new ObservedBeta(new BigDecimal("0.000000"), 52), 52, REGRESSION_CHANGE, TO, true),
+                            tuple(f.staysInB().id(), ObservationStatus.APPLIED_SAME_DATE,
+                                    ObservedDate.exact(REGRESSION_CHANGE), null,
+                                    new ObservedBeta(new BigDecimal("0.050000"), 52), 52, REGRESSION_CHANGE, TO,
+                                    false));
+            assertThat(a.leavingRows()).isEmpty();
+            assertThat(b.leavingRows()).extracting(row -> row.supply().id(), LeavingObservation::previousCoefficientId,
+                            LeavingObservation::status, LeavingObservation::observedLeavingDate,
+                            LeavingObservation::storedValidTo, LeavingObservation::proposedDate,
+                            LeavingObservation::observedBeta, LeavingObservation::windowDays,
+                            LeavingObservation::windowFrom, LeavingObservation::windowTo)
+                    .containsExactly(tuple(f.absent().id(), f.absentInA().id(), ObservationStatus.APPLIED_SAME_DATE,
+                            ObservedDate.exact(REGRESSION_CHANGE), REGRESSION_CHANGE, null,
+                            new ObservedBeta(new BigDecimal("0.000000"), 52), 52, REGRESSION_CHANGE, TO));
+            assertThat(a.earliestObservedDate()).isEqualTo(ObservedDate.onOrBefore(FROM));
+            assertThat(a.mostFrequentObservedDate()).isEqualTo(ObservedDate.onOrBefore(FROM));
+            assertThat(b.earliestObservedDate()).isEqualTo(ObservedDate.exact(REGRESSION_CHANGE));
+            assertThat(b.mostFrequentObservedDate()).isEqualTo(ObservedDate.exact(REGRESSION_CHANGE));
+            assertThat(a.anomalies()).isEmpty();
+            assertThat(b.anomalies()).isEmpty();
+            assertThat(result.unattributedAnomalies()).isEmpty();
+            assertThat(a.recommendations()).containsExactly(SharingRecommendation.NONE);
+            assertThat(b.recommendations()).containsExactly(SharingRecommendation.SET_DATES);
+            assertThat(a.unallocatedShare().unallocated()).isCloseTo(1 - 0.10, Offset.offset(1e-9));
+            assertThat(a.unallocatedShare().registeredShareWithoutData()).isCloseTo(0, Offset.offset(1e-9));
+            assertThat(a.unallocatedShare().days()).isEqualTo(39);
+            assertThat(a.unallocatedShare().from()).isEqualTo(FROM);
+            assertThat(a.unallocatedShare().to()).isEqualTo(day("2024-05-09"));
+            assertThat(b.unallocatedShare().unallocated()).isCloseTo(1 - 0.05, Offset.offset(1e-9));
+            assertThat(b.unallocatedShare().registeredShareWithoutData()).isCloseTo(0, Offset.offset(1e-9));
+            assertThat(b.unallocatedShare().days()).isEqualTo(52);
+            assertThat(b.unallocatedShare().from()).isEqualTo(REGRESSION_CHANGE);
+            assertThat(b.unallocatedShare().to()).isEqualTo(TO);
+        }
+    }
+
+    /**
+     * Four supplies in A until 10 May. In B two drop to 0 % (leavings by zero), one on its stored date and one
+     * stored ten days later; the third is absent (a leaving by absence) and the fourth goes from 1 % to 5 %. Each
+     * one receives what is registered.
+     */
+    private static LeavingCounts leavingCountsFixture() {
+        ObservationFixture fixture = new ObservationFixture(FROM, TO);
+        ObservedSupply onTime = fixture.supply("S1");
+        ObservedSupply late = fixture.supply("S2");
+        ObservedSupply absent = fixture.supply("S3");
+        ObservedSupply stays = fixture.supply("S4");
+        ObservedAgreement a = fixture.agreement("A", day("2024-03-01"));
+        ObservedAgreement b = fixture.agreement("B", day("2024-05-01"));
+        ObservedCoefficient onTimeInA = fixture.row(onTime, a, "0.04", day("2024-03-01"), REGRESSION_CHANGE);
+        ObservedCoefficient lateInA = fixture.row(late, a, "0.03", day("2024-03-01"), REGRESSION_CHANGE);
+        ObservedCoefficient absentInA = fixture.row(absent, a, "0.02", day("2024-03-01"), REGRESSION_CHANGE);
+        ObservedCoefficient staysInA = fixture.row(stays, a, "0.01", day("2024-03-01"), REGRESSION_CHANGE);
+        ObservedCoefficient onTimeInB = fixture.row(onTime, b, "0", REGRESSION_CHANGE, null);
+        ObservedCoefficient lateInB = fixture.row(late, b, "0", day("2024-05-20"), null);
+        ObservedCoefficient staysInB = fixture.row(stays, b, "0.05", REGRESSION_CHANGE, null);
+        fixture.beta(onTime, FROM, day("2024-05-09"), 0.04).beta(onTime, REGRESSION_CHANGE, TO, 0.0);
+        fixture.beta(late, FROM, day("2024-05-09"), 0.03).beta(late, REGRESSION_CHANGE, TO, 0.0);
+        fixture.beta(absent, FROM, day("2024-05-09"), 0.02).beta(absent, REGRESSION_CHANGE, TO, 0.0);
+        fixture.beta(stays, FROM, day("2024-05-09"), 0.01).beta(stays, REGRESSION_CHANGE, TO, 0.05);
+        return new LeavingCounts(fixture, a, b, absent, onTimeInA, lateInA, absentInA, staysInA, onTimeInB, lateInB,
+                staysInB);
+    }
+
+    private record LeavingCounts(ObservationFixture fixture, ObservedAgreement a, ObservedAgreement b,
+                                 ObservedSupply absent, ObservedCoefficient onTimeInA, ObservedCoefficient lateInA,
+                                 ObservedCoefficient absentInA, ObservedCoefficient staysInA,
+                                 ObservedCoefficient onTimeInB, ObservedCoefficient lateInB,
+                                 ObservedCoefficient staysInB) {
+    }
+
+    /**
+     * A count for every status: the given ones, and 0 for the others.
+     */
+    private static Map<ObservationStatus, Integer> counts(Map<ObservationStatus, Integer> nonZero) {
+        Map<ObservationStatus, Integer> counts = new EnumMap<>(ObservationStatus.class);
+        for (ObservationStatus status : ObservationStatus.values()) {
+            counts.put(status, nonZero.getOrDefault(status, 0));
+        }
+        return counts;
     }
 }

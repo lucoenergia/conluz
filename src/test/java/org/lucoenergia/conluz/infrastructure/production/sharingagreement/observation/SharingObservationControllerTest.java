@@ -209,6 +209,35 @@ class SharingObservationControllerTest extends BaseControllerTest {
     }
 
     @Test
+    @DisplayName("OBS-016 both operations count the coefficient that leaves the distribution by zero, apart from the leaving rows")
+    void bothOperationsCountTheLeavingsByZero() throws Exception {
+        Supply dropping = data.supply(community);
+        data.coefficient(dropping, plant, a, "0.2", LocalDate.parse("2025-08-25"), CHANGE);
+        data.coefficient(dropping, plant, b, "0", CHANGE, null);
+        data.supplyReceives(dropping, FIRST_DAY, CHANGE.minusDays(1), 0.2f * HOURLY_PRODUCTION_KWH);
+        data.supplyReceives(dropping, CHANGE, LAST_DAY, 0f);
+        String admin = loginAsCommunityAdmin(community.getId());
+
+        JsonNode plantResult = read(perform(plantUrl(plant.getId()), admin).andExpect(status().isOk()));
+        JsonNode summaryOfA = summaryOf(plantResult, a);
+        JsonNode summaryOfB = summaryOf(plantResult, b);
+        // B: the dropping supply leaves by zero, the leaving one by absence, both observed on their stored date.
+        assertThat(summaryOfB.get("leavesDistributionStatusCounts").get("appliedSameDate").asInt()).isEqualTo(1);
+        assertThat(sum(summaryOfB.get("leavesDistributionStatusCounts"))).isEqualTo(1);
+        assertThat(summaryOfB.get("leavingStatusCounts").get("appliedSameDate").asInt()).isEqualTo(1);
+        assertThat(sum(summaryOfB.get("leavingStatusCounts"))).isEqualTo(1);
+        assertThat(sum(summaryOfB.get("coefficientStatusCounts"))).isEqualTo(2);
+        assertThat(sum(summaryOfA.get("leavesDistributionStatusCounts"))).isZero();
+
+        for (SharingAgreement agreement : List.of(a, b)) {
+            JsonNode agreementResult = read(perform(agreementUrl(plant.getId(), agreement.getId()), admin)
+                    .andExpect(status().isOk()));
+            assertThat(agreementResult.get("summary").get("leavesDistributionStatusCounts"))
+                    .isEqualTo(summaryOf(plantResult, agreement).get("leavesDistributionStatusCounts"));
+        }
+    }
+
+    @Test
     @DisplayName("OBS-007 the agreement's observed sharing is exactly its slice of the plant's")
     void agreementIsTheSliceOfThePlant() throws Exception {
         // An anomaly attributed to B, so the slice carries its observed β too.
@@ -559,6 +588,18 @@ class SharingObservationControllerTest extends BaseControllerTest {
 
     private JsonNode read(ResultActions result) throws Exception {
         return objectMapper.readTree(result.andReturn().getResponse().getContentAsString());
+    }
+
+    /**
+     * The plant result's summary of the agreement, found by its id rather than by its position in the list.
+     */
+    private static JsonNode summaryOf(JsonNode plantResult, SharingAgreement agreement) {
+        for (JsonNode summary : plantResult.get("sharingAgreements")) {
+            if (summary.get("sharingAgreement").get("id").asText().equals(agreement.getId().toString())) {
+                return summary;
+            }
+        }
+        throw new AssertionError("Agreement " + agreement.getName() + " is not in the plant's result");
     }
 
     private static int sum(JsonNode counts) {

@@ -98,7 +98,11 @@ final class AgreementObservationSummarizer {
                     .toList();
             observations.add(new AgreementObservation(agreement, datesByAgreement.get(agreement.id())[0],
                     mostFrequent, countStatuses(coefficients.stream().map(CoefficientObservation::status).toList()),
-                    countStatuses(leavings.stream().map(LeavingObservation::status).toList()), anomalies,
+                    countStatuses(leavings.stream().map(LeavingObservation::status).toList()),
+                    countStatuses(coefficients.stream()
+                            .filter(CoefficientObservation::leavesDistribution)
+                            .map(CoefficientObservation::status)
+                            .toList()), anomalies,
                     countTypes(anomalies), unallocatedShare(context, agreement, window),
                     recommendations(agreement, coefficients, leavings, anomalies), coefficients, leavings));
         }
