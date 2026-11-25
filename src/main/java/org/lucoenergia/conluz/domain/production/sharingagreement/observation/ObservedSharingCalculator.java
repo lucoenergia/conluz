@@ -153,6 +153,7 @@ public final class ObservedSharingCalculator {
         List<AgreementObservation> observations = agreements.stream()
                 .map(agreement -> new AgreementObservation(agreement, null, null,
                         AgreementObservationSummarizer.countStatuses(List.of()),
+                        AgreementObservationSummarizer.countStatuses(List.of()),
                         AgreementObservationSummarizer.countStatuses(List.of()), List.of(),
                         AgreementObservationSummarizer.countTypes(List.of()), null, List.of(), List.of(), List.of()))
                 .toList();

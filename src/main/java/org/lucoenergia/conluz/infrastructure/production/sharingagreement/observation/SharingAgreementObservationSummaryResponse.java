@@ -12,8 +12,8 @@ import java.util.List;
  * What was observed of one agreement, without its per-supply rows.
  */
 @Schema(requiredProperties = {"sharingAgreement", "distributorFileSentOn", "earliestObservedDate",
-        "mostFrequentObservedDate", "coefficientStatusCounts", "leavingStatusCounts", "anomalies", "anomalyCounts",
-        "unallocatedShare", "recommendations"})
+        "mostFrequentObservedDate", "coefficientStatusCounts", "leavingStatusCounts", "leavesDistributionStatusCounts",
+        "anomalies", "anomalyCounts", "unallocatedShare", "recommendations"})
 public class SharingAgreementObservationSummaryResponse {
 
     @Schema(description = "The agreement")
@@ -37,6 +37,11 @@ public class SharingAgreementObservationSummaryResponse {
     @Schema(description = "Number of its leaving rows in each status")
     private final ObservationStatusCountsResponse leavingStatusCounts;
 
+    @Schema(description = "Number of its coefficient rows that leave the distribution by dropping to 0 " +
+            "(leavesDistribution), in each status. They are also counted in coefficientStatusCounts, and never in " +
+            "leavingStatusCounts.")
+    private final ObservationStatusCountsResponse leavesDistributionStatusCounts;
+
     @Schema(description = "Anomalies attributed to the agreement")
     private final List<SharingAnomalyResponse> anomalies;
 
@@ -59,6 +64,8 @@ public class SharingAgreementObservationSummaryResponse {
         this.mostFrequentObservedDate = ObservedDateResponse.of(observation.mostFrequentObservedDate());
         this.coefficientStatusCounts = new ObservationStatusCountsResponse(observation.coefficientStatusCounts());
         this.leavingStatusCounts = new ObservationStatusCountsResponse(observation.leavingStatusCounts());
+        this.leavesDistributionStatusCounts =
+                new ObservationStatusCountsResponse(observation.leavesDistributionStatusCounts());
         this.anomalies = observation.anomalies().stream().map(SharingAnomalyResponse::new).toList();
         this.anomalyCounts = new SharingAnomalyCountsResponse(observation.anomalyCounts());
         this.unallocatedShare = observation.unallocatedShare() == null
@@ -88,6 +95,10 @@ public class SharingAgreementObservationSummaryResponse {
 
     public ObservationStatusCountsResponse getLeavingStatusCounts() {
         return leavingStatusCounts;
+    }
+
+    public ObservationStatusCountsResponse getLeavesDistributionStatusCounts() {
+        return leavesDistributionStatusCounts;
     }
 
     public List<SharingAnomalyResponse> getAnomalies() {
