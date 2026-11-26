@@ -16,6 +16,14 @@ Integration and controller tests create the data they need the way production cr
 - **Unit tests** do not persist anything: they mock the domain ports.
 - **Existing tests:** this rule applies to new tests, and to any existing test you have to change anyway. Do not rewrite untouched tests only to follow it.
 
+### Removing committed test data
+
+A test that is not `@Transactional` commits what it creates, and nothing written to InfluxDB is ever rolled back, whatever the test's annotations. That data stays in the PostgreSQL and InfluxDB containers shared by every later test of the same Gradle fork, and tests such as `GetSupplyRepositoryDatabaseTest` count every row of a table. Which tests share a fork depends on the machine's processor count, so a leak can pass locally and fail in CI.
+
+- **Remove what you commit.** An `@AfterEach` deletes everything the test committed: supplies, plants, sharing agreements and the other rows a test can count, through their domain delete ports (`DeleteSupplyRepository`, `DeletePlantRepository`, …) in foreign-key order, and the InfluxDB points through the fixture's `clear`. A row with no delete port is deleted with `JdbcTemplate`, with a one-line comment saying why. Do not add a production delete method only to serve a test.
+- **Isolate what cannot be counted.** Users, memberships and communities created by the `loginAs*` helpers are left in place. Create a test's own rows in a community of its own, never in the default one, so a per-community count does not see them.
+- **Prove it before committing.** Run the new test class together with a test that counts the same table, in one fork: `./gradlew test --max-workers=1 --tests '*YourNewTest' --tests '*GetSupplyRepositoryDatabaseTest'`. The run only proves something if the counting test ran after yours: check the `timestamp` of both in `build/test-results/test/*.xml`.
+
 ## Deployment & infrastructure boundary
 
 This repository is **public and world-readable**. Environment-specific values — real
