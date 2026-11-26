@@ -71,6 +71,20 @@ class DatadisYearlyAggregationJobTest {
     }
 
     @Test
+    @DisplayName("DCA-003 on a Sunday the same years are re-aggregated as on a weekday")
+    void onASundayTheSameYearsAreReaggregated() {
+        // Sunday 2026-11-29: the sync re-read the full window, 2024-11 to 2026-11.
+        job(clockAt("2026-11-29T05:00:00Z"), DatadisSyncWindows.DEFAULT).run();
+
+        for (UUID community : List.of(COMMUNITY_A, COMMUNITY_B)) {
+            verify(service).aggregateYearlyConsumptions(community, 2024);
+            verify(service).aggregateYearlyConsumptions(community, 2025);
+            verify(service).aggregateYearlyConsumptions(community, 2026);
+        }
+        verifyNoMoreInteractions(service);
+    }
+
+    @Test
     @ResourceLock(Resources.TIME_ZONE)
     @DisplayName("DCA-003 the current year is resolved in the community's zone, not the JVM default (00:30 on 1 January in Madrid)")
     void theCurrentYearIsResolvedInTheCommunityZone() {
