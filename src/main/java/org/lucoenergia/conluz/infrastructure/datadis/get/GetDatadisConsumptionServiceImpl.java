@@ -30,8 +30,6 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
@@ -215,11 +213,10 @@ public class GetDatadisConsumptionServiceImpl implements GetDatadisConsumptionSe
      * method, labelled with the local date and time the hour starts at.
      */
     private static DatadisConsumption nothingStored(Supply supply, Instant hour, ZoneId zone) {
-        ZonedDateTime localStart = hour.atZone(zone);
         DatadisConsumption consumption = new DatadisConsumption();
         consumption.setCups(supply.getCode());
-        consumption.setDate(DateTimeFormatter.ofPattern(DateConverter.DATE_FORMAT).format(localStart));
-        consumption.setTime(DateTimeFormatter.ofPattern(DateConverter.TIME_FORMAT).format(localStart));
+        consumption.setDate(DateConverter.formatDate(hour, zone));
+        consumption.setTime(DateConverter.formatTime(hour, zone));
         consumption.setConsumptionKWh(0f);
         consumption.setSelfConsumptionEnergyKWh(0f);
         consumption.setSurplusEnergyKWh(0f);

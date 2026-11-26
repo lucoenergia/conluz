@@ -111,20 +111,27 @@ public class DateConverter {
     }
 
     public String convertFromInstantToStringDate(@NotNull Instant instant) {
-
-        ZonedDateTime zonedDateTime = instant.atZone(timeConfiguration.getZoneId());
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
-
-        return formatter.format(zonedDateTime);
+        return formatDate(instant, timeConfiguration.getZoneId());
     }
 
     public String convertFromInstantToStringTime(@NotNull Instant instant) {
+        return formatTime(instant, timeConfiguration.getZoneId());
+    }
 
-        ZonedDateTime zonedDateTime = instant.atZone(timeConfiguration.getZoneId());
+    /**
+     * The local calendar date of {@code instant} in {@code zone}, as every hourly Datadis record is
+     * labelled when read back: {@value #DATE_FORMAT}.
+     */
+    public static String formatDate(@NotNull Instant instant, @NotNull ZoneId zone) {
+        return DateTimeFormatter.ofPattern(DATE_FORMAT).format(instant.atZone(zone));
+    }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(TIME_FORMAT);
-
-        return formatter.format(zonedDateTime);
+    /**
+     * The local time of {@code instant} in {@code zone}, as every hourly Datadis record is labelled when
+     * read back: {@value #TIME_FORMAT}. For a record's instant it is the start of the record's hour, not
+     * Datadis's own label for the end of the hour.
+     */
+    public static String formatTime(@NotNull Instant instant, @NotNull ZoneId zone) {
+        return DateTimeFormatter.ofPattern(TIME_FORMAT).format(instant.atZone(zone));
     }
 }
