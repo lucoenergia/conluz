@@ -94,3 +94,4 @@ are always called **tests**, never specs.
 | `OBS` | Observed sharing of a plant's agreements | [`observed-sharing.md`](observed-sharing.md) |
 | `TRF` | Estimated tariff and its taxes | [`estimated-tariff.md`](estimated-tariff.md) |
 | `SCL` | Surplus claim of a plant | [`surplus-claim.md`](surplus-claim.md) |
+| `DCX` | Datadis consumption CSV exports | [`datadis-consumption-csv.md`](datadis-consumption-csv.md) |

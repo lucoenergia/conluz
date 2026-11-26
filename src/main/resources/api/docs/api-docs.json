@@ -1951,6 +1951,7 @@
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SURPLUS_CLAIM_CIL_REQUIRED",
+              "CONSUMPTION_CSV_MONTH_IN_FUTURE",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -2196,6 +2197,7 @@
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SURPLUS_CLAIM_CIL_REQUIRED",
+              "CONSUMPTION_CSV_MONTH_IN_FUTURE",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -5213,6 +5215,7 @@
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SURPLUS_CLAIM_CIL_REQUIRED",
+              "CONSUMPTION_CSV_MONTH_IN_FUTURE",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -5404,6 +5407,7 @@
               "PLANT_HAS_PARTITION_COEFFICIENTS",
               "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SURPLUS_CLAIM_CIL_REQUIRED",
+              "CONSUMPTION_CSV_MONTH_IN_FUTURE",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -24574,6 +24578,145 @@
           }
         ],
         "summary" : "Retrieves daily consumption data for a specific supply",
+        "tags" : [
+          "Supplies"
+        ]
+      }
+    },
+    "/api/v1/supplies/{supplyId}/consumption/datadis/hourly/csv" : {
+      "get" : {
+        "description" : "Writes the supply's hourly records as Datadis delivered them and Conluz stored them, for one\ncalendar month, to analyse outside Conluz. Nothing is computed from them: unlike\n`getSupplyHourlyConsumption`, an hour is written as soon as it is stored, whether or not its\nself-consumption has been published.\n\n**Format:** a CSV (`text/csv`, UTF-8 with a BOM, `;` separated, CRLF line ends) named\n`{CUPS}-{YYYY-MM}.csv`. The header is\n`cups;date;time;consumptionKWh;obtainMethod;surplusEnergyKWh;generationEnergyKWh;selfConsumptionEnergyKWh`,\nthen one line per stored record. A field holding `;`, `\"` or a line end is quoted, with its\nquotes doubled.\n\n- `date` and `time`: the local calendar date (`yyyy/MM/dd`) and the local time (`HH:mm`), in\n  the time zone the application is configured with, at which the record's hour **starts**,\n  `00:00` to `23:00`. They are the `date` and `time` `getSupplyHourlyConsumption` returns\n  for the same hour. Datadis's own labels, which name the hour's **end** (`01:00` for\n  00:00-01:00, up to `24:00`), are not stored.\n- Every other column is Datadis's value as stored: `cups` and `obtainMethod` unchanged, and\n  every energy figure in kWh, unrounded, in plain notation with a decimal comma\n  (`0,0005`, `1`, `12,345`). A value Datadis did not deliver is an empty field.\n  `generationEnergyKWh` is the distributor's own figure, not the supply's assigned\n  production.\n\n**Order:** lines follow the stored instants, oldest first. On the day the clocks go back,\nthe repeated local hour is two consecutive lines with the same `date` and `time`, the\nearlier instant first; on the day they go forward, the skipped local hour has no line.\n\n**Absent hours:** an hour without a stored record has no line. A month without any record\nis answered with the header line only.\n\n**Month:** `month` is required, as `YYYY-MM`, and covers the hours that start from the\nfirst day of the month at 00:00 up to, not including, the first day of the next month at\n00:00, in the time zone the application is configured with. The current month may be\nrequested and holds the records stored so far; a later month is a bad request with code\n`CONSUMPTION_CSV_MONTH_IN_FUTURE`. There is no earliest month. A disabled supply still has\nevery stored record of the month written.\n\n**Required: the caller can read the supply** (the supply's `canRead` capability), exactly\nas for `getSupplyHourlyConsumption`: its owner, or an active community admin of its\ncommunity. Every other caller, a platform admin who is not a member included, is answered\n404, and a request without a token 401.\n",
+        "operationId" : "getSupplyDatadisConsumptionHourlyCsv",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "supplyId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "The calendar month to export, as YYYY-MM.",
+            "in" : "query",
+            "name" : "month",
+            "required" : true,
+            "schema" : {
+              "example" : "2026-09",
+              "pattern" : "^\\d{4}-(0[1-9]|1[0-2])$",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/csv" : {
+                "schema" : {
+                  "format" : "binary",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "The month's hourly Datadis records as a CSV file"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Downloads one month of a supply's hourly Datadis records as a CSV file.",
         "tags" : [
           "Supplies"
         ]

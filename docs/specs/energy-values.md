@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`, `getPlantDailyEnergySeries`, `getPlantMonthlyEnergySeries`, `getPlantInverterProductionToday` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #570 |
+| **Last reviewed against code** | #636 |
 
 ## Purpose
 
@@ -34,7 +34,7 @@ touch it.
 | Supply count | Number of supplies a figure covers: the enabled supplies of a community, or the supplies a member owns in it. Field `supplyCount`. |
 | Supplies with data | Number of those supplies with data. What counts as having data is stated in each operation, so the figure is not comparable across operations. Field `suppliesWithData`. |
 | Average and sample count | An average of a quantity is named `average` followed by the quantity's field name (`averageTotalConsumptionKWh`); the number of records it rests on is named after the quantity with `SampleCount` in place of `KWh` (`totalConsumptionSampleCount`). |
-| Datadis pass-through schema | A schema that carries the distributor's own record shape and names (`DatadisConsumption`, `DatadisProduction`, the hourly consumption CSV report). It keeps the Datadis names, which the quantities above do not use. |
+| Datadis pass-through schema | A schema that carries the distributor's own record shape and names (`DatadisConsumption`, `DatadisProduction`, the hourly consumption CSV report, the per-supply hourly CSV export `getSupplyDatadisConsumptionHourlyCsv`). It keeps the Datadis names, which the quantities above do not use. Its `generationEnergyKWh` is the distributor's figure, not assigned production (EVL-004). |
 
 ## Rules
 

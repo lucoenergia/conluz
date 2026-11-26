@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.infrastructure.datadis;
 
+import org.lucoenergia.conluz.domain.consumption.datadis.get.ConsumptionCsvMonthInFutureException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfigIncompleteException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfigNotFoundException;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfigPasswordRequiredException;
@@ -70,5 +71,16 @@ public class DatadisExceptionHandler {
         );
         return errorBuilder.build(message, RestErrorCode.DATADIS_CONFIG_INCOMPLETE,
                 Map.of("missingFields", String.join(",", e.getMissingFields())), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ConsumptionCsvMonthInFutureException.class)
+    public ResponseEntity<RestError> handleException(ConsumptionCsvMonthInFutureException e) {
+        String message = messageSource.getMessage(
+                "error.consumption.csv.month.in.future",
+                new Object[]{e.getMonth().toString(), e.getCurrentMonth().toString()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.CONSUMPTION_CSV_MONTH_IN_FUTURE, null,
+                HttpStatus.BAD_REQUEST);
     }
 }

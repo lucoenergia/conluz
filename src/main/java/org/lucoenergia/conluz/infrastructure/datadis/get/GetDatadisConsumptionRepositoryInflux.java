@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.get.GetDatadisConsumptionRepository;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionPoint;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionYearlyPoint;
@@ -103,6 +104,33 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
                 .map(point -> new DatadisHourlyConsumption(point.getTime(), toConsumption(point),
                         publishedHoursOf(point)))
                 .toList();
+    }
+
+    /**
+     * The supply's points of the measurement as stored, without grouping: the measurement's only tag is
+     * {@code cups}, so a supply has at most one point per instant, and a point written again at the same
+     * instant replaces it rather than adding another. InfluxDB returns them in ascending time.
+     */
+    @Override
+    public List<DatadisHourlyRecord<DatadisConsumption>> getHourlyRecordsByPeriod(Supply supply,
+                                                                                 OffsetDateTime startDate,
+                                                                                 OffsetDateTime endDate) {
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            Query query = new Query(String.format(
+                    "SELECT * FROM \"%s\" WHERE cups = '%s' AND time >= '%s' AND time < '%s'",
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    supply.getCode(),
+                    dateConverter.convertToString(startDate),
+                    dateConverter.convertToString(endDate)));
+
+            QueryResult queryResult = connection.query(query);
+
+            InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
+            return resultMapper.toPOJO(queryResult, DatadisConsumptionPoint.class).stream()
+                    .map(point -> new DatadisHourlyRecord<>(point.getTime(), toStoredConsumption(point)))
+                    .toList();
+        }
     }
 
     @Override
@@ -231,6 +259,29 @@ public class GetDatadisConsumptionRepositoryInflux implements GetDatadisConsumpt
         consumption.setGenerationEnergyKWh(parseToFloat(consumptionPoint.getGenerationEnergyKWh()));
         consumption.setObtainMethod(consumptionPoint.getObtainMethod());
         return consumption;
+    }
+
+    /**
+     * A single stored point with its fields as stored: unlike a sum, a field the point does not carry is
+     * null, not zero. No {@code date} or {@code time} is set.
+     */
+    private static DatadisConsumption toStoredConsumption(DatadisConsumptionPoint point) {
+        DatadisConsumption consumption = new DatadisConsumption();
+        consumption.setCups(point.getCups());
+        consumption.setConsumptionKWh(asStoredFloat(point.getConsumptionKWh()));
+        consumption.setSelfConsumptionEnergyKWh(asStoredFloat(point.getSelfConsumptionEnergyKWh()));
+        consumption.setSurplusEnergyKWh(asStoredFloat(point.getSurplusEnergyKWh()));
+        consumption.setGenerationEnergyKWh(asStoredFloat(point.getGenerationEnergyKWh()));
+        consumption.setObtainMethod(point.getObtainMethod());
+        return consumption;
+    }
+
+    /**
+     * The float the value was written from: every energy field is written from a {@link Float}, which
+     * InfluxDB holds widened to a double.
+     */
+    private static Float asStoredFloat(Double value) {
+        return value == null ? null : value.floatValue();
     }
 
     private List<DatadisConsumption> mapYearlyToConsumption(List<DatadisConsumptionYearlyPoint> consumptionPoints) {

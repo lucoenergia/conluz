@@ -5,6 +5,7 @@ import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisDailyConsumption;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisHourlyConsumption;
+import org.lucoenergia.conluz.domain.datadis.DatadisHourlyRecord;
 
 import java.time.Month;
 import java.time.OffsetDateTime;
@@ -60,6 +61,23 @@ public interface GetDatadisConsumptionRepository {
     List<DatadisHourlyConsumption> getHourlyConsumptionsByPeriod(@NotNull Supply supply,
                                                                  @NotNull OffsetDateTime startDate,
                                                                  @NotNull OffsetDateTime endDate);
+
+    /**
+     * Retrieves the supply's hourly records over a half-open period exactly as they are stored, each with
+     * the instant it is stored at.
+     *
+     * <p>One record is returned per stored point, and nothing for an hour without one. A field the record
+     * does not carry is null, never zero. The records carry no {@code date} and {@code time}: Datadis's own
+     * labels are not stored, and a caller that needs them derives them from the instant.
+     *
+     * @param supply the supply whose records are retrieved, must not be null
+     * @param startDate the start of the period, inclusive, must not be null
+     * @param endDate the end of the period, exclusive, must not be null
+     * @return the stored records of the period, in chronological order of their instants
+     */
+    List<DatadisHourlyRecord<DatadisConsumption>> getHourlyRecordsByPeriod(@NotNull Supply supply,
+                                                                          @NotNull OffsetDateTime startDate,
+                                                                          @NotNull OffsetDateTime endDate);
 
     /**
      * Retrieves a list of yearly consumption data within a specified date range for the given supply.
