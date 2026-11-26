@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.datadis.aggregate;
 import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
@@ -24,28 +24,31 @@ public class DatadisMonthlyAggregationJob implements Job {
     private final DatadisMonthlyAggregationService aggregationService;
     private final Clock clock;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
-    private final DatadisSyncWindow syncWindow;
+    private final DatadisSyncWindows syncWindows;
     private final ZoneResolver zoneResolver;
 
     public DatadisMonthlyAggregationJob(DatadisMonthlyAggregationService aggregationService,
                                         Clock clock,
                                         GetDatadisConfigurationService getDatadisConfigurationService,
-                                        DatadisSyncWindow syncWindow,
+                                        DatadisSyncWindows syncWindows,
                                         ZoneResolver zoneResolver) {
         this.aggregationService = aggregationService;
         this.clock = clock;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
-        this.syncWindow = syncWindow;
+        this.syncWindows = syncWindows;
         this.zoneResolver = zoneResolver;
     }
 
     /**
      * Aggregate hourly consumption data into monthly totals at 5:00 AM every day.
-     * For every community with Datadis enabled, this job re-aggregates every month of the window the
-     * daily sync re-reads ({@link DatadisSyncWindow#months(LocalDate)}), not only the current one:
+     * For every community with Datadis enabled, this job re-aggregates every month of the full
+     * re-sync window ({@link DatadisSyncWindows#full()}), not only the current one:
      * Datadis publishes and revises hourly records after a month has closed, and the sync writes
      * those revisions to the hourly series, so a closed month's total would otherwise stay frozen at
      * whatever was aggregated on its last day.
+     * It covers the full window every day, whichever window the sync re-read that day: a revision
+     * brought in by the Sunday sync or by a manual sync is then aggregated within a day, without
+     * depending on how long the jobs take.
      *
      * The current date is resolved in the community's zone, so the window follows the community's
      * calendar rather than the JVM default zone.
@@ -61,7 +64,7 @@ public class DatadisMonthlyAggregationJob implements Job {
      * Rationale:
      * - Runs at 5 AM to avoid conflicts with hourly sync job (4 AM)
      * - Runs every day to have updated data for the month daily
-     * - By this time, the hourly sync job should have re-synced every month of the window
+     * - By this time, the hourly sync job should have re-synced the window it re-reads that day
      */
     @Override
     @Scheduled(cron = "0 0 5 * * ?")
@@ -85,7 +88,7 @@ public class DatadisMonthlyAggregationJob implements Job {
         try {
             LocalDate today = LocalDate.now(clock.withZone(
                     zoneResolver.resolveZoneIdForCommunity(config.getCommunityId())));
-            for (YearMonth month : syncWindow.months(today)) {
+            for (YearMonth month : syncWindows.full().months(today)) {
                 LOGGER.info("Aggregating data for community: {}, month: {}", config.getCommunityId(), month);
                 aggregationService.aggregateMonthlyConsumptions(config.getCommunityId(), month.getMonth(),
                         month.getYear());

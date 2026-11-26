@@ -8,6 +8,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -60,18 +61,36 @@ class DatadisProductionMonthlyAggregationJobTest {
     }
 
     @Test
-    @DisplayName("DCA-002 every month of the window is re-aggregated for every Datadis-enabled community, and nothing else")
+    @DisplayName("DCA-002 on a weekday every month of the full window is re-aggregated for every Datadis-enabled community, and nothing else")
     void everyMonthOfTheWindowIsReaggregatedForEveryEnabledCommunity() {
-        job(clockAt("2026-10-09T03:00:00Z"), DatadisSyncWindow.DEFAULT).run();
+        // Thursday 2026-11-26, 04:00 in Madrid: the sync re-read only the daily window.
+        job(clockAt("2026-11-26T03:00:00Z"), DatadisSyncWindows.DEFAULT).run();
 
         for (UUID community : List.of(COMMUNITY_A, COMMUNITY_B)) {
             InOrder inOrder = inOrder(service);
-            for (YearMonth month = YearMonth.of(2025, 10); !month.isAfter(YearMonth.of(2026, 10));
+            for (YearMonth month = YearMonth.of(2024, 11); !month.isAfter(YearMonth.of(2026, 11));
                  month = month.plusMonths(1)) {
                 inOrder.verify(service).aggregateMonthlyProductions(community, month.getMonth(), month.getYear());
             }
         }
         verify(service, never()).aggregateMonthlyProductions(eq(DISABLED_COMMUNITY), any(Month.class), anyInt());
+        // In particular, October 2024, the month before the window, is never rewritten.
+        verifyNoMoreInteractions(service);
+    }
+
+    @Test
+    @DisplayName("DCA-002 on a Sunday the same full window is re-aggregated as on a weekday")
+    void onASundayTheSameFullWindowIsReaggregated() {
+        // Sunday 2026-11-29, 04:00 in Madrid: the sync re-read the full window.
+        job(clockAt("2026-11-29T03:00:00Z"), DatadisSyncWindows.DEFAULT).run();
+
+        for (UUID community : List.of(COMMUNITY_A, COMMUNITY_B)) {
+            InOrder inOrder = inOrder(service);
+            for (YearMonth month = YearMonth.of(2024, 11); !month.isAfter(YearMonth.of(2026, 11));
+                 month = month.plusMonths(1)) {
+                inOrder.verify(service).aggregateMonthlyProductions(community, month.getMonth(), month.getYear());
+            }
+        }
         verifyNoMoreInteractions(service);
     }
 
@@ -81,18 +100,22 @@ class DatadisProductionMonthlyAggregationJobTest {
     void theCurrentMonthIsResolvedInTheCommunityZone() {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 
-        job(clockAt("2026-09-30T22:30:00Z"), DatadisSyncWindow.DEFAULT).run();
+        job(clockAt("2026-09-30T22:30:00Z"), DatadisSyncWindows.DEFAULT).run();
         verify(service).aggregateMonthlyProductions(COMMUNITY_A, Month.OCTOBER, 2026);
-        verify(service, never()).aggregateMonthlyProductions(COMMUNITY_A, Month.SEPTEMBER, 2025);
+        verify(service).aggregateMonthlyProductions(COMMUNITY_A, Month.OCTOBER, 2024);
+        verify(service, never()).aggregateMonthlyProductions(COMMUNITY_A, Month.SEPTEMBER, 2024);
 
-        job(clockAt("2026-10-31T23:30:00Z"), DatadisSyncWindow.DEFAULT).run();
+        job(clockAt("2026-10-31T23:30:00Z"), DatadisSyncWindows.DEFAULT).run();
         verify(service).aggregateMonthlyProductions(COMMUNITY_A, Month.NOVEMBER, 2026);
     }
 
     @Test
-    @DisplayName("DCA-002 the aggregation window follows the sync window, with no second value to change")
+    @DisplayName("DCA-002 the aggregation window is the full re-sync window, not the daily one, with no second value to change")
     void theAggregationWindowFollowsTheSyncWindow() {
-        job(clockAt("2026-10-09T03:00:00Z"), new DatadisSyncWindow(Period.ofMonths(3))).run();
+        // A full window of 3 months next to a daily one of 1 month: only the full one counts.
+        DatadisSyncWindows windows = new DatadisSyncWindows(new DatadisSyncWindow(Period.ofMonths(1)),
+                new DatadisSyncWindow(Period.ofMonths(3)));
+        job(clockAt("2026-10-09T03:00:00Z"), windows).run();
 
         for (UUID community : List.of(COMMUNITY_A, COMMUNITY_B)) {
             for (Month month : List.of(Month.JULY, Month.AUGUST, Month.SEPTEMBER, Month.OCTOBER)) {
@@ -107,21 +130,21 @@ class DatadisProductionMonthlyAggregationJobTest {
         doThrow(new RuntimeException("boom"))
                 .when(service).aggregateMonthlyProductions(eq(COMMUNITY_A), any(Month.class), anyInt());
 
-        job(clockAt("2026-10-09T03:00:00Z"), DatadisSyncWindow.DEFAULT).run();
+        job(clockAt("2026-11-26T03:00:00Z"), DatadisSyncWindows.DEFAULT).run();
 
-        verify(service).aggregateMonthlyProductions(COMMUNITY_B, Month.OCTOBER, 2026);
+        verify(service).aggregateMonthlyProductions(COMMUNITY_B, Month.NOVEMBER, 2026);
     }
 
     @Test
     void nothingIsAggregatedWithoutEnabledConfigs() {
         when(configService.findAllEnabled()).thenReturn(Collections.emptyList());
 
-        job(clockAt("2026-10-09T03:00:00Z"), DatadisSyncWindow.DEFAULT).run();
+        job(clockAt("2026-11-26T03:00:00Z"), DatadisSyncWindows.DEFAULT).run();
 
         verifyNoMoreInteractions(service);
     }
 
-    private DatadisProductionMonthlyAggregationJob job(Clock clock, DatadisSyncWindow window) {
-        return new DatadisProductionMonthlyAggregationJob(service, clock, configService, window, zoneResolver(MADRID));
+    private DatadisProductionMonthlyAggregationJob job(Clock clock, DatadisSyncWindows windows) {
+        return new DatadisProductionMonthlyAggregationJob(service, clock, configService, windows, zoneResolver(MADRID));
     }
 }

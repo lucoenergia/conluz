@@ -8,18 +8,14 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * How far back the daily Datadis sync re-reads hourly records, so that revisions Datadis publishes
- * after a month has closed reach the stored hourly series.
- *
- * <p>The single definition of that window: anything that has to cover the same period as the sync
- * derives it from here rather than restating it.
+ * How far back a Datadis sync re-reads hourly records, so that revisions Datadis publishes after a
+ * month has closed reach the stored hourly series. The windows of the scheduled sync are defined in
+ * {@link DatadisSyncWindows}.
  *
  * @param lookback how far back from today the window reaches; the window then starts on the first
  *                 day of the month that point falls in
  */
 public record DatadisSyncWindow(Period lookback) {
-
-    public static final DatadisSyncWindow DEFAULT = new DatadisSyncWindow(Period.ofYears(1));
 
     public DatadisSyncWindow {
         Objects.requireNonNull(lookback, "lookback");

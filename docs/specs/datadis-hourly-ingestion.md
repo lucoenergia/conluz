@@ -6,14 +6,14 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → written by `syncDatadisConsumptions` and by the scheduled job `DatadisSyncDailyJob`; read by `getSupplyHourlyConsumption`, `getDatadisHourlyProduction` and `getDatadisConsumptionHourlyCsvReport`, among others |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #562 |
+| **Last reviewed against code** | #630 |
 
 ## Purpose
 
 How the hourly records Datadis returns for a supply become points of the hourly consumption series and,
 for plant supplies, of the hourly production series derived from them. This spec covers which supplies are
-synced, how the sync logs in to Datadis, and the instant each record is stored at; the rest of the capability is specified lazily, as issues
-touch it.
+synced, which months the scheduled and the manual sync re-read, how the sync logs in to Datadis, and the instant each
+record is stored at; the rest of the capability is specified lazily, as issues touch it.
 
 ## Glossary
 
@@ -22,6 +22,8 @@ touch it.
 | Datadis hourly record | One row of a supply's hourly data as Datadis returns it: a local calendar date and a time label, with no offset and no UTC instant. |
 | Time label | The local time at which the record's hour ends, from `01:00` to `24:00`. `24:00` is the midnight that ends the day. |
 | Local calendar day | A calendar day in the time zone the application is configured with. It lasts 23 hours when the clocks go forward, 25 hours when they go back, and 24 hours otherwise. |
+| Daily re-sync window | The period the scheduled sync re-reads on any day but Sunday: from the first day of the month 3 months before the run's date through that date, 4 months in all. |
+| Full re-sync window | The period the scheduled sync re-reads on Sundays: from the first day of the month 24 months before the run's date through that date, 25 months in all. 24 months back is the oldest month Datadis serves when queried by month. |
 
 ## Rules
 
@@ -107,8 +109,69 @@ And the first 03:00 record is stored at 00:00Z and the second at 01:00Z
 - **Source:** #142 added the enable flag and the refusal; #414 made the message name the enable operation; #562
   declared the 409 in the contract.
 
+### DHI-007 — The scheduled sync re-reads 3 months every day and 24 months on Sundays
+
+- **Status:** Active
+- **Rule:** The scheduled Datadis sync MUST re-read, for every community with Datadis enabled, from the first day of
+  the month 3 months before today through today, except on Sundays, when it MUST re-read from the first day of the
+  month 24 months before today instead. It MUST NOT run both windows on the same day. Today, and so whether it is a
+  Sunday, is read in the JVM's default zone.
+- **Rationale:** Datadis revises published data to correct anomalies, sometimes for months older than one year,
+  and the sync, which re-read one year every night, never picked those up. Re-reading 24 months every night would
+  roughly double a load that is already mostly wasted, since the revisions concentrate in recent months. A short
+  daily window catches most corrections at a fraction of the load, and the Sunday full window reaches every month
+  Datadis still serves, within a week. Per supply and week the sync goes from 91 monthly requests (7 × 13) to 49
+  (6 × 4 + 25). Sunday replaces the daily window rather than adding a second run, so no day re-reads a month twice.
+- **Source:** #630
+
+**Scenarios**
+
+```gherkin
+Given two communities with Datadis enabled
+When the scheduled sync runs on Thursday 2026-11-26
+Then each community is synced once, from 2026-08-01 through 2026-11-26
+
+When the scheduled sync runs on Sunday 2026-11-29
+Then each community is synced once, from 2024-11-01 through 2026-11-29, and not also over the daily window
+
+When the scheduled sync runs on Monday 2026-03-02
+Then each community is synced once, from 2025-12-01 through 2026-03-02
+```
+
+### DHI-008 — The manual consumption sync re-reads `monthsBack` months
+
+- **Status:** Active
+- **Rule:** The manual consumption sync (`syncDatadisConsumptions`) MUST take `monthsBack`, from 0 to 24, and
+  re-read from the first day of the month `monthsBack` months before today through today, for every supply of the
+  community or only for the one its `supplyCode` names. Any other value, a missing value or the former `year` field
+  MUST be rejected with 400 before Datadis is called.
+- **Rationale:** The sync used to take a calendar year. A calendar year could not reach the corrections that
+  matter, which concentrate in the last months and cross a year boundary every January, and a year older than
+  Datadis serves only produced failed requests. Counting back from the current month matches the scheduled windows
+  (DHI-007), and 24 is the oldest month Datadis serves when queried by month. `monthsBack` replaces `year` rather than
+  coexisting with it; the former field is refused like any unknown field of a request body, so a caller still sending
+  it learns of the change instead of syncing a range it did not ask for.
+- **Source:** #630
+
+**Scenarios**
+
+```gherkin
+Given today is 2026-11-26
+When a community admin asks for a sync with monthsBack 0
+Then every supply of the community is synced from 2026-11-01 through 2026-11-26
+
+When a community admin asks for a sync with monthsBack 24
+Then every supply of the community is synced from 2024-11-01 through 2026-11-26
+
+When a community admin asks for a sync with monthsBack 3 and the supplyCode of one of the community's two supplies
+Then only that supply is synced, from 2026-08-01 through 2026-11-26
+
+When a community admin asks for a sync with monthsBack -1, 25, null or missing, or with the field year
+Then the request is answered 400 and Datadis is not called
+```
+
 ## Accepted exceptions
 
 | Exception | Reason | Expires when | Source |
 | --- | --- | --- | --- |
-| Hourly records older than the hourly re-sync window ([`datadis-pre-aggregation.md`](datadis-pre-aggregation.md)) when #322 was deployed remain stored at the end of their hour unless re-synced manually. | The fix applies to records as they are synced; the daily sync rewrites only the window, and an in-place shift of stored points is not idempotent and cannot recover the October hours already overwritten. | Those months are re-synced manually, or are no longer kept. | #322 |
+| Hourly records synced before #322 was deployed and older than the full re-sync window remain stored at the end of their hour unless re-synced manually. | The fix applies to records as they are synced; the scheduled sync rewrites only the full re-sync window (DHI-007), and an in-place shift of stored points is not idempotent and cannot recover the October hours already overwritten. | Those months are re-synced manually, or are no longer kept. | #322 |

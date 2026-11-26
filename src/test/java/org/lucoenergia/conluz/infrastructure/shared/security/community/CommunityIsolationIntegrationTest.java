@@ -248,7 +248,7 @@ class CommunityIsolationIntegrationTest extends BaseControllerTest {
         mockMvc.perform(post("/api/v1/communities/" + communityB.getId() + "/consumption/datadis/sync")
                         .header("Authorization", tokenAdminA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"year\": 2024}"))
+                        .content("{\"monthsBack\": 3}"))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }

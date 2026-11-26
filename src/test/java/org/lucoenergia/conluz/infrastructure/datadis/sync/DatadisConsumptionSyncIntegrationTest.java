@@ -27,6 +27,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -225,7 +226,7 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
             mockMvc.perform(post("/api/v1/communities/{communityId}/consumption/datadis/sync", communityId)
                             .header(HttpHeaders.AUTHORIZATION, authorization)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new SyncDatadisConsumptionsBody(2025))))
+                            .content(objectMapper.writeValueAsString(new SyncDatadisConsumptionsBody(0))))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.status").value(409))
                     .andExpect(jsonPath("$.message").value(
@@ -233,6 +234,70 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
 
             assertThat(datadis.calls()).isEmpty();
         }
+    }
+
+    @Test
+    @DisplayName("DHI-008 with a supplyCode, only that supply of the community is read from Datadis, every month from "
+            + "monthsBack months before today through the current one")
+    void theManualSyncOfOneSupplyReadsOnlyThatSupplyOverTheMonthsBack() throws Exception {
+        travelTo(Instant.parse("2026-11-26T12:00:00Z"));
+        UUID communityId = communityWithDatadis(BASE_URL_A, "token-a");
+        User owner = owner();
+        Supply chosen = supply(owner, communityId);
+        Supply other = supply(owner, communityId);
+
+        mockMvc.perform(post("/api/v1/communities/{communityId}/consumption/datadis/sync", communityId)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(String.format("{\"monthsBack\": 3, \"supplyCode\": \"%s\"}", chosen.getCode())))
+                .andExpect(status().isOk());
+
+        assertThat(datadis.calls(BASE_URL_A, DatadisStub.CONSUMPTION_PATH))
+                .extracting(DatadisStub.Call::cups, DatadisStub.Call::startDate)
+                .containsExactlyInAnyOrder(
+                        tuple(chosen.getCode(), "2026/08"),
+                        tuple(chosen.getCode(), "2026/09"),
+                        tuple(chosen.getCode(), "2026/10"),
+                        tuple(chosen.getCode(), "2026/11"));
+        assertThat(datadis.calls()).noneMatch(call -> other.getCode().equals(call.cups()));
+    }
+
+    @Test
+    @DisplayName("DHI-008 without a supplyCode and with monthsBack 0, every supply of the community is read for the "
+            + "current month only")
+    void theManualSyncOfTheCommunityWithZeroMonthsBackReadsTheCurrentMonth() throws Exception {
+        travelTo(Instant.parse("2026-11-26T12:00:00Z"));
+        UUID communityId = communityWithDatadis(BASE_URL_A, "token-a");
+        User owner = owner();
+        Supply first = supply(owner, communityId);
+        Supply second = supply(owner, communityId);
+
+        mockMvc.perform(post("/api/v1/communities/{communityId}/consumption/datadis/sync", communityId)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"monthsBack\": 0}"))
+                .andExpect(status().isOk());
+
+        assertThat(datadis.calls(BASE_URL_A, DatadisStub.CONSUMPTION_PATH))
+                .extracting(DatadisStub.Call::cups, DatadisStub.Call::startDate)
+                .containsExactlyInAnyOrder(
+                        tuple(first.getCode(), "2026/11"),
+                        tuple(second.getCode(), "2026/11"));
+    }
+
+    @Test
+    @DisplayName("DHI-008 a body with the former year field is answered 400 and makes no Datadis request")
+    void theFormerYearFieldIsRefusedBeforeCallingDatadis() throws Exception {
+        UUID communityId = communityWithDatadis(BASE_URL_A, "token-a");
+        supply(owner(), communityId);
+
+        mockMvc.perform(post("/api/v1/communities/{communityId}/consumption/datadis/sync", communityId)
+                        .header(HttpHeaders.AUTHORIZATION, loginAsCommunityAdmin(communityId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"year\": 2025}"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(datadis.calls()).isEmpty();
     }
 
     private UUID communityWithDatadis(String baseUrl, String token, String... laterTokens) {

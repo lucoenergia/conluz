@@ -244,6 +244,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
     void everyCommunityDataEndpointIsRefused() throws Exception {
         String c = "/api/v1/communities/{c}";
         Map<String, Object> year = Map.of("year", 2026);
+        Map<String, Object> monthsBack = Map.of("monthsBack", 3);
         Map<String, Object> credentials = Map.of("baseUrl", "https://datadis.test", "username", "user",
                 "password", "secret");
         assertEveryCallIsRefused(List.of(
@@ -261,7 +262,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(403, HttpMethod.POST, c + "/production/huawei/sync/monthly").body(year),
                 call(403, HttpMethod.POST, c + "/production/huawei/sync/yearly").body(year),
                 call(403, HttpMethod.GET, c + "/consumption/datadis/report/hourly/csv").dates(),
-                call(403, HttpMethod.POST, c + "/consumption/datadis/sync").body(year),
+                call(403, HttpMethod.POST, c + "/consumption/datadis/sync").body(monthsBack),
                 call(403, HttpMethod.POST, c + "/consumption/datadis/sync/monthly").body(year),
                 call(403, HttpMethod.POST, c + "/consumption/datadis/sync/yearly").body(year),
                 call(403, HttpMethod.GET, c + "/config/datadis"),

@@ -3,7 +3,7 @@ package org.lucoenergia.conluz.infrastructure.datadis.sync;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,19 +22,25 @@ public class DatadisSyncDailyJob implements Job {
 
     private final DatadisSyncService datadisSyncService;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
-    private final DatadisSyncWindow syncWindow;
+    private final DatadisSyncWindows syncWindows;
     private final Clock clock;
 
     public DatadisSyncDailyJob(DatadisSyncService datadisSyncService,
                                GetDatadisConfigurationService getDatadisConfigurationService,
-                               DatadisSyncWindow syncWindow,
+                               DatadisSyncWindows syncWindows,
                                Clock clock) {
         this.datadisSyncService = datadisSyncService;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
-        this.syncWindow = syncWindow;
+        this.syncWindows = syncWindows;
         this.clock = clock;
     }
 
+    /**
+     * Re-reads the hourly records of every community with Datadis enabled at 4:00 AM every day, once
+     * per community: over the daily window ({@link DatadisSyncWindows#daily()}) on any day but
+     * Sunday, and over the full window ({@link DatadisSyncWindows#full()}) on Sundays, never both on
+     * the same day. Today, and so its day of the week, is read in the JVM's default zone.
+     */
     @Override
     @Scheduled(cron = "0 0 4 * * ?")
     public void run() {
@@ -47,7 +53,7 @@ public class DatadisSyncDailyJob implements Job {
         LOGGER.info("Datadis daily sync started for {} communities...", enabledConfigs.size());
 
         LocalDate today = LocalDate.now(clock.withZone(ZoneId.systemDefault()));
-        LocalDate firstDay = syncWindow.firstDay(today);
+        LocalDate firstDay = syncWindows.forSyncOn(today).firstDay(today);
 
         for (DatadisConfig config : enabledConfigs) {
             LOGGER.info("Syncing community {}", config.getCommunityId());
