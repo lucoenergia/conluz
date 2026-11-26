@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.mockito.Mockito;
 
 import java.time.Clock;
@@ -33,7 +33,7 @@ class DatadisSyncDailyJobTest {
                 .setUsername("u").setPassword("p").build();
         when(mockConfigService.findAllEnabled()).thenReturn(List.of(enabledConfig));
 
-        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService, DatadisSyncWindow.DEFAULT,
+        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService, DatadisSyncWindows.DEFAULT,
                 CLOCK);
 
         // Today as the job reads it: in the JVM's default zone
@@ -51,7 +51,7 @@ class DatadisSyncDailyJobTest {
         GetDatadisConfigurationService mockConfigService = Mockito.mock(GetDatadisConfigurationService.class);
         when(mockConfigService.findAllEnabled()).thenReturn(Collections.emptyList());
 
-        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService, DatadisSyncWindow.DEFAULT,
+        DatadisSyncDailyJob job = new DatadisSyncDailyJob(mockSyncService, mockConfigService, DatadisSyncWindows.DEFAULT,
                 CLOCK);
 
         job.run();
