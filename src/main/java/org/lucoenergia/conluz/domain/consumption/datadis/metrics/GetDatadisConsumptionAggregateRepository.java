@@ -55,23 +55,32 @@ public interface GetDatadisConsumptionAggregateRepository {
     Optional<RecordedConsumptionPeriod> findSurplusPeriod(Supply supply);
 
     /**
-     * The first and the last of the supply's hourly records in the half-open interval
-     * {@code [from, toExclusive)} whose assigned production has been published, or empty when none
-     * has.
+     * For every given supply, the first and the last of its hourly records in the half-open interval
+     * {@code [from, toExclusive)} whose assigned production has been published, keyed by supply code.
+     * A supply none of whose records there is published is absent. An empty collection issues no
+     * read.
      *
      * <p>A record is published when it carries {@code self_consumption_energy_kwh}, zero included.
      * Datadis publishes a month's self-consumption only some days after the month ends; until then
      * the month's records carry consumption and the surplus the meter measured, but no
      * self-consumption at all. Surplus alone is therefore not publication.
      */
-    Optional<RecordedConsumptionPeriod> findPublishedPeriod(Supply supply, Instant from, Instant toExclusive);
+    Map<String, RecordedConsumptionPeriod> findPublishedPeriods(Collection<Supply> supplies, Instant from,
+                                                                Instant toExclusive);
 
     /**
      * The number of the supply's hourly records in the half-open interval
      * {@code [from, toExclusive)} whose assigned production has been published, in the sense of
-     * {@link #findPublishedPeriod}. Zero when there is none.
+     * {@link #findPublishedPeriods}. Zero when there is none.
      */
     long countPublishedHours(Supply supply, Instant from, Instant toExclusive);
+
+    /**
+     * As {@link #countPublishedHours(Supply, Instant, Instant)}, for every given supply in a single
+     * read, keyed by supply code. A supply without any published record in the interval is absent,
+     * which stands for zero. An empty collection issues no read.
+     */
+    Map<String, Long> countPublishedHours(Collection<Supply> supplies, Instant from, Instant toExclusive);
 
     /**
      * The supply's hourly records in the half-open interval {@code [from, toExclusive)}, totalled per
@@ -97,4 +106,14 @@ public interface GetDatadisConsumptionAggregateRepository {
      */
     Map<Instant, Double> sumSurplusByHour(Collection<Supply> supplies, Instant from, Instant toExclusive,
                                           ZoneId zone);
+
+    /**
+     * The surplus of every given supply in the half-open interval {@code [from, toExclusive)}, summed
+     * across the supplies hour by hour, keyed by the instant each hour of {@code zone} starts at. An
+     * hour is present when any of the supplies has a record carrying surplus for it, zero included, so
+     * a measured zero is told apart from a missing record; an hour none of them has such a record for
+     * is absent. An empty collection issues no read.
+     */
+    Map<Instant, Double> sumRecordedSurplusByHour(Collection<Supply> supplies, Instant from, Instant toExclusive,
+                                                  ZoneId zone);
 }
