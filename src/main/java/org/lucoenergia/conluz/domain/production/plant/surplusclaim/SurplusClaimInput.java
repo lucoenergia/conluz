@@ -15,6 +15,7 @@ import java.util.UUID;
 /**
  * What {@link PlantSurplusClaimCalculator} needs to build a plant's claim for one month, already read.
  *
+ * @param regulatoryCode      the plant's regulatory code; null when it has none
  * @param plantSupplyId       the plant's own supply, whose surplus is never claimed
  * @param nominalPowerKW      the plant's nominal power
  * @param appliedCoefficients every coefficient of the plant with a validFrom, the plant's own supply included
@@ -27,7 +28,8 @@ import java.util.UUID;
  * @param meanPriceByHour     the mean OMIE price of each hour of the month, keyed the same way; an hour without a price
  *                            is absent
  */
-public record SurplusClaimInput(YearMonth month, ZoneId zone, PlantReference plant, String cil, UUID plantSupplyId,
+public record SurplusClaimInput(YearMonth month, ZoneId zone, PlantReference plant, String cil,
+                                String regulatoryCode, UUID plantSupplyId,
                                 double nominalPowerKW, SurplusClaimAvailableMonths availableMonths,
                                 List<SupplyPartitionCoefficient> appliedCoefficients,
                                 List<SupplyReference> suppliesInScope, Map<Instant, Double> surplusByHour,
