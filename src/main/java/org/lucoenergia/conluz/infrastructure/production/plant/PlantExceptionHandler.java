@@ -8,6 +8,7 @@ import org.lucoenergia.conluz.domain.production.plant.PlantMissingRegulatoryCode
 import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasPartitionCoefficientsException;
 import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasSharingAgreementsException;
+import org.lucoenergia.conluz.domain.production.plant.surplusclaim.SurplusClaimMonthNotClosedException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -135,5 +136,17 @@ public class PlantExceptionHandler {
     private ResponseEntity<RestError> refused(String messageKey, RestErrorCode code, HttpStatus status) {
         String message = messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
         return errorBuilder.build(message, code, Map.of(), status);
+    }
+
+    @ExceptionHandler(SurplusClaimMonthNotClosedException.class)
+    public ResponseEntity<RestError> handleException(SurplusClaimMonthNotClosedException e) {
+
+        String message = messageSource.getMessage(
+                "error.surplus.claim.month.not.closed",
+                new Object[]{e.getMonth().toString(), e.getCurrentMonth().toString()},
+                LocaleContextHolder.getLocale()
+        );
+        return errorBuilder.build(message, RestErrorCode.SURPLUS_CLAIM_MONTH_NOT_CLOSED, null,
+                HttpStatus.BAD_REQUEST);
     }
 }

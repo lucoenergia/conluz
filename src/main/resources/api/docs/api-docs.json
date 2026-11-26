@@ -1949,6 +1949,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -2192,6 +2193,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -4368,6 +4370,351 @@
         ],
         "type" : "object"
       },
+      "PlantSurplusClaimAvailableMonthsResponse" : {
+        "properties" : {
+          "firstMonth" : {
+            "description" : "Month of the plant's earliest applied coefficient, as YYYY-MM, in the community's time zone. Null when the plant has no applied coefficient.",
+            "example" : "2025-03",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "latestPublishedMonth" : {
+            "description" : "Latest month, as YYYY-MM, whose assigned production Datadis has published for any supply that ever held an applied coefficient of the plant, the plant's own supply excluded. Null when there is none.",
+            "example" : "2026-09",
+            "type" : [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "firstMonth",
+          "latestPublishedMonth"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimDayResponse" : {
+        "properties" : {
+          "date" : {
+            "description" : "Local calendar date of the day, in the community's time zone.",
+            "example" : "2026-06-10",
+            "format" : "date",
+            "type" : "string"
+          },
+          "hours" : {
+            "description" : "Every hour of the day, in order: 23, 24 or 25 on the days the clocks change.",
+            "items" : {
+              "$ref" : "#/components/schemas/PlantSurplusClaimHourResponse"
+            },
+            "type" : "array"
+          },
+          "peakHour" : {
+            "$ref" : "#/components/schemas/PlantSurplusClaimHourResponse",
+            "description" : "The hour with the largest surplus of the day, the earliest one on a tie. Null when the day's surplus is null or 0.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "state" : {
+            "description" : "REAL when every supply in scope stored a surplus record for every hour of the day; ESTIMATED otherwise, and on every day when no supply is in scope.",
+            "enum" : [
+              "REAL",
+              "ESTIMATED"
+            ],
+            "example" : "REAL",
+            "type" : "string"
+          },
+          "surplusKWh" : {
+            "description" : "Surplus of the day's hours, summed, in kWh, rounded to 3 decimals. Null when every hour of the day is null.",
+            "example" : 152.375,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "date",
+          "hours",
+          "peakHour",
+          "state",
+          "surplusKWh"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimHourResponse" : {
+        "properties" : {
+          "startsAt" : {
+            "description" : "Instant the hour starts at, with the offset in force in the community's time zone at that instant. Unique within the month, including on the day the clocks go back.",
+            "example" : "2026-10-25T02:00:00+01:00",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "surplusKWh" : {
+            "description" : "Surplus of the supplies in scope over the hour, summed, in kWh, rounded to 3 decimals. A record carrying 0 counts as a measured zero. Null when none of the supplies in scope stored a surplus record for the hour.",
+            "example" : 12.5,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "startsAt",
+          "surplusKWh"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimResponse" : {
+        "properties" : {
+          "availableMonths" : {
+            "$ref" : "#/components/schemas/PlantSurplusClaimAvailableMonthsResponse",
+            "description" : "The range of months the plant's surplus can be claimed for"
+          },
+          "cil" : {
+            "description" : "The plant's CIL (Codigo de Instalacion de produccion a efectos de Liquidacion), the settlement code the retailer identifies the installation by. Null when the plant has none recorded.",
+            "type" : [
+              "string",
+              "null"
+            ]
+          },
+          "days" : {
+            "description" : "Every local day of the month, in order",
+            "items" : {
+              "$ref" : "#/components/schemas/PlantSurplusClaimDayResponse"
+            },
+            "type" : "array"
+          },
+          "month" : {
+            "description" : "The claimed month, as YYYY-MM, in the community's time zone.",
+            "example" : "2026-09",
+            "type" : "string"
+          },
+          "plant" : {
+            "$ref" : "#/components/schemas/PlantReferenceResponse",
+            "description" : "The plant whose surplus is claimed"
+          },
+          "summary" : {
+            "$ref" : "#/components/schemas/PlantSurplusClaimSummaryResponse",
+            "description" : "The month's totals"
+          },
+          "warnings" : {
+            "$ref" : "#/components/schemas/PlantSurplusClaimWarningsResponse",
+            "description" : "What the admin should know before claiming the month"
+          }
+        },
+        "required" : [
+          "availableMonths",
+          "cil",
+          "days",
+          "month",
+          "plant",
+          "summary",
+          "warnings"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimSummaryResponse" : {
+        "properties" : {
+          "estimatedDays" : {
+            "description" : "Number of ESTIMATED days in the month.",
+            "example" : 2,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "realDays" : {
+            "description" : "Number of REAL days in the month.",
+            "example" : 28,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "suppliesInScope" : {
+            "description" : "Number of supplies whose surplus the claim sums.",
+            "example" : 12,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "suppliesWithData" : {
+            "description" : "Number of those supplies that stored at least one surplus record in the month.",
+            "example" : 11,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "surplusIncome" : {
+            "$ref" : "#/components/schemas/PlantSurplusClaimSurplusIncomeResponse",
+            "description" : "Estimated income of exactly the month's hourly surplus. Null when surplusKWh is null.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          },
+          "surplusKWh" : {
+            "description" : "Surplus of the month's hours, summed, in kWh, rounded to 3 decimals. Null when no supply in scope stored a surplus record in the month.",
+            "example" : 4521.25,
+            "format" : "double",
+            "type" : [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "estimatedDays",
+          "realDays",
+          "suppliesInScope",
+          "suppliesWithData",
+          "surplusIncome",
+          "surplusKWh"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimSupplyWithGapsResponse" : {
+        "properties" : {
+          "days" : {
+            "description" : "The local days on which the supply misses a surplus record for some hour, in order.",
+            "example" : [
+              "2026-06-10"
+            ],
+            "items" : {
+              "format" : "date",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "The supply with gaps"
+          }
+        },
+        "required" : [
+          "days",
+          "supply"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimSupplyWithoutDataResponse" : {
+        "properties" : {
+          "coefficient" : {
+            "description" : "The supply's coefficient in the plant, on a 0-1 scale: the one in force on the last day of the month on which the supply held one.",
+            "example" : 0.030763,
+            "type" : "number"
+          },
+          "supply" : {
+            "$ref" : "#/components/schemas/SupplyReferenceResponse",
+            "description" : "The supply without data"
+          }
+        },
+        "required" : [
+          "coefficient",
+          "supply"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimSurplusIncomeResponse" : {
+        "properties" : {
+          "amountEur" : {
+            "description" : "Estimated income of the month's surplus, in euros, at OMIE day-ahead prices: each hour's surplus multiplied by the mean of the prices stored for that hour, summed, then rounded to cents. It is a market-price estimate, without taxes, fees, deviation costs or retailer margins. Market prices may be zero or negative and are applied as they are, so the amount may be negative. Hours without a stored price add nothing; their surplus is reported in unpricedSurplusKWh.",
+            "example" : 18.42,
+            "type" : "number"
+          },
+          "unpricedSurplusKWh" : {
+            "description" : "The part of summary.surplusKWh in hours without a stored OMIE price, which amountEur does not include. In kWh, rounded to 3 decimals. 0 when every hour was priced.",
+            "example" : 1.5,
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [
+          "amountEur",
+          "unpricedSurplusKWh"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimUncoveredShareResponse" : {
+        "properties" : {
+          "days" : {
+            "description" : "The local days whose applied coefficients, the plant's own supply included, add up to less than 1, in order.",
+            "example" : [
+              "2026-06-01"
+            ],
+            "items" : {
+              "format" : "date",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "largestShare" : {
+            "description" : "The largest share of the production, on a 0-1 scale, that the applied coefficients leave without a supply on any of the days.",
+            "example" : 0.08,
+            "type" : "number"
+          }
+        },
+        "required" : [
+          "days",
+          "largestShare"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimWarningsResponse" : {
+        "properties" : {
+          "hoursAboveNominalPower" : {
+            "description" : "The hours whose surplus is above what the plant's nominal power produces in one hour, in order.",
+            "items" : {
+              "$ref" : "#/components/schemas/PlantSurplusClaimHourResponse"
+            },
+            "type" : "array"
+          },
+          "noAppliedCoefficients" : {
+            "description" : "Whether no applied coefficient of the plant overlaps the month, so that no supply is in scope.",
+            "example" : false,
+            "type" : "boolean"
+          },
+          "plantSupplyShare" : {
+            "description" : "The coefficient, on a 0-1 scale, that the plant's own supply holds in the month: the one in force on the last day of the month on which it held one. Its surplus is never claimed. Null when it holds none.",
+            "example" : 0.05,
+            "type" : [
+              "number",
+              "null"
+            ]
+          },
+          "suppliesWithGaps" : {
+            "description" : "The supplies in scope with surplus records in the month, but not for every hour of some days, by supply code.",
+            "items" : {
+              "$ref" : "#/components/schemas/PlantSurplusClaimSupplyWithGapsResponse"
+            },
+            "type" : "array"
+          },
+          "suppliesWithoutData" : {
+            "description" : "The supplies in scope without any surplus record in the month, by supply code.",
+            "items" : {
+              "$ref" : "#/components/schemas/PlantSurplusClaimSupplyWithoutDataResponse"
+            },
+            "type" : "array"
+          },
+          "uncoveredShare" : {
+            "$ref" : "#/components/schemas/PlantSurplusClaimUncoveredShareResponse",
+            "description" : "The days whose applied coefficients leave part of the production unshared. Null when there is none, and when no applied coefficient overlaps the month, which noAppliedCoefficients reports.",
+            "type" : [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required" : [
+          "hoursAboveNominalPower",
+          "noAppliedCoefficients",
+          "plantSupplyShare",
+          "suppliesWithGaps",
+          "suppliesWithoutData",
+          "uncoveredShare"
+        ],
+        "type" : "object"
+      },
       "PlatformAdminCapabilitiesResponse" : {
         "description" : "What the caller may do with this platform admin.",
         "properties" : {
@@ -4841,6 +5188,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -5030,6 +5378,7 @@
               "PLANT_MISSING_REGULATORY_CODE",
               "PLANT_HAS_SHARING_AGREEMENTS",
               "PLANT_HAS_PARTITION_COEFFICIENTS",
+              "SURPLUS_CLAIM_MONTH_NOT_CLOSED",
               "SUPPLY_ALREADY_HAS_PLANT",
               "PLANT_CIL_INVALID",
               "PLANT_CIL_ALREADY_IN_USE",
@@ -22347,6 +22696,144 @@
         "summary" : "Reverts a PUBLISHED sharing agreement back to DRAFT",
         "tags" : [
           "Sharing agreements"
+        ]
+      }
+    },
+    "/api/v1/plants/{plantId}/surplus-claim" : {
+      "get" : {
+        "description" : "Builds, for one closed month, the plant's surplus hour by hour as the community admin would\nclaim it from the retailer, with what is missing from it. Nothing is stored: it is computed\non every request. Days and hours are read in the community's time zone.\n\n**Supplies in scope:** the supplies holding an applied coefficient of the plant (one the\ndistributor applies) whose period overlaps the month, the plant's own supply excluded. Their\nsurplus is summed over the whole month.\n\n- `days[].hours[]`: every hour of every local day, 23, 24 or 25 on the days the clocks\n  change, each identified by the instant it starts at. An hour's surplus is the sum of the\n  records of the supplies in scope; it is `null` when none of them stored a surplus record\n  for that hour, and `0` when the records carry zero.\n- `days[].state`: `REAL` when every supply in scope stored a surplus record for every hour of\n  the day, `ESTIMATED` otherwise, and on every day when no supply is in scope.\n- `days[].peakHour`: the hour with the day's largest surplus, the earliest on a tie; `null`\n  when the day's surplus is `null` or `0`.\n- `summary.surplusIncome`: an **estimate** of what the month's surplus earned at OMIE\n  day-ahead prices, computed as for the community energy metrics' surplus income, over\n  exactly the month's hourly surplus; `null` when `summary.surplusKWh` is.\n\nEnergy is rounded to 3 decimals and euros to cents, once, on the unrounded sums.\n\n**Month:** `month` names a closed calendar month. Without it, the latest month whose\nassigned production Datadis has published for the plant's supplies\n(`availableMonths.latestPublishedMonth`), else the last closed month. The current month\nand later months are a bad request with code `SURPLUS_CLAIM_MONTH_NOT_CLOSED`. A closed\nmonth outside `availableMonths` is answered normally; its warnings say why it is empty.\n\n**Warnings** never prevent the claim; a list is empty, never `null`, when its warning is\nnot raised. They name the supplies concerned, with their CUPS, because the admin manages\nthem.\n\n**Required: the caller can manage the plant** (the plant's `canManage` capability): an\nactive community admin of the plant's community. A member of that community who is not an\nadmin is answered 403, and every other caller, a platform admin who is not a member\nincluded, 404.\n",
+        "operationId" : "getPlantSurplusClaim",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "plantId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          },
+          {
+            "description" : "The closed calendar month to claim, as YYYY-MM. Defaults to the latest published month, else the last closed month.",
+            "in" : "query",
+            "name" : "month",
+            "required" : false,
+            "schema" : {
+              "example" : "2026-09",
+              "pattern" : "^\\d{4}-(0[1-9]|1[0-2])$",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlantSurplusClaimResponse"
+                }
+              }
+            },
+            "description" : "Surplus claim preview computed successfully"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Previews the surplus a plant would claim from its retailer for one closed month, hour by hour.",
+        "tags" : [
+          "Plants"
         ]
       }
     },
