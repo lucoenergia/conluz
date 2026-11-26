@@ -13,6 +13,7 @@ import org.lucoenergia.conluz.domain.admin.community.membership.CreateMembership
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.SupplyMother;
 import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
+import org.lucoenergia.conluz.domain.admin.supply.delete.DeleteSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.disable.DisableSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
@@ -71,6 +72,8 @@ class GetSupplyDatadisConsumptionHourlyCsvControllerTest extends BaseControllerT
     @Autowired
     private CreateSupplyRepository createSupplyRepository;
     @Autowired
+    private DeleteSupplyRepository deleteSupplyRepository;
+    @Autowired
     private CreateMembershipRepository createMembershipRepository;
     @Autowired
     private CreateCommunityRepository createCommunityRepository;
@@ -88,7 +91,7 @@ class GetSupplyDatadisConsumptionHourlyCsvControllerTest extends BaseControllerT
     void setUp() {
         travelTo(NOW);
         // A community of its own: the test commits what it creates, and other tests count the default community's
-        // supplies.
+        // supplies. The supply is deleted after each test, since other tests count every supply.
         community = createCommunityRepository.create(CommunityMother.random().build());
         owner = UserMother.randomUser();
         owner.enable();
@@ -102,6 +105,7 @@ class GetSupplyDatadisConsumptionHourlyCsvControllerTest extends BaseControllerT
     @AfterEach
     void tearDown() {
         datadis.clear(cups);
+        deleteSupplyRepository.delete(SupplyId.of(supply.getId()));
     }
 
     @Test
