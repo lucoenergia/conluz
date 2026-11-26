@@ -12,12 +12,16 @@ import org.lucoenergia.conluz.infrastructure.shared.time.MutableClock;
 import java.time.Instant;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -47,6 +51,8 @@ class ReferenceMonthResolverTest {
     private final GetDatadisConsumptionAggregateRepository repository =
             mock(GetDatadisConsumptionAggregateRepository.class);
     private final MutableClock clock = new MutableClock(NOW);
+    private final Map<String, RecordedConsumptionPeriod> publishedPeriods = new HashMap<>();
+    private final Map<YearMonth, Map<String, Long>> publishedHours = new HashMap<>();
 
     private final ReferenceMonthResolver resolver = new ReferenceMonthResolverImpl(repository, clock);
 
@@ -107,10 +113,11 @@ class ReferenceMonthResolverTest {
     void noMonthInTheWindowPublishedForAnySupplyResolvesNoMonth() {
         Supply supply = SupplyMother.random().build();
         givenPublishedPeriod(supply, "2024-09-30T22:00:00Z", "2026-09-30T21:00:00Z");
-        when(repository.countPublishedHours(eq(supply), any(Instant.class), any(Instant.class))).thenReturn(360L);
+        when(repository.countPublishedHours(eq(List.of(supply)), any(Instant.class), any(Instant.class)))
+                .thenReturn(Map.of(supply.getCode(), 360L));
 
         assertTrue(resolve(supply).isEmpty());
-        verify(repository, never()).countPublishedHours(supply, startOf(YearMonth.of(2024, 9)),
+        verify(repository, never()).countPublishedHours(List.of(supply), startOf(YearMonth.of(2024, 9)),
                 startOf(YearMonth.of(2024, 10)));
     }
 
@@ -244,7 +251,7 @@ class ReferenceMonthResolverTest {
 
         resolve(supply);
 
-        verify(repository).findPublishedPeriod(supply, WINDOW_START, WINDOW_END);
+        verify(repository).findPublishedPeriods(List.of(supply), WINDOW_START, WINDOW_END);
     }
 
     @Test
@@ -252,11 +259,11 @@ class ReferenceMonthResolverTest {
     void noPublishedRecordInTheWindowResolvesNoMonthWithoutCountingAnyHour() {
         Supply first = SupplyMother.random().build();
         Supply second = SupplyMother.random().build();
-        when(repository.findPublishedPeriod(any(Supply.class), any(Instant.class), any(Instant.class)))
-                .thenReturn(Optional.empty());
+        when(repository.findPublishedPeriods(anyCollection(), any(Instant.class), any(Instant.class)))
+                .thenReturn(Map.of());
 
         assertTrue(resolver.resolveLatestPublishedMonth(List.of(first, second), ZONE).isEmpty());
-        verify(repository, never()).countPublishedHours(any(Supply.class), any(Instant.class), any(Instant.class));
+        verify(repository, never()).countPublishedHours(anyCollection(), any(Instant.class), any(Instant.class));
     }
 
     @Test
@@ -271,15 +278,39 @@ class ReferenceMonthResolverTest {
         return resolver.resolveLatestPublishedMonth(List.of(supply), ZONE);
     }
 
+    /**
+     * Stubs the batched read so it answers, for whichever supplies it is asked about, the periods
+     * given so far.
+     */
     private void givenPublishedPeriod(Supply supply, String firstRecord, String lastRecord) {
-        when(repository.findPublishedPeriod(eq(supply), any(Instant.class), any(Instant.class)))
-                .thenReturn(Optional.of(new RecordedConsumptionPeriod(Instant.parse(firstRecord),
-                        Instant.parse(lastRecord))));
+        publishedPeriods.put(supply.getCode(), new RecordedConsumptionPeriod(Instant.parse(firstRecord),
+                Instant.parse(lastRecord)));
+        when(repository.findPublishedPeriods(anyCollection(), any(Instant.class), any(Instant.class)))
+                .thenAnswer(invocation -> onlyThoseOf(invocation.getArgument(0), publishedPeriods));
     }
 
+    /**
+     * Stubs the batched count so it answers, for whichever supplies it is asked about in a month, the
+     * hours given so far for that month.
+     */
     private void givenPublishedHours(Supply supply, YearMonth month, long hours) {
-        when(repository.countPublishedHours(supply, startOf(month), startOf(month.plusMonths(1))))
-                .thenReturn(hours);
+        publishedHours.computeIfAbsent(month, ignored -> new HashMap<>()).put(supply.getCode(), hours);
+        when(repository.countPublishedHours(anyCollection(), any(Instant.class), any(Instant.class)))
+                .thenAnswer(invocation -> onlyThoseOf(invocation.getArgument(0),
+                        publishedHours.getOrDefault(monthStartingAt(invocation.getArgument(1)), Map.of())));
+    }
+
+    private static <T> Map<String, T> onlyThoseOf(Collection<Supply> supplies, Map<String, T> bySupplyCode) {
+        Map<String, T> answer = new HashMap<>();
+        supplies.stream()
+                .map(Supply::getCode)
+                .filter(bySupplyCode::containsKey)
+                .forEach(code -> answer.put(code, bySupplyCode.get(code)));
+        return answer;
+    }
+
+    private static YearMonth monthStartingAt(Instant start) {
+        return YearMonth.from(start.atZone(ZONE));
     }
 
     private static Instant startOf(YearMonth month) {

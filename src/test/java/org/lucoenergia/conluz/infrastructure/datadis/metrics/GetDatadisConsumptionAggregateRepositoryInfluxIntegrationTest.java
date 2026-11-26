@@ -434,7 +434,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         assertEquals(0d, sum);
     }
 
-    // --- findPublishedPeriod and countPublishedHours: records carrying self-consumption ---
+    // --- findPublishedPeriods and countPublishedHours: records carrying self-consumption ---
 
     /**
      * A night hour of a published month carries a self-consumption of zero: it is published all
@@ -448,7 +448,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, 2.0f, 1.0f),
                 hourlyRecord(supply.getCode(), "2024/02/10", "24:00", 1.0f, 0.0f, null));
 
-        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
+        Optional<RecordedConsumptionPeriod> period = publishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
         assertTrue(period.isPresent());
         // 2024-02-10 in Europe/Madrid is +01:00.
@@ -470,7 +470,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 hourlyRecord(supply.getCode(), "2024/03/11", "13:00", 1.0f, null, 40.0f),
                 hourlyRecord(supply.getCode(), "2024/03/12", "13:00", 1.0f, null, null));
 
-        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
+        Optional<RecordedConsumptionPeriod> period = publishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
         assertTrue(period.isPresent());
         assertEquals(Instant.parse("2024-02-10T11:00:00Z"), period.get().getLastRecord());
@@ -493,7 +493,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
         Instant from = Instant.parse("2024-01-31T23:00:00Z");
         Instant toExclusive = Instant.parse("2024-02-29T23:00:00Z");
 
-        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, from, toExclusive);
+        Optional<RecordedConsumptionPeriod> period = publishedPeriod(supply, from, toExclusive);
 
         assertTrue(period.isPresent());
         assertEquals(from, period.get().getFirstRecord());
@@ -510,7 +510,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 hourlyRecord(neighbour.getCode(), "2023/05/10", "13:00", 1.0f, 2.0f, 1.0f),
                 hourlyRecord(neighbour.getCode(), "2024/05/10", "13:00", 1.0f, 2.0f, 1.0f));
 
-        Optional<RecordedConsumptionPeriod> period = repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO);
+        Optional<RecordedConsumptionPeriod> period = publishedPeriod(supply, WIDE_FROM, WIDE_TO);
 
         assertTrue(period.isPresent());
         assertEquals(Instant.parse("2024-02-10T11:00:00Z"), period.get().getFirstRecord());
@@ -525,7 +525,7 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 hourlyRecord(supply.getCode(), "2024/02/10", "13:00", 1.0f, null, 3.0f),
                 hourlyRecord(supply.getCode(), "2024/02/10", "14:00", 1.0f, null, null));
 
-        assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
+        assertTrue(publishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
         assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
     }
 
@@ -533,8 +533,74 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
     void aSupplyThatHasNeverStoredARecordHasNoPublishedPeriodAndNoPublishedHours() {
         Supply supply = supply();
 
-        assertTrue(repository.findPublishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
+        assertTrue(publishedPeriod(supply, WIDE_FROM, WIDE_TO).isEmpty());
         assertEquals(0L, repository.countPublishedHours(supply, WIDE_FROM, WIDE_TO));
+    }
+
+    /**
+     * Each supply of one read reports its own first and last published record, whichever supply the
+     * other records belong to: one whose published records span two months, one whose only published
+     * record carries a zero self-consumption, and one with records that are never published.
+     */
+    @Test
+    void thePublishedPeriodsOfSeveralSuppliesAreReadAtOnce() {
+        Supply spanningTwoMonths = supply();
+        Supply publishedZero = supply();
+        Supply neverPublished = supply();
+        Supply withoutRecords = supply();
+        write(
+                hourlyRecord(spanningTwoMonths.getCode(), "2024/02/10", "13:00", 1.0f, 2.0f, 1.0f),
+                hourlyRecord(spanningTwoMonths.getCode(), "2024/03/20", "13:00", 1.0f, 1.0f, 0.0f),
+                hourlyRecord(spanningTwoMonths.getCode(), "2024/04/02", "13:00", 1.0f, null, 3.0f));
+        write(hourlyRecord(publishedZero.getCode(), "2024/02/12", "03:00", 1.0f, 0.0f, 0.0f));
+        write(
+                hourlyRecord(neverPublished.getCode(), "2024/02/10", "13:00", 1.0f, null, 3.0f),
+                hourlyRecord(neverPublished.getCode(), "2024/02/10", "14:00", 1.0f, null, null));
+
+        Map<String, RecordedConsumptionPeriod> periods = repository.findPublishedPeriods(
+                List.of(spanningTwoMonths, publishedZero, neverPublished, withoutRecords), WIDE_FROM, WIDE_TO);
+
+        assertEquals(Set.of(spanningTwoMonths.getCode(), publishedZero.getCode()), periods.keySet());
+        // February 2024 in Europe/Madrid is +01:00, so is 20 March.
+        assertEquals(Instant.parse("2024-02-10T11:00:00Z"), periods.get(spanningTwoMonths.getCode()).getFirstRecord());
+        assertEquals(Instant.parse("2024-03-20T11:00:00Z"), periods.get(spanningTwoMonths.getCode()).getLastRecord());
+        assertEquals(Instant.parse("2024-02-12T01:00:00Z"), periods.get(publishedZero.getCode()).getFirstRecord());
+        assertEquals(Instant.parse("2024-02-12T01:00:00Z"), periods.get(publishedZero.getCode()).getLastRecord());
+    }
+
+    /**
+     * The batched count agrees with the count of each supply alone: zeros counted, records without
+     * the field skipped, and a supply without any published record absent.
+     */
+    @Test
+    void thePublishedHoursOfSeveralSuppliesAreCountedAtOnce() {
+        Supply mixed = supply();
+        Supply publishedZero = supply();
+        Supply neverPublished = supply();
+        Supply withoutRecords = supply();
+        write(
+                hourlyRecord(mixed.getCode(), "2024/02/10", "13:00", 1.0f, 2.0f, 1.0f),
+                hourlyRecord(mixed.getCode(), "2024/02/10", "14:00", 1.0f, 0.0f, 0.0f),
+                hourlyRecord(mixed.getCode(), "2024/02/10", "15:00", 1.0f, null, 3.0f));
+        write(hourlyRecord(publishedZero.getCode(), "2024/02/12", "03:00", 1.0f, 0.0f, 0.0f));
+        write(hourlyRecord(neverPublished.getCode(), "2024/02/10", "13:00", 1.0f, null, 3.0f));
+
+        Map<String, Long> hours = repository.countPublishedHours(
+                List.of(mixed, publishedZero, neverPublished, withoutRecords), WIDE_FROM, WIDE_TO);
+
+        assertEquals(Map.of(mixed.getCode(), 2L, publishedZero.getCode(), 1L), hours);
+        assertEquals(2L, repository.countPublishedHours(mixed, WIDE_FROM, WIDE_TO));
+    }
+
+    @Test
+    void anEmptyCollectionOfSuppliesHasNoPublishedPeriodAndNoPublishedHours() {
+        assertTrue(repository.findPublishedPeriods(List.of(), WIDE_FROM, WIDE_TO).isEmpty());
+        assertTrue(repository.countPublishedHours(List.<Supply>of(), WIDE_FROM, WIDE_TO).isEmpty());
+    }
+
+    private Optional<RecordedConsumptionPeriod> publishedPeriod(Supply supply, Instant from, Instant toExclusive) {
+        return Optional.ofNullable(repository.findPublishedPeriods(List.of(supply), from, toExclusive)
+                .get(supply.getCode()));
     }
 
     /**

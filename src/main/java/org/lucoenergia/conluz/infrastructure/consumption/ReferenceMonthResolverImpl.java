@@ -13,20 +13,21 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * Asks the store, once per supply, for the first and the last published record inside the search
- * window, then walks the months down from the latest one holding any published record, counting a
- * supply's published hours in a month only when its published records reach that month, and stops
- * at the first month published for any supply.
+ * Asks the store, for all the supplies at once, for the first and the last published record of each
+ * inside the search window, then walks the months down from the latest one holding any published
+ * record, counting the published hours in a month only of the supplies whose published records reach
+ * that month, and stops at the first month published for any supply.
  *
  * <h2>Query cost</h2>
  *
- * <p>Two queries per supply for the published period, plus one count per supply and month visited.
- * When the latest month holding published records is published, that is one count in total; each
- * month that is not adds one count per supply reaching it. A supply without any published record in
- * the window costs its two queries and nothing more.
+ * <p>Two queries for the published periods of every supply, plus one count, of every supply reaching
+ * the month, per month visited. When the latest month holding published records is published, that
+ * is one count in total, whatever the number of supplies. When no supply has a published record in
+ * the window, the two queries are all it costs.
  */
 @Component
 public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
@@ -42,17 +43,20 @@ public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
 
     @Override
     public Optional<YearMonth> resolveLatestPublishedMonth(List<Supply> supplies, ZoneId zone) {
+        if (supplies.isEmpty()) {
+            return Optional.empty();
+        }
         YearMonth currentMonth = YearMonth.from(clock.instant().atZone(zone));
         YearMonth firstCandidate = MonthlyPublication.firstCandidate(currentMonth);
         Instant windowStart = startOf(firstCandidate, zone);
         // Exclusive: the current month is never a candidate.
         Instant windowEnd = startOf(currentMonth, zone);
 
+        Map<String, RecordedConsumptionPeriod> periods = getDatadisConsumptionAggregateRepository
+                .findPublishedPeriods(supplies, windowStart, windowEnd);
         List<SupplyPublication> publications = supplies.stream()
-                .flatMap(supply -> getDatadisConsumptionAggregateRepository
-                        .findPublishedPeriod(supply, windowStart, windowEnd)
-                        .map(period -> new SupplyPublication(supply, period, zone))
-                        .stream())
+                .filter(supply -> periods.containsKey(supply.getCode()))
+                .map(supply -> new SupplyPublication(supply, periods.get(supply.getCode()), zone))
                 .toList();
 
         Optional<YearMonth> latest = publications.stream()
@@ -63,23 +67,30 @@ public class ReferenceMonthResolverImpl implements ReferenceMonthResolver {
         }
 
         for (YearMonth month = latest.get(); !month.isBefore(firstCandidate); month = month.minusMonths(1)) {
-            for (SupplyPublication publication : publications) {
-                if (publication.reaches(month) && isPublished(publication, month, zone)) {
-                    return Optional.of(month);
-                }
+            if (isPublishedForAnySupply(publications, month, zone)) {
+                return Optional.of(month);
             }
         }
         return Optional.empty();
     }
 
     /**
-     * Whether the published hours of the supply in the month reach the minimum share of the hours
-     * it could have published there (ENM-001).
+     * Whether, for any of the supplies whose published records reach the month, the published hours
+     * there reach the minimum share of the hours it could have published (ENM-001). The hours of
+     * every such supply are counted in a single read; a month no supply reaches issues none.
      */
-    private boolean isPublished(SupplyPublication publication, YearMonth month, ZoneId zone) {
-        long publishedHours = getDatadisConsumptionAggregateRepository
-                .countPublishedHours(publication.supply(), startOf(month, zone), startOf(month.plusMonths(1), zone));
-        return MonthlyPublication.isPublished(month, publication.firstRecord(), publishedHours, zone);
+    private boolean isPublishedForAnySupply(List<SupplyPublication> publications, YearMonth month, ZoneId zone) {
+        List<SupplyPublication> reaching = publications.stream()
+                .filter(publication -> publication.reaches(month))
+                .toList();
+        if (reaching.isEmpty()) {
+            return false;
+        }
+        Map<String, Long> publishedHours = getDatadisConsumptionAggregateRepository.countPublishedHours(
+                reaching.stream().map(SupplyPublication::supply).toList(),
+                startOf(month, zone), startOf(month.plusMonths(1), zone));
+        return reaching.stream().anyMatch(publication -> MonthlyPublication.isPublished(month,
+                publication.firstRecord(), publishedHours.getOrDefault(publication.supply().getCode(), 0L), zone));
     }
 
     private static Instant startOf(YearMonth month, ZoneId zone) {

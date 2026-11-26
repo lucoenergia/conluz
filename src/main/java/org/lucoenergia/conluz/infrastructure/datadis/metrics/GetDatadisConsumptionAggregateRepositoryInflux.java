@@ -172,19 +172,28 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     }
 
     @Override
-    public Optional<RecordedConsumptionPeriod> findPublishedPeriod(Supply supply, Instant from,
-                                                                   Instant toExclusive) {
+    public Map<String, RecordedConsumptionPeriod> findPublishedPeriods(Collection<Supply> supplies, Instant from,
+                                                                       Instant toExclusive) {
+        if (supplies.isEmpty()) {
+            return Map.of();
+        }
         try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
 
-            // As in findRecordedPeriod, FIRST and LAST are queried separately so each reports the
-            // timestamp of its own record.
-            Instant firstRecord = publishedSelectorTime(connection, "FIRST", supply, from, toExclusive);
-            Instant lastRecord = publishedSelectorTime(connection, "LAST", supply, from, toExclusive);
+            // As in findRecordedPeriod, FIRST and LAST are queried separately so each group reports the
+            // timestamp of its own record. Grouping by cups returns one series per supply.
+            Map<String, Instant> firstRecords = publishedSelectorTimes(connection, "FIRST", supplies, from,
+                    toExclusive);
+            Map<String, Instant> lastRecords = publishedSelectorTimes(connection, "LAST", supplies, from,
+                    toExclusive);
 
-            if (firstRecord == null || lastRecord == null) {
-                return Optional.empty();
-            }
-            return Optional.of(new RecordedConsumptionPeriod(firstRecord, lastRecord));
+            Map<String, RecordedConsumptionPeriod> periods = new HashMap<>();
+            firstRecords.forEach((cups, firstRecord) -> {
+                Instant lastRecord = lastRecords.get(cups);
+                if (lastRecord != null) {
+                    periods.put(cups, new RecordedConsumptionPeriod(firstRecord, lastRecord));
+                }
+            });
+            return periods;
         }
     }
 
@@ -212,6 +221,38 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                 return 0L;
             }
             return (long) readDouble(series, series.getValues().get(0), COLUMN_PUBLISHED_HOURS);
+        }
+    }
+
+    @Override
+    public Map<String, Long> countPublishedHours(Collection<Supply> supplies, Instant from, Instant toExclusive) {
+        if (supplies.isEmpty()) {
+            return Map.of();
+        }
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // COUNT over the field itself counts the records carrying it, zeros included, and skips
+            // those where it is absent. Grouping by cups returns one series per supply; a supply with no
+            // such record returns none.
+            Query query = new Query(String.format(
+                    """
+                            SELECT COUNT("self_consumption_energy_kwh") AS "published_hours"
+                            FROM "%s"
+                            WHERE (%s)
+                                AND time >= '%s'
+                                AND time < '%s'
+                            GROUP BY cups
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    cupsFilter(supplies),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive)));
+
+            Map<String, Long> publishedHoursBySupplyCode = new HashMap<>();
+            groupedSeries(connection.query(query)).forEach(series -> publishedHoursBySupplyCode.put(
+                    series.getTags().get(TAG_CUPS),
+                    (long) readDouble(series, series.getValues().get(0), COLUMN_PUBLISHED_HOURS)));
+            return publishedHoursBySupplyCode;
         }
     }
 
@@ -252,9 +293,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                             GROUP BY time(1d), cups fill(none) tz('%s')
                             """,
                     DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
-                    supplies.stream()
-                            .map(supply -> String.format("cups = '%s'", supply.getCode()))
-                            .collect(Collectors.joining(" OR ")),
+                    cupsFilter(supplies),
                     dateConverter.convertToString(from),
                     dateConverter.convertToString(toExclusive),
                     zone.getId()));
@@ -298,9 +337,7 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                             GROUP BY time(1h) fill(none) tz('%s')
                             """,
                     DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
-                    supplies.stream()
-                            .map(supply -> String.format("cups = '%s'", supply.getCode()))
-                            .collect(Collectors.joining(" OR ")),
+                    cupsFilter(supplies),
                     dateConverter.convertToString(from),
                     dateConverter.convertToString(toExclusive),
                     zone.getId()));
@@ -347,25 +384,63 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
     }
 
     /**
-     * The timestamp of the record a selector over {@code self_consumption_energy_kwh} picks in the
-     * half-open interval, or null when no record there carries the field.
+     * For every given supply, the timestamp of the record a selector over
+     * {@code self_consumption_energy_kwh} picks in the half-open interval, keyed by supply code. A supply
+     * none of whose records there carries the field is absent.
      */
-    private Instant publishedSelectorTime(InfluxDB connection, String selector, Supply supply, Instant from,
-                                          Instant toExclusive) {
+    private Map<String, Instant> publishedSelectorTimes(InfluxDB connection, String selector,
+                                                        Collection<Supply> supplies, Instant from,
+                                                        Instant toExclusive) {
         Query query = new Query(String.format(
                 """
                         SELECT %s("self_consumption_energy_kwh")
                         FROM "%s"
-                        WHERE cups = '%s'
+                        WHERE (%s)
                             AND time >= '%s'
                             AND time < '%s'
+                        GROUP BY cups
                         """,
                 selector,
                 DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
-                supply.getCode(),
+                cupsFilter(supplies),
                 dateConverter.convertToString(from),
                 dateConverter.convertToString(toExclusive)));
-        return recordTime(connection, query);
+
+        // Times in milliseconds come back as a number, whatever the server's precision.
+        Map<String, Instant> timesBySupplyCode = new HashMap<>();
+        groupedSeries(connection.query(query, TimeUnit.MILLISECONDS)).forEach(series -> {
+            List<Object> row = series.getValues().get(0);
+            int index = series.getColumns().indexOf(COLUMN_TIME);
+            if (index >= 0 && index < row.size() && row.get(index) instanceof Number time) {
+                timesBySupplyCode.put(series.getTags().get(TAG_CUPS),
+                        dateConverter.convertMillisecondsToInstant(time.longValue()));
+            }
+        });
+        return timesBySupplyCode;
+    }
+
+    /**
+     * The series of a query grouped by cups that carry a tag set and at least one row.
+     */
+    private static List<QueryResult.Series> groupedSeries(QueryResult queryResult) {
+        if (queryResult == null || queryResult.getResults() == null) {
+            return List.of();
+        }
+        return queryResult.getResults().stream()
+                .filter(result -> result.getSeries() != null)
+                .flatMap(result -> result.getSeries().stream())
+                .filter(series -> series.getTags() != null && series.getValues() != null
+                        && !series.getValues().isEmpty())
+                .toList();
+    }
+
+    /**
+     * The predicate selecting the records of every given supply.
+     */
+    private static String cupsFilter(Collection<Supply> supplies) {
+        return supplies.stream()
+                .map(supply -> String.format("cups = '%s'", supply.getCode()))
+                .collect(Collectors.joining(" OR "));
     }
 
     private Instant selectorTime(InfluxDB connection, String selector, Supply supply) {
