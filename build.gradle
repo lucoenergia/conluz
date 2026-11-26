@@ -40,7 +40,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-    implementation 'org.liquibase:liquibase-core:4.28.0'
+    implementation 'org.liquibase:liquibase-core:5.0.4'
     implementation 'org.influxdb:influxdb-java:2.25'
     // implementation, not runtimeOnly: PostgresConstraintName reads PSQLException's structured
     // ServerErrorMessage to identify a constraint violation by name, so the driver's exception
