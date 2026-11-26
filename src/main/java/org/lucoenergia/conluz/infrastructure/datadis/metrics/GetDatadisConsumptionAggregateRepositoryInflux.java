@@ -343,29 +343,36 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
                     zone.getId()));
 
             // Times in milliseconds come back as a number, whatever the server's precision.
-            QueryResult queryResult = connection.query(query, TimeUnit.MILLISECONDS);
-            Map<Instant, Double> surplusByHour = new HashMap<>();
-            if (queryResult == null || queryResult.getResults() == null) {
-                return surplusByHour;
-            }
-            queryResult.getResults().stream()
-                    .filter(result -> result.getSeries() != null)
-                    .flatMap(result -> result.getSeries().stream())
-                    .filter(series -> series.getValues() != null)
-                    .forEach(series -> {
-                        int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
-                        int surplusIndex = series.getColumns().indexOf(COLUMN_SURPLUS_ENERGY_KWH);
-                        for (List<Object> row : series.getValues()) {
-                            // An hour whose records all lack the field sums to null: no surplus was stored.
-                            if (surplusIndex >= 0 && surplusIndex < row.size()
-                                    && row.get(surplusIndex) instanceof Number surplus) {
-                                surplusByHour.put(dateConverter.convertMillisecondsToInstant(
-                                        ((Number) row.get(timeIndex)).longValue()), surplus.doubleValue());
-                            }
-                        }
-                    });
+            return toSurplusByHour(connection.query(query, TimeUnit.MILLISECONDS));
+        }
+    }
+
+    /**
+     * The summed surplus of each hour an hourly grouped query returns, keyed by the instant the hour
+     * starts at.
+     */
+    private Map<Instant, Double> toSurplusByHour(QueryResult queryResult) {
+        Map<Instant, Double> surplusByHour = new HashMap<>();
+        if (queryResult == null || queryResult.getResults() == null) {
             return surplusByHour;
         }
+        queryResult.getResults().stream()
+                .filter(result -> result.getSeries() != null)
+                .flatMap(result -> result.getSeries().stream())
+                .filter(series -> series.getValues() != null)
+                .forEach(series -> {
+                    int timeIndex = series.getColumns().indexOf(COLUMN_TIME);
+                    int surplusIndex = series.getColumns().indexOf(COLUMN_SURPLUS_ENERGY_KWH);
+                    for (List<Object> row : series.getValues()) {
+                        // An hour whose records all lack the field sums to null: no surplus was stored.
+                        if (surplusIndex >= 0 && surplusIndex < row.size()
+                                && row.get(surplusIndex) instanceof Number surplus) {
+                            surplusByHour.put(dateConverter.convertMillisecondsToInstant(
+                                    ((Number) row.get(timeIndex)).longValue()), surplus.doubleValue());
+                        }
+                    }
+                });
+        return surplusByHour;
     }
 
     private List<DailyPublishedAggregate> toDays(QueryResult.Series series, ZoneId zone) {
