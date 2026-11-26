@@ -225,7 +225,7 @@ class DatadisConsumptionSyncIntegrationTest extends BaseControllerTest {
             mockMvc.perform(post("/api/v1/communities/{communityId}/consumption/datadis/sync", communityId)
                             .header(HttpHeaders.AUTHORIZATION, authorization)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new SyncDatadisConsumptionsBody(2025))))
+                            .content(objectMapper.writeValueAsString(new SyncDatadisConsumptionsBody(0))))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.status").value(409))
                     .andExpect(jsonPath("$.message").value(

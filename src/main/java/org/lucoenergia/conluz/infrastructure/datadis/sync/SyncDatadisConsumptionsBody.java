@@ -5,39 +5,44 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.ZoneId;
 
-@Schema(requiredProperties = {"year"})
+@Schema(requiredProperties = {"monthsBack"})
 public class SyncDatadisConsumptionsBody {
 
+    @Schema(description = "How many months before the current one the synchronization starts: 0 synchronizes the "
+            + "current month only.", example = "3")
     @NotNull
-    @Min(value = 2000)
-    @Max(value = 2100)
-    private Integer year;
+    @Min(value = 0)
+    @Max(value = DatadisSyncWindows.MAX_LOOKBACK_MONTHS)
+    private Integer monthsBack;
 
     private String supplyCode;
 
     public SyncDatadisConsumptionsBody() {
     }
 
-    public SyncDatadisConsumptionsBody(Integer year) {
-        this.year = year;
+    public SyncDatadisConsumptionsBody(Integer monthsBack) {
+        this.monthsBack = monthsBack;
     }
 
-    public SyncDatadisConsumptionsBody(Integer year, String supplyCode) {
-        this.year = year;
+    public SyncDatadisConsumptionsBody(Integer monthsBack, String supplyCode) {
+        this.monthsBack = monthsBack;
         this.supplyCode = supplyCode;
     }
 
-    public Integer getYear() {
-        return year;
+    public Integer getMonthsBack() {
+        return monthsBack;
     }
 
-    public void setYear(Integer year) {
-        this.year = year;
+    public void setMonthsBack(Integer monthsBack) {
+        this.monthsBack = monthsBack;
     }
 
     public String getSupplyCode() {
@@ -49,28 +54,23 @@ public class SyncDatadisConsumptionsBody {
     }
 
     /**
-     * Converts the year to the start date (January 1st of the year).
+     * The first day to synchronize: the first day of the month {@link #getMonthsBack()} months before
+     * {@code endDate}.
      *
-     * @return LocalDate representing January 1st of the specified year
+     * @param endDate the last day to synchronize, as {@link #getEndDate(Clock)} returns it
      */
     @JsonIgnore
-    public LocalDate getStartDate() {
-        return LocalDate.of(year, 1, 1);
+    public LocalDate getStartDate(LocalDate endDate) {
+        return new DatadisSyncWindow(Period.ofMonths(monthsBack)).firstDay(endDate);
     }
 
     /**
-     * Converts the year to the end date (December 31st of the year), or today if that is earlier.
+     * The last day to synchronize: today.
      *
      * @param clock the source of today, read in the JVM's default zone
-     * @return LocalDate representing December 31st of the specified year, or today
      */
     @JsonIgnore
     public LocalDate getEndDate(Clock clock) {
-        LocalDate lastDayOfYear = LocalDate.of(year, 12, 31);
-        LocalDate today = LocalDate.now(clock.withZone(ZoneId.systemDefault()));
-        if (lastDayOfYear.isAfter(today)) {
-            return today;
-        }
-        return lastDayOfYear;
+        return LocalDate.now(clock.withZone(ZoneId.systemDefault()));
     }
 }

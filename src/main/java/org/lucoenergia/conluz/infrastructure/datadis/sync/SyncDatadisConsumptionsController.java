@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncService;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -41,15 +43,24 @@ public class SyncDatadisConsumptionsController {
 
     @PostMapping
     @Operation(
-            summary = "Synchronize the consumptions for a specific year from datadis, optionally filtering by supply code.",
+            summary = "Synchronize the consumptions of the last months from datadis, optionally filtering by supply code.",
             description = """
-                    This endpoint enables users to synchronize consumption data from datadis for a specific year.
+                    This endpoint enables users to synchronize consumption data from datadis for the current month
+                    and the months before it.
 
                     The request body must contain:
-                    - **year** (required, integer): The year for which to synchronize consumption data
+                    - **monthsBack** (required, integer): How many months before the current one the
+                      synchronization starts. 0 synchronizes the current month only.
                     - **supplyCode** (optional, string): The supply code (CUPS) to synchronize. If not provided, all active supplies will be synchronized.
 
-                    The synchronization will retrieve data from January 1st to December 31st of the specified year.
+                    The synchronization retrieves data from the first day of the month `monthsBack` months before
+                    today through today: with `monthsBack` 3 on 26 November, from 1 August through 26 November.
+                    """
+                    + "Datadis serves at most " + DatadisSyncWindows.MAX_LOOKBACK_MONTHS + " months back when "
+                    + "queried by month, so `monthsBack` goes from 0 to " + DatadisSyncWindows.MAX_LOOKBACK_MONTHS
+                    + ". Any other value, a missing one or the former `year` field is answered with `400`, and "
+                    + "Datadis is not called.\n"
+                    + """
 
                     **Behavior:**
                     - If supplyCode is provided: Synchronizes only that specific supply
@@ -109,7 +120,7 @@ public class SyncDatadisConsumptionsController {
     @PreAuthorize("@communityAccessGuard.canManageCommunity(#communityId)")
     public void syncDatadisConsumptions(@PathVariable UUID communityId,
                                         @Valid @RequestBody SyncDatadisConsumptionsBody body) {
-        datadisSyncService.synchronize(communityId, body.getStartDate(), body.getEndDate(clock),
-                body.getSupplyCode());
+        LocalDate endDate = body.getEndDate(clock);
+        datadisSyncService.synchronize(communityId, body.getStartDate(endDate), endDate, body.getSupplyCode());
     }
 }

@@ -6572,18 +6572,20 @@
       },
       "SyncDatadisConsumptionsBody" : {
         "properties" : {
+          "monthsBack" : {
+            "description" : "How many months before the current one the synchronization starts: 0 synchronizes the current month only.",
+            "example" : 3,
+            "format" : "int32",
+            "maximum" : 24,
+            "minimum" : 0,
+            "type" : "integer"
+          },
           "supplyCode" : {
             "type" : "string"
-          },
-          "year" : {
-            "format" : "int32",
-            "maximum" : 2100,
-            "minimum" : 2000,
-            "type" : "integer"
           }
         },
         "required" : [
-          "year"
+          "monthsBack"
         ],
         "type" : "object"
       },
@@ -9504,7 +9506,7 @@
     },
     "/api/v1/communities/{communityId}/consumption/datadis/sync" : {
       "post" : {
-        "description" : "This endpoint enables users to synchronize consumption data from datadis for a specific year.\n\nThe request body must contain:\n- **year** (required, integer): The year for which to synchronize consumption data\n- **supplyCode** (optional, string): The supply code (CUPS) to synchronize. If not provided, all active supplies will be synchronized.\n\nThe synchronization will retrieve data from January 1st to December 31st of the specified year.\n\n**Behavior:**\n- If supplyCode is provided: Synchronizes only that specific supply\n- If supplyCode is not provided or is empty: Synchronizes all active supplies\n\nThe community is taken from the path; the configured Datadis credentials of that\ncommunity are used and only that community's supplies are synchronized.\n\nProper authentication, through an authentication token, is required for secure access to this endpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nThe server responds with `409` when the community has no Datadis configuration, or it is\ndisabled; Datadis is not called.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
+        "description" : "This endpoint enables users to synchronize consumption data from datadis for the current month\nand the months before it.\n\nThe request body must contain:\n- **monthsBack** (required, integer): How many months before the current one the\n  synchronization starts. 0 synchronizes the current month only.\n- **supplyCode** (optional, string): The supply code (CUPS) to synchronize. If not provided, all active supplies will be synchronized.\n\nThe synchronization retrieves data from the first day of the month `monthsBack` months before\ntoday through today: with `monthsBack` 3 on 26 November, from 1 August through 26 November.\nDatadis serves at most 24 months back when queried by month, so `monthsBack` goes from 0 to 24. Any other value, a missing one or the former `year` field is answered with `400`, and Datadis is not called.\n\n**Behavior:**\n- If supplyCode is provided: Synchronizes only that specific supply\n- If supplyCode is not provided or is empty: Synchronizes all active supplies\n\nThe community is taken from the path; the configured Datadis credentials of that\ncommunity are used and only that community's supplies are synchronized.\n\nProper authentication, through an authentication token, is required for secure access to this endpoint.\n**Required: Community Admin of the community. Returns 404 if the community does not exist or the\ncaller is not a member of it, or 403 if the caller is a member but not one of its admins.**\n\nA successful request returns an HTTP status code of 200.\n\nThe server responds with `409` when the community has no Datadis configuration, or it is\ndisabled; Datadis is not called.\n\nIn cases of errors, the server responds with an appropriate error status code accompanied by a\ndescriptive message to guide users in resolving any issues.\n",
         "operationId" : "syncDatadisConsumptions",
         "parameters" : [
           {
@@ -9645,7 +9647,7 @@
             "bearerToken" : [ ]
           }
         ],
-        "summary" : "Synchronize the consumptions for a specific year from datadis, optionally filtering by supply code.",
+        "summary" : "Synchronize the consumptions of the last months from datadis, optionally filtering by supply code.",
         "tags" : [
           "Consumption"
         ]
