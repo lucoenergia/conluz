@@ -33,7 +33,7 @@ public class PlantSurplusClaimWarningsResponse {
     private final boolean noAppliedCoefficients;
     @Schema(description = "The hours whose surplus is above what the plant's nominal power produces in one hour, " +
             "in order.")
-    private final List<PlantSurplusClaimHourResponse> hoursAboveNominalPower;
+    private final List<PlantSurplusClaimMeasuredHourResponse> hoursAboveNominalPower;
 
     public PlantSurplusClaimWarningsResponse(SurplusClaimWarnings warnings, ZoneId zone) {
         this.suppliesWithoutData = warnings.suppliesWithoutData().stream()
@@ -48,7 +48,7 @@ public class PlantSurplusClaimWarningsResponse {
         this.plantSupplyShare = warnings.plantSupplyShare();
         this.noAppliedCoefficients = warnings.noAppliedCoefficients();
         this.hoursAboveNominalPower = warnings.hoursAboveNominalPower().stream()
-                .map(hour -> new PlantSurplusClaimHourResponse(hour, zone))
+                .map(hour -> new PlantSurplusClaimMeasuredHourResponse(hour, zone))
                 .toList();
     }
 
@@ -72,7 +72,7 @@ public class PlantSurplusClaimWarningsResponse {
         return noAppliedCoefficients;
     }
 
-    public List<PlantSurplusClaimHourResponse> getHoursAboveNominalPower() {
+    public List<PlantSurplusClaimMeasuredHourResponse> getHoursAboveNominalPower() {
         return hoursAboveNominalPower;
     }
 }

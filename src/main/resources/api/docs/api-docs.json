@@ -4411,7 +4411,7 @@
             "type" : "array"
           },
           "peakHour" : {
-            "$ref" : "#/components/schemas/PlantSurplusClaimHourResponse",
+            "$ref" : "#/components/schemas/PlantSurplusClaimMeasuredHourResponse",
             "description" : "The hour with the largest surplus of the day, the earliest one on a tie. Null when the day's surplus is null or 0.",
             "type" : [
               "object",
@@ -4462,6 +4462,27 @@
               "number",
               "null"
             ]
+          }
+        },
+        "required" : [
+          "startsAt",
+          "surplusKWh"
+        ],
+        "type" : "object"
+      },
+      "PlantSurplusClaimMeasuredHourResponse" : {
+        "properties" : {
+          "startsAt" : {
+            "description" : "Instant the hour starts at, with the offset in force in the community's time zone at that instant. Unique within the month, including on the day the clocks go back.",
+            "example" : "2026-10-25T02:00:00+01:00",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "surplusKWh" : {
+            "description" : "Surplus of the supplies in scope over the hour, summed, in kWh, rounded to 3 decimals.",
+            "example" : 12.5,
+            "format" : "double",
+            "type" : "number"
           }
         },
         "required" : [
@@ -4665,7 +4686,7 @@
           "hoursAboveNominalPower" : {
             "description" : "The hours whose surplus is above what the plant's nominal power produces in one hour, in order.",
             "items" : {
-              "$ref" : "#/components/schemas/PlantSurplusClaimHourResponse"
+              "$ref" : "#/components/schemas/PlantSurplusClaimMeasuredHourResponse"
             },
             "type" : "array"
           },

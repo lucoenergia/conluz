@@ -24,7 +24,7 @@ public class PlantSurplusClaimDayResponse {
     private final Double surplusKWh;
     @Schema(description = "The hour with the largest surplus of the day, the earliest one on a tie. Null when the " +
             "day's surplus is null or 0.", types = {"object", "null"})
-    private final PlantSurplusClaimHourResponse peakHour;
+    private final PlantSurplusClaimMeasuredHourResponse peakHour;
     @Schema(description = "Every hour of the day, in order: 23, 24 or 25 on the days the clocks change.")
     private final List<PlantSurplusClaimHourResponse> hours;
 
@@ -32,7 +32,9 @@ public class PlantSurplusClaimDayResponse {
         this.date = day.date();
         this.state = day.state();
         this.surplusKWh = PlantSurplusClaimHourResponse.round(day.surplusKWh());
-        this.peakHour = day.peakHour() == null ? null : new PlantSurplusClaimHourResponse(day.peakHour(), zone);
+        this.peakHour = day.peakHour() == null
+                ? null
+                : new PlantSurplusClaimMeasuredHourResponse(day.peakHour(), zone);
         this.hours = day.hours().stream().map(hour -> new PlantSurplusClaimHourResponse(hour, zone)).toList();
     }
 
@@ -48,7 +50,7 @@ public class PlantSurplusClaimDayResponse {
         return surplusKWh;
     }
 
-    public PlantSurplusClaimHourResponse getPeakHour() {
+    public PlantSurplusClaimMeasuredHourResponse getPeakHour() {
         return peakHour;
     }
 

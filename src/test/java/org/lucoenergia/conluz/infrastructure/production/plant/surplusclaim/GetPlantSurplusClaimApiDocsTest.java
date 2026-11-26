@@ -73,6 +73,41 @@ class GetPlantSurplusClaimApiDocsTest extends BaseControllerTest {
                         .asText());
     }
 
+    @Test
+    @DisplayName("SCL-002 an hour of the day may have no surplus, and SCL-005 SCL-011 a peak hour or an hour above the nominal power always has one")
+    void onlyTheHoursOfTheDayMayHaveNoSurplus() throws Exception {
+        JsonNode schemas = document().path("components").path("schemas");
+        String hour = "#/components/schemas/PlantSurplusClaimHourResponse";
+        String measuredHour = "#/components/schemas/PlantSurplusClaimMeasuredHourResponse";
+
+        JsonNode day = schemas.path("PlantSurplusClaimDayResponse").path("properties");
+        assertEquals(hour, day.path("hours").path("items").path("$ref").asText());
+        assertEquals(measuredHour, day.path("peakHour").path("$ref").asText());
+        assertEquals(measuredHour, schemas.path("PlantSurplusClaimWarningsResponse").path("properties")
+                .path("hoursAboveNominalPower").path("items").path("$ref").asText());
+
+        assertEquals(List.of("number", "null"),
+                types(schemas.path("PlantSurplusClaimHourResponse").path("properties").path("surplusKWh")));
+        assertEquals(List.of("number"),
+                types(schemas.path("PlantSurplusClaimMeasuredHourResponse").path("properties").path("surplusKWh")));
+        for (String schema : List.of("PlantSurplusClaimHourResponse", "PlantSurplusClaimMeasuredHourResponse")) {
+            List<String> required = new ArrayList<>();
+            schemas.path(schema).path("required").forEach(name -> required.add(name.asText()));
+            assertEquals(List.of("startsAt", "surplusKWh"), sorted(required), schema);
+        }
+    }
+
+    private static List<String> types(JsonNode property) {
+        List<String> types = new ArrayList<>();
+        JsonNode type = property.path("type");
+        if (type.isArray()) {
+            type.forEach(element -> types.add(element.asText()));
+        } else {
+            types.add(type.asText());
+        }
+        return types;
+    }
+
     private JsonNode document() throws Exception {
         MvcResult result = mockMvc.perform(get("/api-docs")).andExpect(status().isOk()).andReturn();
         return objectMapper.readTree(result.getResponse().getContentAsString());
