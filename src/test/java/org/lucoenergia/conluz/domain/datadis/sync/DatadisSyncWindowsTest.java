@@ -1,5 +1,6 @@
 package org.lucoenergia.conluz.domain.datadis.sync;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.DayOfWeek;
@@ -17,6 +18,7 @@ class DatadisSyncWindowsTest {
     private static final DatadisSyncWindows WINDOWS = new DatadisSyncWindows(DAILY, FULL);
 
     @Test
+    @DisplayName("DHI-007 the full window is synced on Sundays, and the daily one on every other day of the week")
     void theFullWindowIsSyncedOnSundaysAndTheDailyOneOnEveryOtherDay() {
         // Monday 2026-11-23 through Saturday 2026-11-28.
         for (int day = 23; day <= 28; day++) {
@@ -26,6 +28,12 @@ class DatadisSyncWindowsTest {
         LocalDate sunday = LocalDate.of(2026, 11, 29);
         assertEquals(DayOfWeek.SUNDAY, sunday.getDayOfWeek());
         assertSame(FULL, WINDOWS.forSyncOn(sunday));
+    }
+
+    @Test
+    void theDefaultWindowsReachThreeAndTwentyFourMonthsBack() {
+        assertEquals(Period.ofMonths(3), DatadisSyncWindows.DEFAULT.daily().lookback());
+        assertEquals(Period.ofMonths(24), DatadisSyncWindows.DEFAULT.full().lookback());
     }
 
     @Test

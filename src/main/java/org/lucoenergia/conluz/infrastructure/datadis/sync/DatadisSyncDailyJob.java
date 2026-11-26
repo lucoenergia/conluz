@@ -35,6 +35,12 @@ public class DatadisSyncDailyJob implements Job {
         this.clock = clock;
     }
 
+    /**
+     * Re-reads the hourly records of every community with Datadis enabled at 4:00 AM every day, once
+     * per community: over the daily window ({@link DatadisSyncWindows#daily()}) on any day but
+     * Sunday, and over the full window ({@link DatadisSyncWindows#full()}) on Sundays, never both on
+     * the same day. Today, and so its day of the week, is read in the JVM's default zone.
+     */
     @Override
     @Scheduled(cron = "0 0 4 * * ?")
     public void run() {
