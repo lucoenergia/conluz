@@ -89,7 +89,7 @@ And two consecutive lines carry 2026/10/25 and 02:00, the first with the values 
 ## Impossible states
 
 - Two stored records of one supply at the same instant: the measurement's only tag is the CUPS, so a record written
-  again at the same instant replaces the stored one.
+  again at the same instant is written to the same point. It overwrites the fields it carries and keeps the others.
 
 ## Accepted exceptions
 
