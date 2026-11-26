@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
@@ -24,27 +24,30 @@ public class DatadisProductionMonthlyAggregationJob implements Job {
     private final DatadisProductionMonthlyAggregationService aggregationService;
     private final Clock clock;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
-    private final DatadisSyncWindow syncWindow;
+    private final DatadisSyncWindows syncWindows;
     private final ZoneResolver zoneResolver;
 
     public DatadisProductionMonthlyAggregationJob(DatadisProductionMonthlyAggregationService aggregationService,
                                                   Clock clock,
                                                   GetDatadisConfigurationService getDatadisConfigurationService,
-                                                  DatadisSyncWindow syncWindow,
+                                                  DatadisSyncWindows syncWindows,
                                                   ZoneResolver zoneResolver) {
         this.aggregationService = aggregationService;
         this.clock = clock;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
-        this.syncWindow = syncWindow;
+        this.syncWindows = syncWindows;
         this.zoneResolver = zoneResolver;
     }
 
     /**
      * Aggregate hourly production data into monthly totals at 5:00 AM every day.
-     * For every community with Datadis enabled, this job re-aggregates every month of the window the
-     * daily sync re-reads ({@link DatadisSyncWindow#months(LocalDate)}), not only the current one:
-     * the sync rewrites the hourly production of plant supplies over that whole window, so a closed
+     * For every community with Datadis enabled, this job re-aggregates every month of the full
+     * re-sync window ({@link DatadisSyncWindows#full()}), not only the current one: the sync
+     * rewrites the hourly production of plant supplies over the window it re-reads, so a closed
      * month's total would otherwise stay frozen at whatever was aggregated on its last day.
+     * It covers the full window every day, whichever window the sync re-read that day: a revision
+     * brought in by the Sunday sync or by a manual sync is then aggregated within a day, without
+     * depending on how long the jobs take.
      *
      * The current date is resolved in the community's zone, so the window follows the community's
      * calendar rather than the JVM default zone.
@@ -84,7 +87,7 @@ public class DatadisProductionMonthlyAggregationJob implements Job {
         try {
             LocalDate today = LocalDate.now(clock.withZone(
                     zoneResolver.resolveZoneIdForCommunity(config.getCommunityId())));
-            for (YearMonth month : syncWindow.months(today)) {
+            for (YearMonth month : syncWindows.full().months(today)) {
                 LOGGER.info("Aggregating production data for community: {}, month: {}",
                         config.getCommunityId(), month);
                 aggregationService.aggregateMonthlyProductions(config.getCommunityId(), month.getMonth(),

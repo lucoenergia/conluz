@@ -25,7 +25,7 @@ import org.lucoenergia.conluz.domain.consumption.datadis.aggregate.DatadisYearly
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
 import org.lucoenergia.conluz.domain.datadis.SetDatadisConfigurationRepository;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionMonthlyAggregationService;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.production.plant.PlantMother;
@@ -70,20 +70,21 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * production. Every job is built here from the application's own beans with a fixed
  * {@link Clock}, rather than replacing the application clock, which other components share.
  *
- * <p>The jobs run on 2026-10-09 at 05:00 in Madrid, so the sync window is 2025-10 to 2026-10 and
- * the years it overlaps are 2025 and 2026. Every energy value is exactly representable as a float,
- * so the expected sums are exact.
+ * <p>The jobs run on Thursday 2026-11-26 at 05:00 in Madrid, a day the sync re-reads only its daily
+ * window, so the full window they aggregate is 2024-11 to 2026-11 and the years it overlaps are
+ * 2024, 2025 and 2026. Only the months at its edges and one in the middle are seeded. Every energy
+ * value is exactly representable as a float, so the expected sums are exact.
  */
 @Transactional
 class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
     private static final ZoneId ZONE = ZoneId.of("Europe/Madrid");
-    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-09T03:00:00Z"), ZoneOffset.UTC);
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-26T04:00:00Z"), ZoneOffset.UTC);
 
-    private static final YearMonth BEFORE_WINDOW = YearMonth.of(2025, 9);
-    private static final YearMonth FIRST_MONTH = YearMonth.of(2025, 10);
+    private static final YearMonth BEFORE_WINDOW = YearMonth.of(2024, 10);
+    private static final YearMonth FIRST_MONTH = YearMonth.of(2024, 11);
     private static final YearMonth CLOSED_MONTH = YearMonth.of(2026, 5);
-    private static final YearMonth CURRENT_MONTH = YearMonth.of(2026, 10);
+    private static final YearMonth CURRENT_MONTH = YearMonth.of(2026, 11);
 
     private static final String CONSUMPTION_MONTH = DatadisConfigEntity.CONSUMPTION_KWH_MONTH_MEASUREMENT;
     private static final String CONSUMPTION_YEAR = DatadisConfigEntity.CONSUMPTION_KWH_YEAR_MEASUREMENT;
@@ -122,7 +123,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private GetDatadisConfigurationService getDatadisConfigurationService;
     @Autowired
-    private DatadisSyncWindow syncWindow;
+    private DatadisSyncWindows syncWindows;
     @Autowired
     private ZoneResolver zoneResolver;
 
@@ -227,7 +228,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     }
 
     /**
-     * AC3. September 2025 is the month before the window: its hourly records changed too, but its
+     * AC3. October 2024 is the month before the full window: its hourly records changed too, but its
      * point keeps the value it had.
      */
     @Test
@@ -235,7 +236,7 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     void aMonthBeforeTheWindowIsNotRewritten() {
         Supply supply = enabledSupplies.get(1);
         writeConsumptionMonth(supply, BEFORE_WINDOW, 7f, 6f, 5f, 4f);
-        writeHour(supply, "2025/09/15", "13:00", 100f, 100f, 100f, 100f);
+        writeHour(supply, "2024/10/15", "13:00", 100f, 100f, 100f, 100f);
 
         monthlyConsumptionJob().run();
 
@@ -325,12 +326,14 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
         base = 1f;
         for (Supply supply : enabledSupplies) {
-            // 2025: January (base) + December (2 * base); 2026: January (3 * base) + September (4 * base).
-            assertYear(supply, 2025, base * 3);
-            assertYear(supply, 2026, base * 7);
-            assertYear(supply, 2024, 999);
+            // Each year: January + December, or + September for the current one.
+            assertYear(supply, 2024, base * 3);
+            assertYear(supply, 2025, base * 7);
+            assertYear(supply, 2026, base * 11);
+            assertYear(supply, 2023, 999);
             base += 1f;
         }
+        assertYear(disabledSupply, 2024, 999);
         assertYear(disabledSupply, 2025, 999);
         assertYear(disabledSupply, 2026, 999);
     }
@@ -378,15 +381,17 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
     }
 
     private void seedYears(Supply supply, float base) {
-        for (int year : List.of(2024, 2025, 2026)) {
+        for (int year : List.of(2023, 2024, 2025, 2026)) {
             writeConsumptionYear(supply, year, 999f);
             writeProduction(PRODUCTION_YEAR, supply, start(YearMonth.of(year, 1)), 999f);
         }
-        writeMonthlyOfEveryKind(supply, YearMonth.of(2024, 12), 500f);
-        writeMonthlyOfEveryKind(supply, YearMonth.of(2025, 1), base);
-        writeMonthlyOfEveryKind(supply, YearMonth.of(2025, 12), base * 2);
-        writeMonthlyOfEveryKind(supply, YearMonth.of(2026, 1), base * 3);
-        writeMonthlyOfEveryKind(supply, YearMonth.of(2026, 9), base * 4);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2023, 12), 500f);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2024, 1), base);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2024, 12), base * 2);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2025, 1), base * 3);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2025, 12), base * 4);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2026, 1), base * 5);
+        writeMonthlyOfEveryKind(supply, YearMonth.of(2026, 9), base * 6);
     }
 
     private void writeMonthlyOfEveryKind(Supply supply, YearMonth month, float value) {
@@ -408,22 +413,22 @@ class DatadisPreAggregationJobsIntegrationTest extends BaseIntegrationTest {
 
     private DatadisMonthlyAggregationJob monthlyConsumptionJob() {
         return new DatadisMonthlyAggregationJob(monthlyAggregationService, CLOCK, getDatadisConfigurationService,
-                syncWindow, zoneResolver);
+                syncWindows, zoneResolver);
     }
 
     private DatadisProductionMonthlyAggregationJob productionMonthlyJob() {
         return new DatadisProductionMonthlyAggregationJob(productionMonthlyAggregationService, CLOCK,
-                getDatadisConfigurationService, syncWindow, zoneResolver);
+                getDatadisConfigurationService, syncWindows, zoneResolver);
     }
 
     private DatadisYearlyAggregationJob yearlyConsumptionJob() {
         return new DatadisYearlyAggregationJob(yearlyAggregationService, CLOCK, getDatadisConfigurationService,
-                syncWindow, zoneResolver);
+                syncWindows, zoneResolver);
     }
 
     private DatadisProductionYearlyAggregationJob productionYearlyJob() {
         return new DatadisProductionYearlyAggregationJob(productionYearlyAggregationService, CLOCK,
-                getDatadisConfigurationService, syncWindow, zoneResolver);
+                getDatadisConfigurationService, syncWindows, zoneResolver);
     }
 
     // --- PostgreSQL ---

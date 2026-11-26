@@ -2,7 +2,7 @@ package org.lucoenergia.conluz.infrastructure.production.datadis.aggregate;
 
 import org.lucoenergia.conluz.domain.datadis.DatadisConfig;
 import org.lucoenergia.conluz.domain.datadis.GetDatadisConfigurationService;
-import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindow;
+import org.lucoenergia.conluz.domain.datadis.sync.DatadisSyncWindows;
 import org.lucoenergia.conluz.domain.production.datadis.aggregate.DatadisProductionYearlyAggregationService;
 import org.lucoenergia.conluz.domain.shared.time.ZoneResolver;
 import org.lucoenergia.conluz.infrastructure.shared.job.Job;
@@ -23,27 +23,27 @@ public class DatadisProductionYearlyAggregationJob implements Job {
     private final DatadisProductionYearlyAggregationService aggregationService;
     private final Clock clock;
     private final GetDatadisConfigurationService getDatadisConfigurationService;
-    private final DatadisSyncWindow syncWindow;
+    private final DatadisSyncWindows syncWindows;
     private final ZoneResolver zoneResolver;
 
     public DatadisProductionYearlyAggregationJob(DatadisProductionYearlyAggregationService aggregationService,
                                                  Clock clock,
                                                  GetDatadisConfigurationService getDatadisConfigurationService,
-                                                 DatadisSyncWindow syncWindow,
+                                                 DatadisSyncWindows syncWindows,
                                                  ZoneResolver zoneResolver) {
         this.aggregationService = aggregationService;
         this.clock = clock;
         this.getDatadisConfigurationService = getDatadisConfigurationService;
-        this.syncWindow = syncWindow;
+        this.syncWindows = syncWindows;
         this.zoneResolver = zoneResolver;
     }
 
     /**
      * Aggregate monthly production data into yearly totals at 6:00 AM every day.
-     * For every community with Datadis enabled, this job re-aggregates every year the window of the
-     * daily sync overlaps ({@link DatadisSyncWindow#years(LocalDate)}), not only the current one:
-     * the monthly production aggregation rewrites every month of that window, including the months
-     * of the previous year it reaches, so that year's total would otherwise stay frozen.
+     * For every community with Datadis enabled, this job re-aggregates every year the full re-sync
+     * window overlaps ({@link DatadisSyncWindows#full()}), not only the current one: the monthly
+     * production aggregation rewrites every month of that window, including the months of the
+     * previous years it reaches, so their totals would otherwise stay frozen.
      *
      * The current date is resolved in the community's zone, so the window follows the community's
      * calendar rather than the JVM default zone.
@@ -84,7 +84,7 @@ public class DatadisProductionYearlyAggregationJob implements Job {
         try {
             LocalDate today = LocalDate.now(clock.withZone(
                     zoneResolver.resolveZoneIdForCommunity(config.getCommunityId())));
-            for (int year : syncWindow.years(today)) {
+            for (int year : syncWindows.full().years(today)) {
                 LOGGER.info("Aggregating production data for community: {}, year: {}", config.getCommunityId(), year);
                 aggregationService.aggregateYearlyProductions(config.getCommunityId(), year);
             }

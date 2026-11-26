@@ -13,20 +13,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DatadisSyncWindowTest {
 
+    private static final DatadisSyncWindow TWO_YEARS = new DatadisSyncWindow(Period.ofMonths(24));
+
     @Test
-    void theDefaultFirstDayIsTheFirstOfTheMonthOneYearBack() {
-        assertEquals(LocalDate.of(2025, 10, 1), DatadisSyncWindow.DEFAULT.firstDay(LocalDate.of(2026, 10, 9)));
-        assertEquals(LocalDate.of(2025, 2, 1), DatadisSyncWindow.DEFAULT.firstDay(LocalDate.of(2026, 2, 28)));
+    void theFirstDayIsTheFirstOfTheMonthTheLookbackReaches() {
+        assertEquals(LocalDate.of(2024, 10, 1), TWO_YEARS.firstDay(LocalDate.of(2026, 10, 9)));
+        assertEquals(LocalDate.of(2024, 2, 1), TWO_YEARS.firstDay(LocalDate.of(2026, 2, 28)));
     }
 
     @Test
-    @DisplayName("DCA-001 the default window covers 13 months: the month the sync starts in through the current one")
-    void theDefaultWindowCoversThirteenMonths() {
-        List<YearMonth> months = DatadisSyncWindow.DEFAULT.months(LocalDate.of(2026, 10, 9));
+    @DisplayName("DCA-001 a 24-month window covers 25 months: the month the sync starts in through the current one")
+    void aTwentyFourMonthWindowCoversTwentyFiveMonths() {
+        List<YearMonth> months = TWO_YEARS.months(LocalDate.of(2026, 11, 26));
 
-        assertEquals(13, months.size());
-        assertEquals(YearMonth.of(2025, 10), months.get(0));
-        assertEquals(YearMonth.of(2026, 10), months.get(12));
+        assertEquals(25, months.size());
+        assertEquals(YearMonth.of(2024, 11), months.get(0));
+        assertEquals(YearMonth.of(2026, 11), months.get(24));
         for (int i = 1; i < months.size(); i++) {
             assertEquals(months.get(i - 1).plusMonths(1), months.get(i), "months are consecutive, oldest first");
         }
@@ -64,8 +66,8 @@ class DatadisSyncWindowTest {
     @Test
     @DisplayName("DCA-003 the years of the window are every year its months overlap, oldest first")
     void theYearsAreEveryYearTheMonthsOverlap() {
-        assertEquals(List.of(2025, 2026), DatadisSyncWindow.DEFAULT.years(LocalDate.of(2026, 10, 9)));
-        assertEquals(List.of(2025, 2026), DatadisSyncWindow.DEFAULT.years(LocalDate.of(2026, 1, 1)));
+        assertEquals(List.of(2024, 2025, 2026), TWO_YEARS.years(LocalDate.of(2026, 11, 26)));
+        assertEquals(List.of(2024, 2025, 2026), TWO_YEARS.years(LocalDate.of(2026, 1, 1)));
         assertEquals(List.of(2025, 2026), new DatadisSyncWindow(Period.ofMonths(3)).years(LocalDate.of(2026, 2, 15)));
         assertEquals(List.of(2026), new DatadisSyncWindow(Period.ofMonths(3)).years(LocalDate.of(2026, 10, 9)));
     }
