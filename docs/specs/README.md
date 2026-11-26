@@ -93,3 +93,4 @@ are always called **tests**, never specs.
 | `SHA` | Sharing agreements | [`sharing-agreements.md`](sharing-agreements.md) |
 | `OBS` | Observed sharing of a plant's agreements | [`observed-sharing.md`](observed-sharing.md) |
 | `TRF` | Estimated tariff and its taxes | [`estimated-tariff.md`](estimated-tariff.md) |
+| `SCL` | Surplus claim of a plant | [`surplus-claim.md`](surplus-claim.md) |
