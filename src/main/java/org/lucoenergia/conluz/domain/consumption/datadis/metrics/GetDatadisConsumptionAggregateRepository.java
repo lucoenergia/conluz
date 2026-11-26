@@ -106,4 +106,14 @@ public interface GetDatadisConsumptionAggregateRepository {
      */
     Map<Instant, Double> sumSurplusByHour(Collection<Supply> supplies, Instant from, Instant toExclusive,
                                           ZoneId zone);
+
+    /**
+     * The surplus of every given supply in the half-open interval {@code [from, toExclusive)}, summed
+     * across the supplies hour by hour, keyed by the instant each hour of {@code zone} starts at. An
+     * hour is present when any of the supplies has a record carrying surplus for it, zero included, so
+     * a measured zero is told apart from a missing record; an hour none of them has such a record for
+     * is absent. An empty collection issues no read.
+     */
+    Map<Instant, Double> sumRecordedSurplusByHour(Collection<Supply> supplies, Instant from, Instant toExclusive,
+                                                  ZoneId zone);
 }

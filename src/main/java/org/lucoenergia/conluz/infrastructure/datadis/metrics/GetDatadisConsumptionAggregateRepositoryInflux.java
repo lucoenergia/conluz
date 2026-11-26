@@ -347,6 +347,37 @@ public class GetDatadisConsumptionAggregateRepositoryInflux implements GetDatadi
         }
     }
 
+    @Override
+    public Map<Instant, Double> sumRecordedSurplusByHour(Collection<Supply> supplies, Instant from,
+                                                         Instant toExclusive, ZoneId zone) {
+        if (supplies.isEmpty()) {
+            return Map.of();
+        }
+        try (InfluxDB connection = influxDbConnectionManager.getConnection()) {
+
+            // As sumSurplusByHour, without leaving out the records carrying zero: an hour whose records all
+            // carry zero is a measured zero, present with 0. fill(none) leaves out the hours no record falls
+            // in, and an hour whose records all lack the field sums to null and is left out too.
+            Query query = new Query(String.format(
+                    """
+                            SELECT SUM("surplus_energy_kwh") AS "surplus_energy_kwh"
+                            FROM "%s"
+                            WHERE (%s)
+                                AND time >= '%s'
+                                AND time < '%s'
+                            GROUP BY time(1h) fill(none) tz('%s')
+                            """,
+                    DatadisConfigEntity.CONSUMPTION_KWH_MEASUREMENT,
+                    cupsFilter(supplies),
+                    dateConverter.convertToString(from),
+                    dateConverter.convertToString(toExclusive),
+                    zone.getId()));
+
+            // Times in milliseconds come back as a number, whatever the server's precision.
+            return toSurplusByHour(connection.query(query, TimeUnit.MILLISECONDS));
+        }
+    }
+
     /**
      * The summed surplus of each hour an hourly grouped query returns, keyed by the instant the hour
      * starts at.

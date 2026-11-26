@@ -802,6 +802,99 @@ class GetDatadisConsumptionAggregateRepositoryInfluxIntegrationTest extends Base
                 Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
     }
 
+    @Test
+    @DisplayName("SCL-002 the recorded surplus of several supplies is summed hour by hour, other supplies left out")
+    void sumRecordedSurplusByHourSumsTheSuppliesHourByHour() {
+        Supply first = supply();
+        Supply second = supply();
+        Supply outOfScope = supply();
+        Instant ten = Instant.parse("2026-05-10T08:00:00Z");
+        Instant eleven = ten.plusSeconds(3600);
+        fixture.writeAt(first.getCode(), List.of(ten, eleven), 1f, 0f, 2f);
+        fixture.writeAt(second.getCode(), ten, 1f, 0f, 3f);
+        fixture.writeAt(outOfScope.getCode(), List.of(ten, eleven), 1f, 0f, 100f);
+
+        Map<Instant, Double> surplus = repository.sumRecordedSurplusByHour(List.of(first, second), ten,
+                ten.plusSeconds(3 * 3600), ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Map.of(ten, 5.0, eleven, 2.0), surplus);
+    }
+
+    /**
+     * Unlike sumSurplusByHour, an hour whose records carry zero is a measured zero and is present; only an hour
+     * without any record carrying surplus is absent.
+     */
+    @Test
+    @DisplayName("SCL-002 an hour whose records carry zero surplus is 0, and an hour without a record carrying surplus is absent")
+    void sumRecordedSurplusByHourTellsAZeroFromAMissingRecord() {
+        Supply first = supply();
+        Supply second = supply();
+        Instant ten = Instant.parse("2026-05-10T08:00:00Z");
+        // 10:00: only one supply has a record, carrying zero.
+        fixture.writeAt(first.getCode(), ten, 1f, 1f, 0f);
+        // 11:00: a record without the field.
+        fixture.writeAt(first.getCode(), ten.plusSeconds(3600), 1f, 1f, null);
+        // 12:00: no record at all. 13:00: a zero and a surplus.
+        fixture.writeAt(first.getCode(), ten.plusSeconds(3 * 3600), 1f, 1f, 0f);
+        fixture.writeAt(second.getCode(), ten.plusSeconds(3 * 3600), 1f, 1f, 0.25f);
+
+        Map<Instant, Double> surplus = repository.sumRecordedSurplusByHour(List.of(first, second), ten,
+                ten.plusSeconds(4 * 3600), ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Map.of(ten, 0.0, ten.plusSeconds(3 * 3600), 0.25), surplus);
+    }
+
+    @Test
+    @DisplayName("SCL-002 the recorded surplus includes the record on the start bound and excludes the one on the end bound")
+    void sumRecordedSurplusByHourIsHalfOpen() {
+        Supply supply = supply();
+        Instant from = Instant.parse("2026-05-10T10:00:00Z");
+        Instant to = Instant.parse("2026-05-10T12:00:00Z");
+        fixture.writeAt(supply.getCode(), List.of(from.minusSeconds(3600), from, from.plusSeconds(3600), to),
+                1f, 0f, 0f);
+
+        Map<Instant, Double> surplus = repository.sumRecordedSurplusByHour(List.of(supply), from, to,
+                ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Map.of(from, 0.0, from.plusSeconds(3600), 0.0), surplus);
+    }
+
+    /**
+     * 29 March 2026 lasts 23 hours in Madrid and 25 October 2026 lasts 25: every hour keeps its own key.
+     */
+    @Test
+    @DisplayName("SCL-004 the recorded surplus keeps every hour of the days the clocks change")
+    void sumRecordedSurplusByHourKeepsEveryHourAcrossTheDaylightSavingChanges() {
+        Supply supply = supply();
+        List<Instant> march = hoursFrom(Instant.parse("2026-03-28T23:00:00Z"), 23);
+        List<Instant> october = hoursFrom(Instant.parse("2026-10-24T22:00:00Z"), 25);
+        fixture.writeAt(supply.getCode(), march, 1f, 0.5f, 0.25f);
+        fixture.writeAt(supply.getCode(), october, 1f, 0.5f, 0f);
+
+        Map<Instant, Double> marchSurplus = repository.sumRecordedSurplusByHour(List.of(supply), march.get(0),
+                Instant.parse("2026-03-29T22:00:00Z"), ZoneId.of("Europe/Madrid"));
+        Map<Instant, Double> octoberSurplus = repository.sumRecordedSurplusByHour(List.of(supply), october.get(0),
+                Instant.parse("2026-10-25T23:00:00Z"), ZoneId.of("Europe/Madrid"));
+
+        assertEquals(Set.copyOf(march), marchSurplus.keySet());
+        assertEquals(Set.copyOf(october), octoberSurplus.keySet());
+        assertTrue(octoberSurplus.values().stream().allMatch(kWh -> kWh == 0d), () -> "was " + octoberSurplus);
+    }
+
+    @Test
+    void sumRecordedSurplusByHourOfNoSupplyReadsNothing() {
+        assertTrue(repository.sumRecordedSurplusByHour(List.of(), Instant.parse("2026-05-09T22:00:00Z"),
+                Instant.parse("2026-05-10T22:00:00Z"), ZoneId.of("Europe/Madrid")).isEmpty());
+    }
+
+    private static List<Instant> hoursFrom(Instant first, int count) {
+        List<Instant> hours = new ArrayList<>();
+        for (int hour = 0; hour < count; hour++) {
+            hours.add(first.plusSeconds(3600L * hour));
+        }
+        return hours;
+    }
+
     private Supply supply() {
         String code = "ES" + RandomStringUtils.random(20, false, true);
         createdCupsCodes.add(code);
