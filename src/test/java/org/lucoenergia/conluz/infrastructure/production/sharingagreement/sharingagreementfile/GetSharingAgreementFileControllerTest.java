@@ -166,6 +166,16 @@ class GetSharingAgreementFileControllerTest extends BaseControllerTest {
                 .andExpect(result -> assertArrayEquals(fileContent, result.getResponse().getContentAsByteArray()));
     }
 
+    @Test
+    void returnsTheFileAsOctetStreamWithoutAForcedCharset() throws Exception {
+        String authHeader = loginAsCommunityAdmin(communityA.getId());
+
+        mockMvc.perform(get(url(plantA.getId(), agreementWithFile.getId()))
+                        .header(HttpHeaders.AUTHORIZATION, authHeader))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE));
+    }
+
     private Plant createPlant(Community community) {
         User owner = UserMother.randomUser();
         createUserRepository.create(owner);

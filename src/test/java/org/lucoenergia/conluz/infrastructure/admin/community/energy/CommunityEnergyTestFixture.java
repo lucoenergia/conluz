@@ -224,12 +224,25 @@ public class CommunityEnergyTestFixture {
      * A plant of the community, on a supply of its own owned by a new member.
      */
     public Plant createPlant(UUID communityId, String name, double peakPowerKWp, double nominalPowerKW) {
-        return createPlant(createSupply(createMember(communityId), communityId), name, peakPowerKWp, nominalPowerKW);
+        return createPlant(communityId, name, peakPowerKWp, nominalPowerKW, null);
+    }
+
+    /**
+     * A plant as {@link #createPlant(UUID, String, double, double)} creates it, holding the given CIL, or none when
+     * it is null.
+     */
+    public Plant createPlant(UUID communityId, String name, double peakPowerKWp, double nominalPowerKW, String cil) {
+        return createPlant(createSupply(createMember(communityId), communityId), name, peakPowerKWp, nominalPowerKW,
+                cil);
     }
 
     private Plant createPlant(Supply supply, String name, double peakPowerKWp, double nominalPowerKW) {
+        return createPlant(supply, name, peakPowerKWp, nominalPowerKW, null);
+    }
+
+    private Plant createPlant(Supply supply, String name, double peakPowerKWp, double nominalPowerKW, String cil) {
         return createPlantRepository.create(PlantMother.random(supply).withName(name).withPeakPowerKWp(peakPowerKWp)
-                .withNominalPowerKW(nominalPowerKW).build(), SupplyId.of(supply.getId()));
+                .withNominalPowerKW(nominalPowerKW).withCil(cil).build(), SupplyId.of(supply.getId()));
     }
 
     private void track(String cups) {

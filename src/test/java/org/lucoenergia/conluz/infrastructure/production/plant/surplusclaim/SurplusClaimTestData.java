@@ -49,8 +49,15 @@ final class SurplusClaimTestData {
      * other supplies, each owned by a member of its own.
      */
     PlantWithSupplies plantWithSupplies(int supplies) {
+        return plantWithSupplies(supplies, null);
+    }
+
+    /**
+     * A plant as {@link #plantWithSupplies(int)} creates it, holding the given CIL, or none when it is null.
+     */
+    PlantWithSupplies plantWithSupplies(int supplies, String cil) {
         UUID communityId = fixture.createEmptyCommunity().getId();
-        Plant plant = fixture.createPlant(communityId, "North", 80.0, 60.0);
+        Plant plant = fixture.createPlant(communityId, "North", 80.0, 60.0, cil);
         return new PlantWithSupplies(communityId, plant, fixture.createCommunityWithSupplies(communityId, supplies));
     }
 

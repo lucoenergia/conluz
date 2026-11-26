@@ -9,6 +9,7 @@ import org.lucoenergia.conluz.domain.production.plant.PlantNotFoundException;
 import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasPartitionCoefficientsException;
 import org.lucoenergia.conluz.domain.production.plant.delete.PlantHasSharingAgreementsException;
 import org.lucoenergia.conluz.domain.production.plant.surplusclaim.SurplusClaimMonthNotClosedException;
+import org.lucoenergia.conluz.domain.production.plant.surplusclaim.file.SurplusClaimCilRequiredException;
 import org.lucoenergia.conluz.infrastructure.shared.error.ErrorBuilder;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestError;
 import org.lucoenergia.conluz.infrastructure.shared.web.error.RestErrorCode;
@@ -148,5 +149,14 @@ public class PlantExceptionHandler {
         );
         return errorBuilder.build(message, RestErrorCode.SURPLUS_CLAIM_MONTH_NOT_CLOSED, null,
                 HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * A 409: the Endesa file identifies the plant by its CIL, and the plant has none (SCL-016).
+     */
+    @ExceptionHandler(SurplusClaimCilRequiredException.class)
+    public ResponseEntity<RestError> handleException(SurplusClaimCilRequiredException e) {
+        return refused("error.surplus.claim.cil.required", RestErrorCode.SURPLUS_CLAIM_CIL_REQUIRED,
+                HttpStatus.CONFLICT);
     }
 }

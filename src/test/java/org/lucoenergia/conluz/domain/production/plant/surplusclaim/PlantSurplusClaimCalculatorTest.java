@@ -470,7 +470,8 @@ class PlantSurplusClaimCalculatorTest {
         }
 
         private SurplusClaimInput build() {
-            return new SurplusClaimInput(month, MADRID, new PlantReference(plantId, "North"), null, plantSupplyId,
+            return new SurplusClaimInput(month, MADRID, new PlantReference(plantId, "North"), null, null,
+                    plantSupplyId,
                     60d, new SurplusClaimAvailableMonths(null, null), coefficients, scope, surplus,
                     daysBySupplyCode, prices);
         }

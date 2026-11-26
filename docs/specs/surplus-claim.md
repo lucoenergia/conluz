@@ -4,16 +4,16 @@
 | --- | --- |
 | **Prefix** | `SCL` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Plants`; operation `getPlantSurplusClaim` |
+| **Contract** | OpenAPI snapshot → tag `Plants`; operations `getPlantSurplusClaim`, `getPlantSurplusClaimFile` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #629 |
+| **Last reviewed against code** | #633 |
 
 ## Purpose
 
 Every month the community admin claims from the retailer the surplus of each production installation, to get paid
 for it. The surplus claim is the computation behind that claim: a plant's surplus for one closed month, hour by hour,
-with what is missing from it, so the admin can see what would be sent before sending it. It is computed on demand and
-never stored.
+with what is missing from it, so the admin can see what would be sent before sending it. Once reviewed, the same month
+is downloaded as the file the retailer asks for. Both are computed on demand and never stored.
 
 ## Glossary
 
@@ -24,6 +24,7 @@ never stored.
 | Surplus record | An hourly Datadis record of a supply carrying surplus, zero included. A record without the field is not one. |
 | In force on a day | An applied coefficient whose period contains the local midnight the day starts at. |
 | Closed month | A calendar month before the current one, in the zone of the plant's community. |
+| Claim file | A month's claim written in a retailer's format, to attach to the claim sent to the retailer (SCL-014). |
 
 ## Rules
 
@@ -158,11 +159,81 @@ Then 10:00 is 0 kWh and 11:00 is null
 - **Rationale:** The admin manages those supplies and has to identify them to the retailer.
 - **Source:** #629, PEM-004
 
+### SCL-014 — The claim file is the preview of the requested month
+
+- **Status:** Active
+- **Rule:** A claim file MUST carry exactly the days, the day states and the hours of the claim of the requested
+  month (SCL-002 to SCL-004), written from their unrounded values, and nothing else: no summary, income or warning. A
+  month that is not closed MUST be refused as SCL-007 refuses it.
+- **Rationale:** The admin sends what they reviewed. A second computation of the same month could drift from the
+  preview.
+- **Source:** #633
+
+### SCL-015 — A file names its month and its format
+
+- **Status:** Active
+- **Rule:** A claim file MUST be requested with a month and a format; without either, or with an unknown format, it
+  MUST be refused with 400. SCL-007's default month MUST NOT apply to a file.
+- **Rationale:** A default could produce a month other than the one the admin reviewed.
+- **Source:** #633
+
+### SCL-016 — The Endesa format needs the plant's CIL
+
+- **Status:** Active
+- **Rule:** The `ENDESA` format MUST be refused with 409 `SURPLUS_CLAIM_CIL_REQUIRED` for a plant without a CIL. The
+  `GENERIC` format MUST NOT need one.
+- **Rationale:** Endesa identifies the installation by the CIL in every row; the generic file is not addressed to one
+  retailer.
+- **Source:** #633
+
+### SCL-017 — The Endesa workbook
+
+- **Status:** Active
+- **Rule:** The `ENDESA` format MUST fill Endesa's bundled template, changing only its `Carga` sheet: one row per local
+  day, in date order, from row 2, holding the plant's CIL, the measure type `AS`, the day's state (`R` real, `E`
+  estimated), the date as a date cell shown `dd/mm/yyyy`, and then the day's hours from `HOR1`. An hour MUST be a number
+  rounded half-up to 2 decimals and shown with 2 decimals, an hour without any record MUST be 0, and an hour the day
+  does not have MUST be left empty. The validations of the measure type and the state MUST cover every written row,
+  and never fewer rows than the template's own. The bundled template MUST NOT be rewritten.
+- **Rationale:** The retailer's template and instructions: a numeric cell in every hour of the day, 2 decimals, and a
+  31-day month validated like a 30-day one. The template, as bundled, is the one the retailer accepts; it is never
+  written back, so every file starts from it.
+- **Source:** #633
+
+### SCL-018 — The Endesa workbook is delivered zipped
+
+- **Status:** Active
+- **Rule:** The `ENDESA` format MUST be a ZIP named `reclamacionMedidas_{CIL}_{YYYY-MM}.zip`, holding only the
+  workbook `reclamacionMedidas_{CIL}_{YYYY-MM}.xlsx`.
+- **Rationale:** The template's instructions ask for the saved workbook to be compressed into a ZIP and attached to
+  the claim.
+- **Source:** #633
+
+### SCL-019 — The generic CSV
+
+- **Status:** Active
+- **Rule:** The `GENERIC` format MUST be a UTF-8 CSV with a byte order mark, `;` separated and with CRLF line ends,
+  named `excedentes_{regulatoryCode}_{YYYY-MM}.csv`, or after the plant's id when it has no regulatory code. Its
+  header MUST be `fecha;estado;HOR1;…;HOR25`, followed by one row of 27 fields per local day: the date as
+  `dd/mm/yyyy`, `R` or `E`, and 25 hours. An hour MUST be written with 3 decimals, a decimal comma and no thousands
+  separator; an hour without any record and an hour the day does not have MUST both be empty.
+- **Rationale:** A neutral matrix any retailer's process can start from, which a spreadsheet in a Spanish locale opens
+  as it is, and which keeps gaps visible: on a real day, an empty hour can only be one the day does not have.
+- **Source:** #633
+
+### SCL-020 — Warnings never block a file
+
+- **Status:** Active
+- **Rule:** No warning of the month MUST prevent its file, in any format.
+- **Rationale:** As for the preview (SCL-012): the admin decides; the application informs.
+- **Source:** #633, SCL-012
+
 ## Impossible states
 
 - A missing hour reported as 0 — prevented by SCL-002.
 - A month's income without a month's surplus — prevented by SCL-006.
 - A supply listed both without data and with gaps — prevented by SCL-009: a supply with gaps has records.
+- A claim file of a month other than the one requested — prevented by SCL-015.
 
 ## Accepted exceptions
 

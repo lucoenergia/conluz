@@ -139,8 +139,8 @@ public final class PlantSurplusClaimCalculator {
                 coefficientsInMonth.isEmpty(),
                 List.copyOf(hoursAboveNominalPower));
 
-        return new PlantSurplusClaim(month, zone, input.plant(), input.cil(), input.availableMonths(), summary,
-                List.copyOf(days), warnings);
+        return new PlantSurplusClaim(month, zone, input.plant(), input.cil(), input.regulatoryCode(),
+                input.availableMonths(), summary, List.copyOf(days), warnings);
     }
 
     /**

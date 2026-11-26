@@ -139,6 +139,7 @@ public class GetPlantSurplusClaimServiceImpl implements GetPlantSurplusClaimServ
                 zone,
                 new PlantReference(plant.getId(), plant.getName()),
                 plant.getCil(),
+                plant.getRegulatoryCode(),
                 plantSupplyId,
                 plant.getNominalPowerKW(),
                 new SurplusClaimAvailableMonths(firstMonth, latestPublishedMonth),

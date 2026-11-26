@@ -4,16 +4,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.HttpServletResponse;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.DownloadSharingAgreementFileService;
 import org.lucoenergia.conluz.domain.production.sharingagreement.sharingagreementfile.SharingAgreementFile;
+import org.lucoenergia.conluz.infrastructure.shared.web.FileDownload;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.ApiTag;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.BadRequestErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.ForbiddenErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.InternalServerErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.NotFoundErrorResponse;
 import org.lucoenergia.conluz.infrastructure.shared.web.apidocs.response.UnauthorizedErrorResponse;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -66,15 +66,11 @@ public class GetSharingAgreementFileController {
     @NotFoundErrorResponse
     @InternalServerErrorResponse
     @PreAuthorize("@communityAccessGuard.canReadSharingAgreement(#plantId, #sharingAgreementId)")
-    public ResponseEntity<byte[]> getSharingAgreementFile(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId) {
+    public ResponseEntity<byte[]> getSharingAgreementFile(@PathVariable UUID plantId, @PathVariable UUID sharingAgreementId,
+                                                          HttpServletResponse response) {
         SharingAgreementFile file = downloadSharingAgreementFileService.downloadLatestBySharingAgreementId(sharingAgreementId);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDisposition(ContentDisposition.attachment().filename(file.getFilename()).build());
-
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(file.getContent());
+        return FileDownload.attachment(response, file.getFilename(), MediaType.APPLICATION_OCTET_STREAM,
+                file.getContent());
     }
 }

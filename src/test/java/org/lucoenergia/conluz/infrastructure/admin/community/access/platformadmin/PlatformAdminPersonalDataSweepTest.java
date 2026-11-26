@@ -59,7 +59,10 @@ class PlatformAdminPersonalDataSweepTest extends BaseRegisterMemberTest {
     private static final Map<String, String> QUERY_VALUES = Map.of(
             "startDate", "2026-01-01T00:00:00.000+01:00",
             "endDate", "2026-01-31T00:00:00.000+01:00",
-            "timestamp", "2026-01-15T12:00:00Z");
+            "timestamp", "2026-01-15T12:00:00Z",
+            "month", "2026-01",
+            // The CSV, whose body is text the sweep can search
+            "format", "GENERIC");
 
     /**
      * Reads the platform admin must still be answered, so that the sweep cannot pass by refusing everything.
