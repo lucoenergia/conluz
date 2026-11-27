@@ -18,6 +18,7 @@ import org.lucoenergia.conluz.domain.admin.supply.disable.DisableSupplyService;
 import org.lucoenergia.conluz.domain.admin.user.User;
 import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.consumption.datadis.DatadisConsumption;
 import org.lucoenergia.conluz.domain.shared.SupplyId;
 import org.lucoenergia.conluz.domain.shared.UserId;
@@ -73,7 +74,11 @@ class GetSupplyDatadisConsumptionHourlyMonthsControllerTest extends BaseControll
     @Autowired
     private DisableSupplyService disableSupplyService;
     @Autowired
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
+    @Autowired
     private DatadisConsumptionInfluxFixture datadis;
+
+    private final List<UserId> platformAdmins = new ArrayList<>();
 
     private Community community;
     private User owner;
@@ -97,6 +102,7 @@ class GetSupplyDatadisConsumptionHourlyMonthsControllerTest extends BaseControll
 
     @AfterEach
     void tearDown() {
+        platformAdmins.forEach(managePlatformAdminRepository::revoke);
         datadis.clear(cups);
         datadis.clear(OTHER_CUPS);
         deleteSupplyRepository.delete(SupplyId.of(supply.getId()));
@@ -195,7 +201,7 @@ class GetSupplyDatadisConsumptionHourlyMonthsControllerTest extends BaseControll
         tokens.put("community admin", loginAsCommunityAdmin(community.getId()));
         tokens.put("another member of the community", loginAsCommunityMember(community.getId()));
         tokens.put("a member of another community", loginAsCommunityMember(otherCommunity.getId()));
-        tokens.put("a platform admin who is not a member", loginAsDefaultPlatformAdmin());
+        tokens.put("a platform admin who is not a member", loginAsPlatformAdminWithoutMembership());
         tokens.put("no token", null);
         Map<String, Integer> expected = Map.of("owner", 200, "community admin", 200,
                 "another member of the community", 404, "a member of another community", 404,
@@ -321,5 +327,19 @@ class GetSupplyDatadisConsumptionHourlyMonthsControllerTest extends BaseControll
         List<String> labels = new ArrayList<>(List.of(first));
         IntStream.rangeClosed(4, 24).forEach(hour -> labels.add(String.format("%02d:00", hour)));
         return List.copyOf(labels);
+    }
+
+    /**
+     * A platform admin with a personal ID of their own, revoked after the test. This test commits what it creates:
+     * the default admin would stay in the database, where other tests create a user with its personal ID, and a
+     * platform admin left behind would be counted by the tests that count them.
+     */
+    private String loginAsPlatformAdminWithoutMembership() throws Exception {
+        User platformAdmin = UserMother.randomUser();
+        platformAdmin.enable();
+        createUserRepository.create(platformAdmin);
+        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
+        platformAdmins.add(UserId.of(platformAdmin.getId()));
+        return loginUser(platformAdmin);
     }
 }
