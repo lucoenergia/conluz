@@ -180,6 +180,7 @@ class PlatformAdminRefusedEndpointsControllerTest extends BaseControllerTest {
                 call(404, HttpMethod.GET, supplies + "/consumption/monthly").dates(),
                 call(404, HttpMethod.GET, supplies + "/consumption/yearly").dates(),
                 call(404, HttpMethod.GET, supplies + "/consumption/datadis/hourly/csv").param("month", "2026-09"),
+                call(404, HttpMethod.GET, supplies + "/consumption/datadis/hourly/months"),
                 call(404, HttpMethod.GET, supplies + "/production/daily").dates(),
                 call(404, HttpMethod.GET, supplies + "/production/hourly").dates(),
                 call(404, HttpMethod.GET, supplies + "/production/monthly").dates(),
