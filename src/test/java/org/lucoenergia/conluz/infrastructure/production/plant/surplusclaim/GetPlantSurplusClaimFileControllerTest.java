@@ -15,11 +15,15 @@ import org.junit.jupiter.api.Test;
 import org.lucoenergia.conluz.domain.admin.supply.Supply;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
+import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.production.plant.surplusclaim.GetPlantSurplusClaimService;
 import org.lucoenergia.conluz.domain.production.plant.surplusclaim.PlantSurplusClaim;
 import org.lucoenergia.conluz.domain.production.plant.surplusclaim.SurplusClaimDay;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.admin.community.energy.CommunityEnergyTestFixture;
 import org.lucoenergia.conluz.infrastructure.production.plant.surplusclaim.SurplusClaimTestData.PlantWithSupplies;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -40,6 +44,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -93,6 +98,12 @@ class GetPlantSurplusClaimFileControllerTest extends BaseControllerTest {
     private SaveSupplyPartitionCoefficientRepository saveSupplyPartitionCoefficientRepository;
     @Autowired
     private GetPlantSurplusClaimService getPlantSurplusClaimService;
+    @Autowired
+    private CreateUserRepository createUserRepository;
+    @Autowired
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
+
+    private final List<UserId> platformAdmins = new ArrayList<>();
 
     private SurplusClaimTestData data;
 
@@ -105,6 +116,7 @@ class GetPlantSurplusClaimFileControllerTest extends BaseControllerTest {
 
     @AfterEach
     void tearDown() {
+        platformAdmins.forEach(managePlatformAdminRepository::revoke);
         data.clear();
     }
 
@@ -331,7 +343,7 @@ class GetPlantSurplusClaimFileControllerTest extends BaseControllerTest {
             file(plantId, loginAsCommunityAdmin(plant.communityId()), "2026-09", format).andExpect(status().isOk());
             file(plantId, loginUser(member), "2026-09", format).andExpect(status().isForbidden());
             file(plantId, loginAsPartner(), "2026-09", format).andExpect(status().isNotFound());
-            file(plantId, loginAsDefaultPlatformAdmin(), "2026-09", format).andExpect(status().isNotFound());
+            file(plantId, loginAsPlatformAdminWithoutMembership(), "2026-09", format).andExpect(status().isNotFound());
             file(UUID.randomUUID(), loginAsCommunityAdmin(plant.communityId()), "2026-09", format)
                     .andExpect(status().isNotFound());
             mockMvc.perform(get(PATH, plantId).queryParam("month", "2026-09").queryParam("format", format))
@@ -452,5 +464,19 @@ class GetPlantSurplusClaimFileControllerTest extends BaseControllerTest {
 
     private ResultActions request(MockHttpServletRequestBuilder request) throws Exception {
         return mockMvc.perform(request);
+    }
+
+    /**
+     * A platform admin with a personal ID of their own, revoked after the test. This test commits what it creates:
+     * the default admin would stay in the database, where other tests create a user with its personal ID, and a
+     * platform admin left behind would be counted by the tests that count them.
+     */
+    private String loginAsPlatformAdminWithoutMembership() throws Exception {
+        User platformAdmin = UserMother.randomUser();
+        platformAdmin.enable();
+        createUserRepository.create(platformAdmin);
+        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
+        platformAdmins.add(UserId.of(platformAdmin.getId()));
+        return loginUser(platformAdmin);
     }
 }

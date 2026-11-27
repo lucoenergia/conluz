@@ -12,13 +12,17 @@ import org.lucoenergia.conluz.domain.admin.supply.create.CreateSupplyRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.GetSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SaveSupplyPartitionCoefficientRepository;
 import org.lucoenergia.conluz.domain.admin.supply.partitioncoefficient.SupplyPartitionCoefficient;
+import org.lucoenergia.conluz.domain.admin.user.User;
+import org.lucoenergia.conluz.domain.admin.user.UserMother;
 import org.lucoenergia.conluz.domain.admin.user.create.CreateUserRepository;
+import org.lucoenergia.conluz.domain.admin.user.platformadmin.ManagePlatformAdminRepository;
 import org.lucoenergia.conluz.domain.production.plant.Plant;
 import org.lucoenergia.conluz.domain.production.plant.create.CreatePlantRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreement;
 import org.lucoenergia.conluz.domain.production.sharingagreement.SharingAgreementStatus;
 import org.lucoenergia.conluz.domain.production.sharingagreement.create.CreateSharingAgreementRepository;
 import org.lucoenergia.conluz.domain.production.sharingagreement.get.GetSharingAgreementRepository;
+import org.lucoenergia.conluz.domain.shared.UserId;
 import org.lucoenergia.conluz.infrastructure.datadis.DatadisConsumptionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.production.datadis.DatadisProductionInfluxFixture;
 import org.lucoenergia.conluz.infrastructure.shared.BaseControllerTest;
@@ -27,6 +31,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -75,6 +80,10 @@ class SharingObservationControllerTest extends BaseControllerTest {
     private DatadisConsumptionInfluxFixture consumptionFixture;
     @Autowired
     private DatadisProductionInfluxFixture productionFixture;
+    @Autowired
+    private ManagePlatformAdminRepository managePlatformAdminRepository;
+
+    private final List<UserId> platformAdmins = new ArrayList<>();
 
     private ObservedSharingTestData data;
     private Community community;
@@ -122,6 +131,7 @@ class SharingObservationControllerTest extends BaseControllerTest {
 
     @AfterEach
     void tearDown() {
+        platformAdmins.forEach(managePlatformAdminRepository::revoke);
         data.clear();
     }
 
@@ -597,7 +607,7 @@ class SharingObservationControllerTest extends BaseControllerTest {
     @Test
     @DisplayName("OBS-007 both operations answer 404 to a platform admin who is not a member of the community")
     void notFoundForPlatformAdminWithoutMembership() throws Exception {
-        String platformAdmin = loginAsDefaultPlatformAdmin();
+        String platformAdmin = loginAsPlatformAdminWithoutMembership();
 
         for (String url : bothUrls()) {
             perform(url, platformAdmin).andExpect(status().isNotFound());
@@ -704,5 +714,19 @@ class SharingObservationControllerTest extends BaseControllerTest {
 
     private static String agreementUrl(UUID plantId, UUID sharingAgreementId) {
         return "/api/v1/plants/" + plantId + "/sharing-agreements/" + sharingAgreementId + "/observation";
+    }
+
+    /**
+     * A platform admin with a personal ID of their own, revoked after the test. This test commits what it creates:
+     * the default admin would stay in the database, where other tests create a user with its personal ID, and a
+     * platform admin left behind would be counted by the tests that count them.
+     */
+    private String loginAsPlatformAdminWithoutMembership() throws Exception {
+        User platformAdmin = UserMother.randomUser();
+        platformAdmin.enable();
+        createUserRepository.create(platformAdmin);
+        managePlatformAdminRepository.grant(UserId.of(platformAdmin.getId()));
+        platformAdmins.add(UserId.of(platformAdmin.getId()));
+        return loginUser(platformAdmin);
     }
 }
