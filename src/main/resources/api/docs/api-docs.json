@@ -6329,6 +6329,34 @@
         ],
         "type" : "object"
       },
+      "SupplyDatadisConsumptionMonthResponse" : {
+        "properties" : {
+          "expectedHours" : {
+            "description" : "Number of hours the whole month spans, the current month included. Accounts for daylight saving transitions, so a transition day contributes 23 or 25 hours rather than 24.",
+            "example" : 720,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "hoursWithData" : {
+            "description" : "Number of hourly consumption records whose hour starts in the month: the lines, after the header, of the month's getSupplyDatadisConsumptionHourlyCsv export.",
+            "example" : 312,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "month" : {
+            "description" : "The calendar month, as YYYY-MM. It is the month getSupplyDatadisConsumptionHourlyCsv exports with the same value.",
+            "example" : "2026-09",
+            "pattern" : "^\\d{4}-(0[1-9]|1[0-2])$",
+            "type" : "string"
+          }
+        },
+        "required" : [
+          "expectedHours",
+          "hoursWithData",
+          "month"
+        ],
+        "type" : "object"
+      },
       "SupplyDistributorResponse" : {
         "properties" : {
           "code" : {
@@ -24717,6 +24745,136 @@
           }
         ],
         "summary" : "Downloads one month of a supply's hourly Datadis records as a CSV file.",
+        "tags" : [
+          "Supplies"
+        ]
+      }
+    },
+    "/api/v1/supplies/{supplyId}/consumption/datadis/hourly/months" : {
+      "get" : {
+        "description" : "Lists the calendar months that `getSupplyDatadisConsumptionHourlyCsv` can download with\ncontent: one entry per month holding at least one of the supply's stored hourly Datadis\nrecords.\n\n**Months:** a month covers the hours that start from its first day at 00:00 up to, not\nincluding, the first day of the next month at 00:00, in the time zone the application is\nconfigured with, as for the CSV export. A month without any stored record is left out, so\nmonths may be missing between two entries.\n\n**Order and bounds:** newest month first. There is no lower or upper bound: every month with a\nstored record is listed, however old. A supply without records is answered with an empty\narray. A disabled supply still has every month listed.\n\n**Counts:**\n- `hoursWithData`: the number of stored records whose hour starts in the month. It is the\n  number of lines, after the header, that `getSupplyDatadisConsumptionHourlyCsv` writes for\n  the month, whatever fields each record carries.\n- `expectedHours`: the number of hours of the whole month, accounting for daylight saving\n  transitions: a month in which the clocks go forward has one hour less, one in which they go\n  back one hour more. For the current month, it is the whole month, not the part elapsed so\n  far.\n\n**Required: the caller can read the supply** (the supply's `canRead` capability), exactly\nas for `getSupplyDatadisConsumptionHourlyCsv`: its owner, or an active community admin of\nits community. Every other caller, a platform admin who is not a member included, is answered\n404, and a request without a token 401.\n",
+        "operationId" : "getSupplyDatadisConsumptionHourlyMonths",
+        "parameters" : [
+          {
+            "in" : "path",
+            "name" : "supplyId",
+            "required" : true,
+            "schema" : {
+              "format" : "uuid",
+              "type" : "string"
+            }
+          }
+        ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SupplyDatadisConsumptionMonthResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "The months holding the supply's hourly Datadis records, newest first"
+          },
+          "400" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The request contains invalid data.",
+                  "status" : 400,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The request contains invalid data."
+          },
+          "401" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "You are not authorized to make this request.",
+                  "status" : 401,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request."
+          },
+          "403" : {
+            "content" : {
+              "application/json" : {
+                "examples" : {
+                  "Not authorized" : {
+                    "description" : "Not authorized",
+                    "value" : {
+                      "message" : "You are not authorized to make this request.",
+                      "status" : 403,
+                      "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  },
+                  "Password change required" : {
+                    "description" : "Password change required",
+                    "value" : {
+                      "errors" : [
+                        {
+                          "code" : "USER_PASSWORD_CHANGE_REQUIRED",
+                          "message" : "You must change your password before you can continue.",
+                          "params" : null
+                        }
+                      ],
+                      "message" : "You must change your password before you can continue.",
+                      "status" : 403,
+                      "timestamp" : "2026-10-06T10:10:25.534035352+02:00",
+                      "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                    }
+                  }
+                },
+                "schema" : {
+                  "$ref" : "#/components/schemas/RestError"
+                }
+              }
+            },
+            "description" : "You are not authorized to make this request, or your password must be changed first (`USER_PASSWORD_CHANGE_REQUIRED`): while `mustChangePassword` is true on `GET /api/v1/users/current`, every request other than reading the current user, changing the password and logging out is refused."
+          },
+          "404" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "The requested data can not be found. Please check you are authorised or this content exists.",
+                  "status" : 404,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "The requested data can not be found. Please check you are authorised or this content exists."
+          },
+          "500" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "message" : "There was a problem processing your request.",
+                  "status" : 500,
+                  "timestamp" : "2024-01-03T10:10:25.534035352+01:00",
+                  "traceId" : "6e602860-80f7-4802-b20f-8b53fb011013"
+                }
+              }
+            },
+            "description" : "There was a problem processing your request."
+          }
+        },
+        "security" : [
+          {
+            "bearerToken" : [ ]
+          }
+        ],
+        "summary" : "Lists the months holding a supply's hourly Datadis records, with how complete each one is.",
         "tags" : [
           "Supplies"
         ]
