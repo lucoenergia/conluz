@@ -6,7 +6,7 @@
 | **Status** | Active |
 | **Contract** | OpenAPI snapshot → operations `getSupplyDailyConsumption`, `getSupplyMonthlyConsumption`, `getSupplyEnergyMetrics`, `getMembershipMonthlyConsumption`, `getMembershipDailyConsumption`, `getMembershipEnergyMetrics`, `getMembershipHourlyProfile`, `getSupplyHourlyConsumption`, `getMembershipHourlyConsumption`, `getCommunityEnergyMetrics`, `getCommunityHourlyEnergySeries`, `getCommunityDailyEnergySeries`, `getCommunityMonthlyEnergySeries`, `getPlantEnergyMetrics`, `getPlantHourlyEnergySeries`, `getPlantDailyEnergySeries`, `getPlantMonthlyEnergySeries`, `getPlantInverterProductionToday` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #636 |
+| **Last reviewed against code** | #640 |
 
 ## Purpose
 
@@ -30,7 +30,7 @@ touch it.
 | Assigned production | Energy the community assigned to the supply, whether consumed or fed back. Field `assignedProductionKWh`. Derived: self-consumption + surplus. |
 | Production | Energy a plant exported to the grid at its connection point, as measured by the distributor for the plant's own supply (net of the plant's own consumption). Field `productionKWh`. |
 | Hours with data | Number of hourly records found in the period: consumption records for a supply or a membership, production records for a plant. Field `hoursWithData`. |
-| Expected hours | Number of hours the period spans, accounting for daylight saving transitions; for a membership, times its number of supplies. Field `expectedHours`. |
+| Expected hours | Number of hours the period spans, accounting for daylight saving transitions; for a membership, times its number of supplies. Field `expectedHours`. The months listing of a supply's hourly Datadis records (`getSupplyDatadisConsumptionHourlyMonths`, DCX-007) reports it for each whole local calendar month, the current one included. |
 | Supply count | Number of supplies a figure covers: the enabled supplies of a community, or the supplies a member owns in it. Field `supplyCount`. |
 | Supplies with data | Number of those supplies with data. What counts as having data is stated in each operation, so the figure is not comparable across operations. Field `suppliesWithData`. |
 | Average and sample count | An average of a quantity is named `average` followed by the quantity's field name (`averageTotalConsumptionKWh`); the number of records it rests on is named after the quantity with `SampleCount` in place of `KWh` (`totalConsumptionSampleCount`). |

@@ -4,15 +4,16 @@
 | --- | --- |
 | **Prefix** | `DCX` |
 | **Status** | Active |
-| **Contract** | OpenAPI snapshot → tag `Supplies`; operation `getSupplyDatadisConsumptionHourlyCsv` |
+| **Contract** | OpenAPI snapshot → tag `Supplies`; operations `getSupplyDatadisConsumptionHourlyCsv`, `getSupplyDatadisConsumptionHourlyMonths` |
 | **Related ADRs** | — |
-| **Last reviewed against code** | #636 |
+| **Last reviewed against code** | #640 |
 
 ## Purpose
 
 A Datadis consumption CSV hands the hourly records Datadis delivered, as Conluz stored them, to a member or an admin
 who analyses them outside Conluz, typically in a spreadsheet. It computes nothing from them. This spec covers the
-per-supply monthly export; the community hourly report (`getDatadisConsumptionHourlyCsvReport`) is not covered yet.
+per-supply monthly export, and the listing of the months it can download with content; the community hourly report
+(`getDatadisConsumptionHourlyCsvReport`) is not covered yet.
 
 ## Glossary
 
@@ -85,6 +86,47 @@ And two consecutive lines carry 2026/10/25 and 02:00, the first with the values 
 - **Rationale:** One authorisation rule for the same data. A supply's history stays its owner's after the supply is
   disabled.
 - **Source:** #636
+
+### DCX-006 — The months with records are listed, newest first, without bounds
+
+- **Status:** Active
+- **Rule:** `getSupplyDatadisConsumptionHourlyMonths` MUST return one entry per calendar month holding at least one
+  stored record of the supply, the month bounded as in DCX-003, newest first, without a lower or upper bound, and an
+  empty list when the supply has no stored record. A month without a stored record MUST NOT be listed. A disabled
+  supply's months MUST still be listed.
+- **Rationale:** The web offers only the months that can be downloaded with content. Every stored record belongs to
+  exactly one listed month, however old, so no record is unreachable from the listing.
+- **Source:** #640
+
+### DCX-007 — A listed month counts the records its export writes, against the whole month
+
+- **Status:** Active
+- **Rule:** `hoursWithData` MUST equal the number of records `getSupplyDatadisConsumptionHourlyCsv` writes for that
+  month, whatever fields each record carries. `expectedHours` MUST be the hours of the whole local calendar month,
+  accounting for daylight saving transitions, from the same derivation as the energy metrics' expected hours
+  (EVL glossary "Expected hours"); for the current month, the whole month, not its elapsed part.
+- **Rationale:** One definition of a month's records across both operations, so the count announces the file the
+  member downloads. Stating completeness against the whole month tells a month in progress or partly published apart
+  from a complete one.
+- **Source:** #640
+
+**Scenarios**
+
+```gherkin
+Given a supply with a record for every hour of 2026-10 in Europe/Madrid, and 312 records in 2026-11
+When its months are listed
+Then 2026-11 comes first with 312 of 720 hours
+And 2026-10 follows with 745 of 745 hours, the hour repeated on 2026-10-25 included
+```
+
+### DCX-008 — The listing is read as the export is
+
+- **Status:** Active
+- **Rule:** `getSupplyDatadisConsumptionHourlyMonths` MUST be readable exactly by the callers who can read the
+  supply's hourly CSV export (`getSupplyDatadisConsumptionHourlyCsv`), each answered with the same status.
+- **Rationale:** Same data, same authorisation: the listing reveals which months hold records, which the export
+  already reveals to the same callers.
+- **Source:** #640
 
 ## Impossible states
 
